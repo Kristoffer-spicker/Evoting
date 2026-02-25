@@ -1,23 +1,19 @@
 from pathlib import Path
 import multiprocessing
-from base64 import b64encode, b64decode
+from base64 import b64encode
 import argparse
 import random
 import time
-from primitives import NIZK
 from Crypto.PublicKey import ECC
 from subroutines import deserialize_ep
 
 from openpyxl import load_workbook, Workbook
-from gmpy2 import powmod, invert, mul, f_mod, add
 from texttable import Texttable
-import threshold_crypto as tc
 
 from curve import Curve
-from parties import Voter, Teller
+from parties import Teller
+import VCaster
 from util import (
-    multi_dim_index,
-    print_bb,
     find_entry_by_comm,
     calculate_voter_term,
 )
@@ -108,7 +104,7 @@ def poc_setup():
     """
     for i in range(0, num_voters):
         id = "VT" + str(i)
-        voter = Voter(curve, id, vote_min, vote_max)
+        voter = VCaster(curve, id, vote_min, vote_max)
         voter.generate_dsa_keys()
         voter.choose_vote_value()
         voters.append(voter)

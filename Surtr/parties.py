@@ -374,7 +374,7 @@ class Teller:
         public_key_share,
         ciphertexts,
         partial_decryptions,
-    ):
+    ): 
         prod_alpha = ECC.EccPoint(0, 0, "P-256")
         prod_partial_decryptions = ECC.EccPoint(0, 0, "P-256")
         alpha_terms = []
@@ -673,9 +673,9 @@ class Teller:
             # p.close()
         decrypted = data
 
-    def validate_ballot(curve, teller_public_key, ballot):
+    def validate_ballot(self, curve, teller_public_key, ballot):
         dsa = DSA(curve)
-        hash = curve.hash_to_mpz(
+        hash = self.curve.hash_to_mpz(
             str(ballot["ev"])
             + str(ballot["ev_anti"])
             + str(ballot["enc_ptk"])
