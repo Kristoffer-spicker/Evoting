@@ -1,6 +1,7 @@
 import multiprocessing
 import hashlib
 import random
+import sqlite3
 
 import threshold_crypto as tc
 import gmpy2
@@ -21,6 +22,9 @@ from exceptions import (
 )
 from subroutines import Mixnet
 
+con = sqlite3.connect("BulletinBoard.db")
+cur = con.cursor()
+
 class VCaster:
     def __init__(self, curve, id, vote_min, vote_max):
         self.id = id
@@ -28,7 +32,10 @@ class VCaster:
         self.vote_max = vote_max
         self.curve = curve
 
-    def give_vote(self): #Function for the vote chosen by the voter
+    def get_candidates(candList):
+        print ("not implemented")
+
+    def cast_vote(self): #Function for the vote chosen by the voter
         print("not implemented")
 
     def generate_dsa_keys(self):
@@ -111,4 +118,8 @@ class VCaster:
             "pi_3": self.wellformedness_proof_anti,
             "sum_r": self.sum_r,
         }
+        cur.execute("""
+                    INSERT INTO encryptedVotes
+                        ('{bb_data}')
+                    """)
         return bb_data
