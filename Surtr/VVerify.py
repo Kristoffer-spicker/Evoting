@@ -9,13 +9,20 @@ cur = con.cursor()
 
 class VVerify:
     def __init__(self, curve, id, vote_min, vote_max):
-        
+        self.id = id
+        self.vote_min = vote_min
+        self.vote_max = vote_max
+        self.curve = curve
+    
+    def getVoter(self, id):
+        global voter 
+        voter = VCaster(self.curve, id, self.vote_min, self.vote_max)
         
     def notify(self, encrypted_term):
         self.g_ri = encrypted_term
 
     def generate_verification_comm(self):
-        g_ri_x = self.g_ri * self.secret_trapdoor_key
+        g_ri_x = self.g_ri * voter.secret_trapdoor_key
         return g_ri_x
     
     def verifyVote(self):

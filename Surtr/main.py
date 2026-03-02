@@ -12,7 +12,7 @@ from texttable import Texttable
 
 from curve import Curve
 from parties import Teller
-import VCaster
+from VCaster import VCaster
 from util import (
     find_entry_by_comm,
     calculate_voter_term,

@@ -1,6 +1,7 @@
 import multiprocessing
 import hashlib
 import random
+# pylint: disable=no-member
 
 import threshold_crypto as tc
 import gmpy2
@@ -8,7 +9,6 @@ from util import (
     deserialize_ep,
     _ecc_key_to_serializable,
     serialize_pd,
-    deserialize_pd,
 )
 from Crypto.PublicKey import ECC
 
@@ -176,7 +176,7 @@ class Teller:
         self.ege = ElGamalEncryption(self.curve)
         self.core_count = multiprocessing.cpu_count()
 
-    def generate_threshold_keys(k, num_tellers, tc_key_params):
+    def generate_threshold_keys(self, k, num_tellers, tc_key_params):
         thresh_params = tc.ThresholdParameters(k, num_tellers)
         pub_key, key_shares = tc.create_public_key_and_shares_centralized(
             tc_key_params, thresh_params
@@ -770,14 +770,13 @@ class Teller:
         chmp = ChaumPedersenProof(curve)
         if not chmp.verify_s(h_r,  enc_ptk, h_r_anti, enc_ptk_anti, proof[0], proof[1], proof[2],proof[3], proof[4], proof[5], proof[6], teller_public_key.Q):
             raise InvalidProofException(id)
-            print(e)
+            
 
 
     def verify_proof_reenc(curve, teller_public_key, h_r, ptk, proof, id):
         nizk = NIZK(curve)
         if not nizk.verify_2(h_r, teller_public_key.Q, ptk, proof):
             raise InvalidProofException(id)
-            print(e)
 
     def re_encryption_mix(self, list_0):
         mx = Mixnet(self.curve)
