@@ -1,11 +1,14 @@
 from pathlib import Path
 import multiprocessing
+import sqlite3
 from base64 import b64encode
 import argparse
 import random
+import json
 import time
 from Crypto.PublicKey import ECC
 from subroutines import deserialize_ep
+
 
 from openpyxl import load_workbook, Workbook
 from texttable import Texttable
@@ -18,6 +21,61 @@ from util import (
     calculate_voter_term,
 )
 
+import gmpy2
+
+
+con = sqlite3.connect("BulletinBoard.db")
+cur = con.cursor()
+
+cur.execute("DELETE FROM encryptedVotes")
+
+def decode_point_recursive(obj):
+    """Recursively convert any {x, y} dicts back to EccPoints in nested structures"""
+    if isinstance(obj, dict) and 'x' in obj and 'y' in obj:
+        return ECC.EccPoint(int(obj['x']), int(obj['y']), 'P-256')
+    elif isinstance(obj, dict):
+        return {k: decode_point_recursive(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [decode_point_recursive(item) for item in obj]
+    elif isinstance(obj, (int, float)) and not isinstance(obj, bool):
+        return gmpy2.mpz(obj)
+    return obj
+
+def decode_bb_data(row):
+    bb_data = json.loads(row[1])
+    
+    # EccKey
+    bb_data['spk'] = ECC.import_key(bb_data['spk'])
+    
+    # integers back to mpz
+    bb_data['stk'] = gmpy2.mpz(bb_data['stk'])
+    bb_data['stk_anti'] = gmpy2.mpz(bb_data['stk_anti'])
+    bb_data['sum_r'] = gmpy2.mpz(bb_data['sum_r'])
+    
+    # bytes back from hex
+    bb_data['sig'] = bytes.fromhex(bb_data['sig'])
+    
+    # helper to convert {"x": "...", "y": "..."} back to EccPoint
+    def to_point(d):
+        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
+    
+    # encrypted tuples: [EccPoint, EccPoint, mpz]
+    for key in ['ev', 'ev_anti', 'enc_ptk', 'enc_ptk_anti']:
+        bb_data[key][0] = to_point(bb_data[key][0])
+        bb_data[key][1] = to_point(bb_data[key][1])
+        bb_data[key][2] = gmpy2.mpz(bb_data[key][2])
+    
+    # proof fields - convert any EccPoint dicts back
+    for key in ['pi_1', 'pi_1_anti', 'pi_2', 'pi_3']:
+        if key in bb_data:
+            bb_data[key] = decode_point_recursive(bb_data[key])
+
+    return bb_data
+
+
+
+# This so Mathildes Macbook uses forks for multiprocessing instead of spawn
+multiprocessing.set_start_method('fork', force=True)
 
 parser = argparse.ArgumentParser(
     description="Sutr implementation"
@@ -104,7 +162,7 @@ def poc_setup():
     """
     for i in range(0, num_voters):
         id = "VT" + str(i)
-        voter = VCaster(curve, id, vote_min, vote_max)
+        voter = VCaster(curve, id, vote_min, vote_max, cur, con)
         voter.generate_dsa_keys()
         voter.choose_vote_value()
         voters.append(voter)
@@ -148,12 +206,18 @@ def voting():
         voter.generate_pok_antitrapdoor_keypair(teller_public_key)
         voter.generate_wellformedness_proof(teller_public_key)
         voter.generate_wellformedness_proof_anti(teller_public_key) # proof other vote
-        bb_data = voter.sign_ballot()
+        voter.sign_ballot()
+
+        bb_data = retrieve_ballot(voter.id)
+
         bb.append(bb_data)
         t_voting = time.time() - t_voting_single_start
         global t_voting_single
         t_voting_single = t_voting_single + t_voting
 
+def retrieve_ballot(id):
+    ballot = cur.execute("SELECT * FROM encryptedVotes WHERE id = ?", (id,)).fetchone()
+    return decode_bb_data(ballot)
 
 def tallying():
     """The tallying phase of the protocol.
@@ -718,3 +782,4 @@ if results_max_row == 0:
             "Tallying (Decryption)",
         ]
     )
+

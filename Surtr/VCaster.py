@@ -1,22 +1,39 @@
 import random
 import sqlite3
+import json
+import gmpy2
+# pylint: disable=no-member
 
 from primitives import DSA, ChaumPedersenProof, ElGamalEncryption
+from Crypto.PublicKey import ECC
 
-con = sqlite3.connect("BulletinBoard.db")
-cur = con.cursor()
 
+class ECCEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj, ECC.EccKey):
+            return obj.export_key(format='PEM')
+        if isinstance(obj, ECC.EccPoint):
+            return {"x": str(obj.x), "y": str(obj.y)}
+        if isinstance(obj, bytes):
+            return obj.hex()
+        if isinstance(obj, gmpy2.mpz):
+            return int(obj)
+        return super().default(obj)
+        
 class VCaster:
 
-    def __init__(self, curve, id, vote_min, vote_max):
+    def __init__(self, curve, id, vote_min, vote_max, cur, con):
         self.id = id
         self.vote_min = vote_min
         self.vote_max = vote_max
         self.curve = curve
+        self.cur = cur
+        self.con = con
 
     def choose_vote_value(self):
         self.vote = random.randrange(self.vote_min, self.vote_max)
-
+        
     def get_candidates(self, list):
         print ("not implemented")
 
@@ -149,8 +166,8 @@ class VCaster:
             "pi_3": self.wellformedness_proof_anti,
             "sum_r": self.sum_r,
         }
-        cur.execute("""
-                    INSERT INTO encryptedVotes
-                        ('{bb_data}')
-                    """)
-        return bb_data
+        self.cur.execute("INSERT INTO encryptedVotes VALUES (?, ?)", (self.id, json.dumps(bb_data, cls=ECCEncoder),))
+        self.con.commit()
+
+    
+   
