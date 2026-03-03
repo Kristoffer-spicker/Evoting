@@ -1,5 +1,4 @@
 import random
-import sqlite3
 import json
 import gmpy2
 # pylint: disable=no-member
@@ -34,8 +33,6 @@ class VCaster:
     def choose_vote_value(self):
         self.vote = random.randrange(self.vote_min, self.vote_max)
         
-    def get_candidates(self, list):
-        print ("not implemented")
 
     def cast_vote(self): #Function for the vote chosen by the voter
         print("not implemented")
