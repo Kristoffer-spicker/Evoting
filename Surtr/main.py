@@ -9,6 +9,7 @@ import time
 from Crypto.PublicKey import ECC
 from subroutines import deserialize_ep
 
+# pylint: disable=no-member
 
 from openpyxl import load_workbook, Workbook
 from texttable import Texttable
@@ -23,12 +24,14 @@ from util import (
 
 import gmpy2
 
-
+# Set up the connection to the database
 con = sqlite3.connect("BulletinBoard.db")
 cur = con.cursor()
 
+# Starts each run by clearing the database
 cur.execute("DELETE FROM encryptedVotes")
 
+# Decodes from x, y coordinates to EccPoints
 def decode_point_recursive(obj):
     """Recursively convert any {x, y} dicts back to EccPoints in nested structures"""
     if isinstance(obj, dict) and 'x' in obj and 'y' in obj:
@@ -41,35 +44,37 @@ def decode_point_recursive(obj):
         return gmpy2.mpz(obj)
     return obj
 
+# Decodes the ballots as stored in the database back to Ecc objects
 def decode_bb_data(row):
-    bb_data = json.loads(row[1])
+    bb_data = json.loads(row[1]) # Loads the json string of the ballot
     
-    # EccKey
+    # Converts the public key back to ECC key formattign
     bb_data['spk'] = ECC.import_key(bb_data['spk'])
     
-    # integers back to mpz
+    # Takes the integers for the trapdoor keys and the sum of r back to mpz formatting
     bb_data['stk'] = gmpy2.mpz(bb_data['stk'])
     bb_data['stk_anti'] = gmpy2.mpz(bb_data['stk_anti'])
     bb_data['sum_r'] = gmpy2.mpz(bb_data['sum_r'])
     
-    # bytes back from hex
+    # Takes the hex formatted signature and converts it back to bytes
     bb_data['sig'] = bytes.fromhex(bb_data['sig'])
     
-    # helper to convert {"x": "...", "y": "..."} back to EccPoint
+    # Converts x,y coordinates back to EccPoints
     def to_point(d):
         return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
     
-    # encrypted tuples: [EccPoint, EccPoint, mpz]
+    # for the vote, antivote, encrypted trapdoor key, and encrypted antitrapdoor key we convert the votes back to EccPoints and the keys to mpz formatting
     for key in ['ev', 'ev_anti', 'enc_ptk', 'enc_ptk_anti']:
         bb_data[key][0] = to_point(bb_data[key][0])
         bb_data[key][1] = to_point(bb_data[key][1])
         bb_data[key][2] = gmpy2.mpz(bb_data[key][2])
     
-    # proof fields - convert any EccPoint dicts back
+    # The proofs are converted from x,y coordinates to EccPoints using the decode_point_recursive function
     for key in ['pi_1', 'pi_1_anti', 'pi_2', 'pi_3']:
         if key in bb_data:
             bb_data[key] = decode_point_recursive(bb_data[key])
 
+    # Finally the original ballot is returned
     return bb_data
 
 
