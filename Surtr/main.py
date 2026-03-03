@@ -787,4 +787,3 @@ if results_max_row == 0:
             "Tallying (Decryption)",
         ]
     )
-
