@@ -6,7 +6,7 @@ from Crypto.Signature import DSS
 
 from util import deserialize_ep, deserialize_pd
 
-from gmpy2 import powmod, mpz, add, mul, f_mod, sub, invert
+from gmpy2 import mpz, add, mul, f_mod, sub, invert
 import threshold_crypto as tc
 
 
@@ -292,7 +292,7 @@ class ElGamalEncryption:
                 self.curve.get_pars(), partial_decryptions[i]
             )
             if partial_decryptions[i].curve_params != curve_params:
-                raise ThresholdCryptoError(
+                raise tc.ThresholdCryptoError(
                     "Varying curve parameters found in partial re-encryption keys"
                 )
 

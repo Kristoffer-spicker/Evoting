@@ -1,27 +1,86 @@
 from pathlib import Path
 import multiprocessing
-from base64 import b64encode, b64decode
+import sqlite3
+from base64 import b64encode
 import argparse
 import random
+import json
 import time
-from primitives import NIZK
 from Crypto.PublicKey import ECC
 from subroutines import deserialize_ep
 
+# pylint: disable=no-member
+
 from openpyxl import load_workbook, Workbook
-from gmpy2 import powmod, invert, mul, f_mod, add
 from texttable import Texttable
-import threshold_crypto as tc
 
 from curve import Curve
-from parties import Voter, Teller
+from parties import Teller
+from VCaster import VCaster
 from util import (
-    multi_dim_index,
-    print_bb,
     find_entry_by_comm,
     calculate_voter_term,
 )
 
+import gmpy2
+
+# Set up the connection to the database
+con = sqlite3.connect("BulletinBoard.db")
+cur = con.cursor()
+
+# Starts each run by clearing the database
+cur.execute("DELETE FROM encryptedVotes")
+
+# Decodes from x, y coordinates to EccPoints
+def decode_point_recursive(obj):
+    """Recursively convert any {x, y} dicts back to EccPoints in nested structures"""
+    if isinstance(obj, dict) and 'x' in obj and 'y' in obj:
+        return ECC.EccPoint(int(obj['x']), int(obj['y']), 'P-256')
+    elif isinstance(obj, dict):
+        return {k: decode_point_recursive(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [decode_point_recursive(item) for item in obj]
+    elif isinstance(obj, (int, float)) and not isinstance(obj, bool):
+        return gmpy2.mpz(obj)
+    return obj
+
+# Decodes the ballots as stored in the database back to Ecc objects
+def decode_bb_data(row):
+    bb_data = json.loads(row[1]) # Loads the json string of the ballot
+    
+    # Converts the public key back to ECC key formattign
+    bb_data['spk'] = ECC.import_key(bb_data['spk'])
+    
+    # Takes the integers for the trapdoor keys and the sum of r back to mpz formatting
+    bb_data['stk'] = gmpy2.mpz(bb_data['stk'])
+    bb_data['stk_anti'] = gmpy2.mpz(bb_data['stk_anti'])
+    bb_data['sum_r'] = gmpy2.mpz(bb_data['sum_r'])
+    
+    # Takes the hex formatted signature and converts it back to bytes
+    bb_data['sig'] = bytes.fromhex(bb_data['sig'])
+    
+    # Converts x,y coordinates back to EccPoints
+    def to_point(d):
+        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
+    
+    # for the vote, antivote, encrypted trapdoor key, and encrypted antitrapdoor key we convert the votes back to EccPoints and the keys to mpz formatting
+    for key in ['ev', 'ev_anti', 'enc_ptk', 'enc_ptk_anti']:
+        bb_data[key][0] = to_point(bb_data[key][0])
+        bb_data[key][1] = to_point(bb_data[key][1])
+        bb_data[key][2] = gmpy2.mpz(bb_data[key][2])
+    
+    # The proofs are converted from x,y coordinates to EccPoints using the decode_point_recursive function
+    for key in ['pi_1', 'pi_1_anti', 'pi_2', 'pi_3']:
+        if key in bb_data:
+            bb_data[key] = decode_point_recursive(bb_data[key])
+
+    # Finally the original ballot is returned
+    return bb_data
+
+
+
+# This so Mathildes Macbook uses forks for multiprocessing instead of spawn
+multiprocessing.set_start_method('fork', force=True)
 
 parser = argparse.ArgumentParser(
     description="Sutr implementation"
@@ -108,7 +167,7 @@ def poc_setup():
     """
     for i in range(0, num_voters):
         id = "VT" + str(i)
-        voter = Voter(curve, id, vote_min, vote_max)
+        voter = VCaster(curve, id, vote_min, vote_max, cur, con)
         voter.generate_dsa_keys()
         voter.choose_vote_value()
         voters.append(voter)
@@ -152,12 +211,18 @@ def voting():
         voter.generate_pok_antitrapdoor_keypair(teller_public_key)
         voter.generate_wellformedness_proof(teller_public_key)
         voter.generate_wellformedness_proof_anti(teller_public_key) # proof other vote
-        bb_data = voter.sign_ballot()
+        voter.sign_ballot()
+
+        bb_data = retrieve_ballot(voter.id)
+
         bb.append(bb_data)
         t_voting = time.time() - t_voting_single_start
         global t_voting_single
         t_voting_single = t_voting_single + t_voting
 
+def retrieve_ballot(id):
+    ballot = cur.execute("SELECT * FROM encryptedVotes WHERE id = ?", (id,)).fetchone()
+    return decode_bb_data(ballot)
 
 def tallying():
     """The tallying phase of the protocol.

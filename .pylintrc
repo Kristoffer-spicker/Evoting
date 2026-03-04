@@ -1,0 +1,2 @@
+[MASTER]
+disable=missing-module-docstring, invalid-name, global-statement, redefined-outer-name, consider-using-enumerate, pointless-string-statement, global-variable-not-assigned, trailing-whitespace, missing-class-docstring, missing-function-docstring, attribute-defined-outside-init, protected-access, unreachable, no-self-argument, no-value-for-parameter, no-name-in-module, arguments-renamed, redefined-builtin, global-variable-undefined, unused-variable, undefined-loop-variable, line-too-long

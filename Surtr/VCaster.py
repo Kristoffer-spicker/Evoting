@@ -1,34 +1,40 @@
-import multiprocessing
-import hashlib
 import random
-
-import threshold_crypto as tc
+import json
 import gmpy2
-from util import (
-    deserialize_ep,
-    _ecc_key_to_serializable,
-    serialize_pd,
-    deserialize_pd,
-)
+# pylint: disable=no-member
+
+from primitives import DSA, ChaumPedersenProof, ElGamalEncryption
 from Crypto.PublicKey import ECC
 
+#Encoding ECC objects to JSON formatting
+class ECCEncoder(json.JSONEncoder): #JSONEncoder is a class from the json module that is used to convert python objects to JSON formatting.
 
-from primitives import DSA, ElGamalEncryption, NIZK, ChaumPedersenProof
-from exceptions import (
-    InvalidSignatureException,
-    InvalidProofException,
-    InvalidWFNProofException,
-)
-from subroutines import Mixnet
-
+    def default(self, obj):
+        if isinstance(obj, ECC.EccKey): # For the part of the object that is a EccKey and exports it in a PEM format, which is another format for storing keys 
+            return obj.export_key(format='PEM')
+        if isinstance(obj, ECC.EccPoint): # EccPoints are converted to a standard coordinate format with its x and y coordinates
+            return {"x": str(obj.x), "y": str(obj.y)} 
+        if isinstance(obj, bytes): # Objects of the type bytes are converted to their hex codes
+            return obj.hex()
+        if isinstance(obj, gmpy2.mpz): # Objects of the type mpz are converted to integers
+            return int(obj)
+        return super().default(obj) # Returns the default value of the object
+        
 class VCaster:
-    def __init__(self, curve, id, vote_min, vote_max):
+
+    def __init__(self, curve, id, vote_min, vote_max, cur, con):
         self.id = id
         self.vote_min = vote_min
         self.vote_max = vote_max
         self.curve = curve
+        self.cur = cur
+        self.con = con
 
-    def give_vote(self): #Function for the vote chosen by the voter
+    def choose_vote_value(self):
+        self.vote = random.randrange(self.vote_min, self.vote_max)
+        
+
+    def cast_vote(self): #Function for the vote chosen by the voter
         print("not implemented")
 
     def generate_dsa_keys(self):
@@ -42,6 +48,7 @@ class VCaster:
         )
 
     def encrypt_antivote(self, teller_public_key):
+        self.ege = ElGamalEncryption(self.curve)
         self.g_antivote = self.curve.raise_p(int(abs(self.vote-1)))
         self.encrypted_antivote = self.ege.encrypt(
             teller_public_key.Q, self.g_antivote
@@ -79,6 +86,51 @@ class VCaster:
             self.id,
         )
 
+    def generate_trapdoor_keypair(self): #generate x1 and g^x1
+        self.ege = ElGamalEncryption(self.curve)
+        self.secret_trapdoor_key, self.public_trapdoor_key = self.ege.keygen()
+
+    def generate_antitrapdoor_keypair(self):#generate x2 and g^x2
+        self.secret_antitrapdoor_key, self.public_antitrapdoor_key = self.ege.keygen()
+
+    def encrypt_trapdoor(self, teller_public_key): #encrypt g^x1
+        self.encrypted_trapdoor = self.ege.encrypt(
+            teller_public_key.Q, self.public_trapdoor_key
+        )
+
+    def encrypt_antitrapdoor(self, teller_public_key):#encrypt g^x2
+        self.encrypted_antitrapdoor = self.ege.encrypt(
+            teller_public_key.Q, self.public_antitrapdoor_key
+        )
+
+    def generate_pok_trapdoor_keypair(self, teller_public_key): #prove that the voter knows g^x1 and r
+        encrypted_trapdoor = {
+            "c1": self.encrypted_trapdoor[0],
+            "c2": self.encrypted_trapdoor[1],
+        }
+        r = self.encrypted_trapdoor[2]
+        chmp = ChaumPedersenProof(self.curve)
+        self.pok_trapdoor_key = chmp.prove(
+            encrypted_trapdoor,     #enc(g^x1)
+            r,
+            teller_public_key.Q,
+            self.public_trapdoor_key, #g^x1
+        )
+
+    def generate_pok_antitrapdoor_keypair(self, teller_public_key):#prove that the voter knows g^x2 and r
+        encrypted_antitrapdoor = {
+            "c1": self.encrypted_antitrapdoor[0],
+            "c2": self.encrypted_antitrapdoor[1],
+        }
+        r = self.encrypted_antitrapdoor[2]
+        chmp = ChaumPedersenProof(self.curve)
+        self.pok_antitrapdoor_key = chmp.prove(
+            encrypted_antitrapdoor,
+            r,
+            teller_public_key.Q,
+            self.public_antitrapdoor_key,
+        )
+
     def sign_ballot(self):
         self.dsa = DSA(self.curve)
         self.sum_r = self.encrypted_vote[2]+self.encrypted_antivote[2]
@@ -111,4 +163,7 @@ class VCaster:
             "pi_3": self.wellformedness_proof_anti,
             "sum_r": self.sum_r,
         }
-        return bb_data
+        self.cur.execute("INSERT INTO encryptedVotes VALUES (?, ?)", (self.id, json.dumps(bb_data, cls=ECCEncoder),))
+        self.con.commit()
+
+    

@@ -1,6 +1,6 @@
 import multiprocessing
 import hashlib
-import random
+# pylint: disable=no-member
 
 import threshold_crypto as tc
 import gmpy2
@@ -8,7 +8,6 @@ from util import (
     deserialize_ep,
     _ecc_key_to_serializable,
     serialize_pd,
-    deserialize_pd,
 )
 from Crypto.PublicKey import ECC
 
@@ -20,153 +19,6 @@ from exceptions import (
     InvalidWFNProofException,
 )
 from subroutines import Mixnet
-
-
-class Voter:
-    def __init__(self, curve, id, vote_min, vote_max):
-        self.id = id
-        self.vote_min = vote_min
-        self.vote_max = vote_max
-        self.curve = curve
-
-    def choose_vote_value(self):
-        self.vote = random.randrange(self.vote_min, self.vote_max)
-
-    def generate_dsa_keys(self):
-        dsa = DSA(self.curve)
-        self.secret_key, self.public_key = dsa.keygen()
-
-    def generate_trapdoor_keypair(self): #generate x1 and g^x1
-        self.ege = ElGamalEncryption(self.curve)
-        self.secret_trapdoor_key, self.public_trapdoor_key = self.ege.keygen()
-
-    def generate_antitrapdoor_keypair(self):#generate x2 and g^x2
-        self.secret_antitrapdoor_key, self.public_antitrapdoor_key = self.ege.keygen()
-
-
-    def encrypt_vote(self, teller_public_key):
-        self.g_vote = self.curve.raise_p(int(self.vote))
-        self.encrypted_vote = self.ege.encrypt(
-            teller_public_key.Q, self.g_vote
-        )
-
-    def encrypt_antivote(self, teller_public_key):
-        self.g_antivote = self.curve.raise_p(int(abs(self.vote-1)))
-        self.encrypted_antivote = self.ege.encrypt(
-            teller_public_key.Q, self.g_antivote
-        )
-
-    def encrypt_trapdoor(self, teller_public_key): #encrypt g^x1
-        self.encrypted_trapdoor = self.ege.encrypt(
-            teller_public_key.Q, self.public_trapdoor_key
-        )
-
-    def encrypt_antitrapdoor(self, teller_public_key):#encrypt g^x2
-        self.encrypted_antitrapdoor = self.ege.encrypt(
-            teller_public_key.Q, self.public_antitrapdoor_key
-        )
-
-    def generate_pok_trapdoor_keypair(self, teller_public_key): #prove that the voter knows g^x1 and r
-        encrypted_trapdoor = {
-            "c1": self.encrypted_trapdoor[0],
-            "c2": self.encrypted_trapdoor[1],
-        }
-        r = self.encrypted_trapdoor[2]
-        chmp = ChaumPedersenProof(self.curve)
-        self.pok_trapdoor_key = chmp.prove(
-            encrypted_trapdoor,     #enc(g^x1)
-            r,
-            teller_public_key.Q,
-            self.public_trapdoor_key, #g^x1
-        )
-
-    def generate_pok_antitrapdoor_keypair(self, teller_public_key):#prove that the voter knows g^x2 and r
-        encrypted_antitrapdoor = {
-            "c1": self.encrypted_antitrapdoor[0],
-            "c2": self.encrypted_antitrapdoor[1],
-        }
-        r = self.encrypted_antitrapdoor[2]
-        chmp = ChaumPedersenProof(self.curve)
-        self.pok_antitrapdoor_key = chmp.prove(
-            encrypted_antitrapdoor,
-            r,
-            teller_public_key.Q,
-            self.public_antitrapdoor_key,
-        )
-    def generate_wellformedness_proof(self, teller_public_key):
-        encrypted_vote = {
-            "c1": self.encrypted_vote[0],
-            "c2": self.encrypted_vote[1],
-        }
-        r = self.encrypted_vote[2]
-        chmp = ChaumPedersenProof(self.curve)
-        self.wellformedness_proof = chmp.prove_or_n(
-            encrypted_vote,
-            r,
-            teller_public_key.Q,
-            self.vote_max,
-            int(self.vote),
-            self.id,
-        )
-
-    def generate_wellformedness_proof_anti(self, teller_public_key):
-        encrypted_antivote = {
-            "c1": self.encrypted_antivote[0],
-            "c2": self.encrypted_antivote[1],
-        }
-        r = self.encrypted_antivote[2]
-        chmp = ChaumPedersenProof(self.curve)
-        self.wellformedness_proof_anti = chmp.prove_or_n(
-            encrypted_antivote,
-            r,
-            teller_public_key.Q,
-            self.vote_max,
-            int(abs(self.vote-1)),
-            self.id,
-        )
-
-
-    def sign_ballot(self):
-        self.dsa = DSA(self.curve)
-        self.sum_r = self.encrypted_vote[2]+self.encrypted_antivote[2]
-        hash = self.curve.hash_to_mpz(
-            str(self.encrypted_vote)
-            + str(self.encrypted_antivote) 
-            + str(self.encrypted_trapdoor)
-            + str(self.encrypted_antitrapdoor)
-            + str(self.pok_trapdoor_key)
-            + str(self.pok_antitrapdoor_key)
-            + str(self.wellformedness_proof)
-            + str(self.wellformedness_proof_anti)
-            + str(self.sum_r)    
-        )
-        self.signature = self.dsa.sign(self.secret_key, hash)
-        bb_data = {
-            "id": self.id,
-            "spk": self.public_key,
-            "sig": self.signature,
-            # only for poc
-            "stk": self.secret_trapdoor_key,
-            "stk_anti": self.secret_antitrapdoor_key,
-            "ev": self.encrypted_vote,
-            "ev_anti": self.encrypted_antivote,
-            "enc_ptk": self.encrypted_trapdoor,
-            "enc_ptk_anti": self.encrypted_antitrapdoor,
-            "pi_1": self.pok_trapdoor_key,
-            "pi_1_anti": self.pok_antitrapdoor_key,
-            "pi_2": self.wellformedness_proof,
-            "pi_3": self.wellformedness_proof_anti,
-            "sum_r": self.sum_r,
-        }
-        return bb_data
-
-    def notify(self, encrypted_term):
-        self.g_ri = encrypted_term
-
-    def generate_verification_comm(self):
-        g_ri_x = self.g_ri * self.secret_trapdoor_key
-        return g_ri_x
-
 
 class Teller:
     def __init__(self, curve, secret_key_share, public_key):
@@ -374,7 +226,7 @@ class Teller:
         public_key_share,
         ciphertexts,
         partial_decryptions,
-    ):
+    ): 
         prod_alpha = ECC.EccPoint(0, 0, "P-256")
         prod_partial_decryptions = ECC.EccPoint(0, 0, "P-256")
         alpha_terms = []
@@ -673,9 +525,9 @@ class Teller:
             # p.close()
         decrypted = data
 
-    def validate_ballot(curve, teller_public_key, ballot):
+    def validate_ballot(self, curve, teller_public_key, ballot):
         dsa = DSA(curve)
-        hash = curve.hash_to_mpz(
+        hash = self.curve.hash_to_mpz(
             str(ballot["ev"])
             + str(ballot["ev_anti"])
             + str(ballot["enc_ptk"])
@@ -770,14 +622,13 @@ class Teller:
         chmp = ChaumPedersenProof(curve)
         if not chmp.verify_s(h_r,  enc_ptk, h_r_anti, enc_ptk_anti, proof[0], proof[1], proof[2],proof[3], proof[4], proof[5], proof[6], teller_public_key.Q):
             raise InvalidProofException(id)
-            print(e)
+            
 
 
     def verify_proof_reenc(curve, teller_public_key, h_r, ptk, proof, id):
         nizk = NIZK(curve)
         if not nizk.verify_2(h_r, teller_public_key.Q, ptk, proof):
             raise InvalidProofException(id)
-            print(e)
 
     def re_encryption_mix(self, list_0):
         mx = Mixnet(self.curve)
