@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 import multiprocessing
 import sqlite3
@@ -11,17 +12,21 @@ from openpyxl import load_workbook, Workbook
 from texttable import Texttable
 from Crypto.PublicKey import ECC
 from curve import Curve
-from Tally_app.util import (
+
+sys.path.insert(0, "../Tally_app")
+sys.path.insert(0, "../Cast_app")
+
+from util import (
     find_entry_by_comm,
     calculate_voter_term,
 )
-from Tally_app.subroutines import deserialize_ep
-from Tally_app.parties import Teller
-from Cast_app.VCaster import VCaster
+from subroutines import deserialize_ep
+from parties import Teller
+from VCaster import VCaster
 # pylint: disable=no-member
 
 # Set up the connection to the database
-con = sqlite3.connect("BulletinBoard.db")
+con = sqlite3.connect("../Database/BulletinBoard.db")
 cur = con.cursor()
 
 # Starts each run by clearing the database
