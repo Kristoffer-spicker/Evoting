@@ -6,23 +6,19 @@ import argparse
 import random
 import json
 import time
-from Crypto.PublicKey import ECC
-from subroutines import deserialize_ep
-
-# pylint: disable=no-member
-
+import gmpy2
 from openpyxl import load_workbook, Workbook
 from texttable import Texttable
-
+from Crypto.PublicKey import ECC
 from curve import Curve
-from parties import Teller
-from VCaster import VCaster
-from util import (
+from Tally_app.util import (
     find_entry_by_comm,
     calculate_voter_term,
 )
-
-import gmpy2
+from Tally_app.subroutines import deserialize_ep
+from Tally_app.parties import Teller
+from Cast_app.VCaster import VCaster
+# pylint: disable=no-member
 
 # Set up the connection to the database
 con = sqlite3.connect("BulletinBoard.db")

@@ -1,10 +1,12 @@
 import hashlib
 import time
 
+
 import threshold_crypto as tc
 from threshold_crypto import CurveParameters
 from gmpy2 import mpz, random_state, mpz_random, powmod, mul, f_mod, add, sub
 
+# pylint: disable=no-member
 
 class Curve:
     def __init__(self, label):
