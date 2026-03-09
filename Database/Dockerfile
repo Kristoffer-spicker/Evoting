@@ -26,11 +26,6 @@ FROM alpine:latest as base
 # would issue a RUN command for your application's build process to generate the
 # executable. For language-specific examples, take a look at the Dockerfiles in
 # the Awesome Compose repository: https://github.com/docker/awesome-compose
-FROM base as build
-RUN echo -e '#!/bin/sh\n\
-echo Hello world from $(whoami)! In order to get your application running in a container, take a look at the comments in the Dockerfile to get started.'\
-> /bin/hello.sh
-RUN chmod +x /bin/hello.sh
 
 ################################################################################
 # Create a final stage for running your application.
@@ -56,8 +51,4 @@ RUN adduser \
     appuser
 USER appuser
 
-# Copy the executable from the "build" stage.
-COPY --from=build /bin/hello.sh /bin/
 
-# What the container should run when it is started.
-ENTRYPOINT [ "/bin/hello.sh" ]

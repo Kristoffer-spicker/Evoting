@@ -16,11 +16,9 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql  
     ports:
       - "5433:5432"
-    secrets:
-      - db-password
 
-secrets:
-  db-password:
+
+
 
 
 volumes:
