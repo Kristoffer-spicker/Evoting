@@ -1,3 +1,2 @@
-Database/password.txt
-Database/.env
+*.env
 *.db

@@ -41,6 +41,9 @@ con = psycopg2.connect(
 )
 cur = con.cursor()
 
+cur.execute("SELECT current_database()")
+print("Connected to:", cur.fetchone()[0])
+
 # Starts each run by clearing the database
 cur.execute("""
     SELECT EXISTS (
