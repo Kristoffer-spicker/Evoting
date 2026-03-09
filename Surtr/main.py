@@ -30,7 +30,7 @@ from VCaster import VCaster
 load_dotenv("../.env")
 # pylint: disable=no-member
 
-#password = Path("../Database/password.txt").read_text().strip()
+
 # Set up the connection to the database
 con = psycopg2.connect(
     host="localhost",
