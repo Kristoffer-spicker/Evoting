@@ -27,7 +27,7 @@ from parties import Teller
 from VCaster import VCaster
 
 
-load_dotenv("../Database/.env")
+load_dotenv("../.env")
 # pylint: disable=no-member
 
 #password = Path("../Database/password.txt").read_text().strip()
