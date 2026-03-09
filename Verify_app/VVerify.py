@@ -1,16 +1,17 @@
-import sqlite3
+import psycopg2
 from util import find_entry_by_comm
 from Crypto.PublicKey import ECC
 from Cast_app.VCaster import VCaster
-con = sqlite3.connect("BulletinBoard.db")
-cur = con.cursor()
+
 
 class VVerify:
-    def __init__(self, curve, id, vote_min, vote_max):
+    def __init__(self, curve, id, vote_min, vote_max, cur, con):
         self.id = id
         self.vote_min = vote_min
         self.vote_max = vote_max
         self.curve = curve
+        self.cur = cur
+        self.con = con
     
     def getVoter(self, id):
         global voter 
