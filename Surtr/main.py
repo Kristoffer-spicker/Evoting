@@ -1,35 +1,58 @@
+import sys
+from dotenv import load_dotenv
+import os
 from pathlib import Path
 import multiprocessing
-import sqlite3
+import psycopg2
 from base64 import b64encode
 import argparse
 import random
 import json
 import time
-from Crypto.PublicKey import ECC
-from subroutines import deserialize_ep
-
-# pylint: disable=no-member
-
+import gmpy2
 from openpyxl import load_workbook, Workbook
 from texttable import Texttable
-
+from Crypto.PublicKey import ECC
 from curve import Curve
-from parties import Teller
-from VCaster import VCaster
+
+sys.path.insert(0, "../Tally_app")
+sys.path.insert(0, "../Cast_app")
+
 from util import (
     find_entry_by_comm,
     calculate_voter_term,
 )
+from subroutines import deserialize_ep
+from parties import Teller
+from VCaster import VCaster
 
-import gmpy2
 
+load_dotenv("../Database/.env")
+# pylint: disable=no-member
+
+#password = Path("../Database/password.txt").read_text().strip()
 # Set up the connection to the database
-con = sqlite3.connect("BulletinBoard.db")
+con = psycopg2.connect(
+    host="localhost",
+    port=5433,
+    dbname=os.getenv("DB_NAME"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+)
 cur = con.cursor()
 
 # Starts each run by clearing the database
-cur.execute("DELETE FROM encryptedVotes")
+cur.execute("""
+    SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'encryptedvotes'
+    )
+""")
+
+if cur.fetchone()[0]:
+    cur.execute("DELETE FROM encryptedVotes")
+    con.commit()
 
 # Decodes from x, y coordinates to EccPoints
 def decode_point_recursive(obj):
@@ -221,7 +244,8 @@ def voting():
         t_voting_single = t_voting_single + t_voting
 
 def retrieve_ballot(id):
-    ballot = cur.execute("SELECT * FROM encryptedVotes WHERE id = ?", (id,)).fetchone()
+    cur.execute("SELECT * FROM encryptedVotes WHERE id = %s", (id,))
+    ballot = cur.fetchone()
     return decode_bb_data(ballot)
 
 def tallying():
