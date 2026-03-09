@@ -23,7 +23,7 @@ from util import (
     calculate_voter_term,
 )
 from subroutines import deserialize_ep
-from parties import Teller
+from Tallying import Teller
 from VCaster import VCaster
 
 
