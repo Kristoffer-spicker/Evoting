@@ -54,20 +54,12 @@ curve = Curve("P-256")
 
 def custom_serializer(obj):
     if isinstance(obj, tc.data.PublicKey):
-        curve_param = {
-            "curve_name": obj.curve_params._name,
-            "order": int(obj.curve_params._curve.order),
-            "generator_point": {
-                "x": str(obj.curve_params._curve.Gx),
-                "y": str(obj.curve_params._curve.Gy),
-            }
-        }
         return {
             "Q": {
                 "x": str(obj.Q.x),
                 "y": str(obj.Q.y),
             },
-            "curve_param": curve_param
+            "curve_name": obj.curve_params._name
         }
     raise TypeError("Object of type '{}' is not serializable".format(type(obj).__name__))
 def setup():
@@ -88,6 +80,8 @@ def setup():
         teller_id = i
         teller = Teller(curve, teller_sk[i], teller_public_key)
         tellers.append(teller)
+        print("Tellers Public Key: ")
+        print(teller_public_key.curve_params)
         t_pk = json.dumps(teller_public_key, default=custom_serializer)
         cur.execute("INSERT INTO tellers VALUES (%s, %s)", (teller_id,t_pk))
         con.commit()

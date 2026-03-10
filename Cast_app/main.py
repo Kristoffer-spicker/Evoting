@@ -8,6 +8,7 @@ import argparse
 import time
 import random
 import threshold_crypto as tc
+from threshold_crypto import CurveParameters
 from curve import Curve
 from VCaster import VCaster
 from dotenv import load_dotenv
@@ -54,7 +55,19 @@ def decode_point_recursive(obj):
         return gmpy2.mpz(obj)
     return obj
 
+def decode_public_key(datas):
+    data = json.loads(datas[0])
 
+    curve_name = data["curve_name"]
+
+    curve_params = CurveParameters(curve_name)
+
+    qx = int(data["Q"]["x"])
+    qy = int(data["Q"]["y"])
+
+    Q = ECC.EccPoint(qx, qy, curve_name)
+
+    return tc.data.PublicKey(Q, curve_params)
 
 
 # Decodes the ballots as stored in the database back to Ecc objects
@@ -127,7 +140,9 @@ voters = []
 
 bb = []
 cur.execute("SELECT t_pk FROM tellers")
-teller_public_keys = cur.fetchall()
+raw_keys = cur.fetchall()
+teller_public_keys = [decode_public_key(row) for row in raw_keys]
+
 
 curve = Curve("P-256")
 
@@ -179,11 +194,11 @@ def voting():
 def retrieve_ballot(id):
     cur.execute("SELECT * FROM encryptedVotes WHERE id = %s", (id,))
     ballot = cur.fetchone()
+    print(type(ballot))
     return decode_bb_data(ballot)
 
 def get_random_tpk(tpks):
     encoded_pk = random.choice(tpks)
-    #t_pk = decode_bb_data(encoded_pk)
     return encoded_pk
 
 poc_setup()
