@@ -3,6 +3,11 @@ CREATE TABLE IF NOT EXISTS encryptedVotes (
     ballot    TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS tellers (
+    id        TEXT PRIMARY KEY,
+    t_pk      TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS extendedVotes (
     id        TEXT PRIMARY KEY,
     ballot    TEXT NOT NULL
