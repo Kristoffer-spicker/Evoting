@@ -15,4 +15,4 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD ["python3", "Tallying.py"]
+CMD ["python3", "./main.py"]

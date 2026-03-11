@@ -1,25 +1,36 @@
-import psycopg2
 import os
-import asyncio
+import select
+import json
+import sys
 import multiprocessing
+import psycopg2
 from curve import Curve
 from Tallying import Teller
 from dotenv import load_dotenv
-import json
 import threshold_crypto as tc
-from Crypto.PublicKey import ECC
+from pathlib import Path
 
-load_dotenv("../.env")
+load_dotenv(Path(__file__).parent.parent / ".env")
 
+def get_listener_connection():
+    con = psycopg2.connect(
+        host="db",
+        port=5432,
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+    )
+    con.autocommit = True  # Required for LISTEN to work
+    print("Connected!", flush=True)
+    return con
 
-con = psycopg2.connect(
-    host="localhost",
-    port=5433,
-    dbname=os.getenv("DB_NAME"),
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-)
-cur = con.cursor()
+try:
+    con = get_listener_connection()
+    cur = con.cursor()
+    print("Got cursor", flush=True)
+except Exception as e:
+    print("FAILED TO CONNECT TO DB:", e, flush=True)
+    sys.exit(1)
 
 cur.execute("""
     SELECT EXISTS (
@@ -80,8 +91,6 @@ def setup():
         teller_id = i
         teller = Teller(curve, teller_sk[i], teller_public_key)
         tellers.append(teller)
-        print("Tellers Public Key: ")
-        print(teller_public_key.curve_params)
         t_pk = json.dumps(teller_public_key, default=custom_serializer)
         cur.execute("INSERT INTO tellers VALUES (%s, %s)", (teller_id,t_pk))
         con.commit()
@@ -89,15 +98,36 @@ def setup():
     
 
 
-"""async def listen():
-    conn = await con 
-    await conn.add_listener('encryptedVotes', handler)
+def listen():
+    conn = get_listener_connection()
+    cur = conn.cursor()
+    cur.execute('LISTEN "encryptedVotes";')
+    while True:
+        if select.select([conn], [], [], 1) == ([], [], []):
+            print("still waiting...")
+            pass
+        else:
+            conn.poll()
+            while conn.notifies:
+                notify = conn.notifies.pop()
+                handler(notify.payload)
+        
+
+def handler(notify):
+    print("New ballot Received")
+    print(notify)
     
 
-def handler(connection, vid, channel, ballot):
-    print ("new ballot:", ballot)
 
-asyncio.run(listen())"""
+try:
+    setup()
+    print("Setup complete", flush=True)
+except Exception as e:
+    print("SETUP FAILED:", e, flush=True)
+    sys.exit(1)
 
-setup()
-#listen()
+try:
+    listen()
+except Exception as e:
+    print("LISTEN FAILED:", e, flush=True)
+    sys.exit(1)

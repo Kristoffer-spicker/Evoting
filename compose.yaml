@@ -3,11 +3,13 @@ services:
     build:
       context: ./Tally_app
     environment:
+      PYTHONBUFFERED: 1
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+    restart: unless-stopped
     depends_on:
       - db  
   
@@ -24,6 +26,7 @@ services:
       - db
 
   cast_app:
+    command: ["python3", "main.py", "50"]
     build:
       context: ./Cast_app
     environment: 
