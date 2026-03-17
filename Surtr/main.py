@@ -49,12 +49,12 @@ cur.execute("""
     SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
-        AND table_name = 'encryptedvotes'
+        AND table_name = 'encrypted_votes'
     )
 """)
 
 if cur.fetchone()[0]:
-    cur.execute("DELETE FROM encryptedVotes")
+    cur.execute("DELETE FROM encrypted_votes")
     con.commit()
 
 # Decodes from x, y coordinates to EccPoints
@@ -247,7 +247,7 @@ def voting():
         t_voting_single = t_voting_single + t_voting
 
 def retrieve_ballot(id):
-    cur.execute("SELECT * FROM encryptedVotes WHERE id = %s", (id,))
+    cur.execute("SELECT * FROM encrypted_votes WHERE id = %s", (id,))
     ballot = cur.fetchone()
     return decode_bb_data(ballot)
 

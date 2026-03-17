@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 import threshold_crypto as tc
 from pathlib import Path
 
-load_dotenv(Path(__file__).parent.parent / ".env")
+load_dotenv("../.env")
 
 def get_listener_connection():
     con = psycopg2.connect(
@@ -101,21 +101,36 @@ def setup():
 def listen():
     conn = get_listener_connection()
     cur = conn.cursor()
-    cur.execute('LISTEN "encryptedVotes";')
+    print("About to issue LISTEN", flush=True)
+    cur.execute("LISTEN encrypted_votes;")
+    print("Listening on encrypted_votes", flush=True)
     while True:
-        if select.select([conn], [], [], 1) == ([], [], []):
-            print("still waiting...")
-            pass
+        if select.select([conn], [], [], 5) == ([], [], []):
+            print("still waiting...",flush=True)
         else:
+            print("socket became readable", flush=True)
             conn.poll()
             while conn.notifies:
-                notify = conn.notifies.pop()
+                notify = conn.notifies.pop(0)
                 handler(notify.payload)
         
 
 def handler(notify):
-    print("New ballot Received")
-    print(notify)
+    print("New ballot Received", flush=True)
+    data = json.loads(notify)
+
+    con = get_listener_connection()
+    cur = con.cursor()
+
+    cur.execute(
+        "INSERT INTO extendedVotes (id, ballot) VALUES (%s, %s)",(data["id"], data["ballot"])
+    )
+
+    con.commit()
+    cur.close()
+    con.close()
+
+    print(f"Inserted {data['id']} into extendedVotes", flush=True)
     
 
 

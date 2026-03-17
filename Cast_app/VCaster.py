@@ -163,7 +163,7 @@ class VCaster:
             "pi_3": self.wellformedness_proof_anti,
             "sum_r": self.sum_r,
         }
-        self.cur.execute("INSERT INTO encryptedVotes VALUES (%s, %s)", (self.id, json.dumps(bb_data, cls=ECCEncoder),))
+        self.cur.execute("INSERT INTO encrypted_votes VALUES (%s, %s)", (self.id, json.dumps(bb_data, cls=ECCEncoder),))
         self.con.commit()
 
     
