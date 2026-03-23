@@ -1,6 +1,7 @@
 import multiprocessing
 import hashlib
 # pylint: disable=no-member
+import json
 
 import threshold_crypto as tc
 import gmpy2
@@ -28,14 +29,15 @@ class Teller:
         self.ege = ElGamalEncryption(self.curve)
         self.core_count = multiprocessing.cpu_count()
 
+    def serialize_ecc_point(self, p):
+        return {"x": int(p.x), "y": int(p.y), "curve": p.curve}
+
     def generate_threshold_keys(k, num_tellers, tc_key_params):
         thresh_params = tc.ThresholdParameters(k, num_tellers)
         pub_key, key_shares = tc.create_public_key_and_shares_centralized(
             tc_key_params, thresh_params
         )
         return pub_key, key_shares
-
-
 
     def mp_raise_h(self, list_in, q1, q2, q3):
         teller_proofs = []
@@ -47,23 +49,23 @@ class Teller:
 
             #reenc(g^x1r_i)
             ciphertext, ciphertext_anti, proof, r_i = self.raise_h(self.public_key, ballot)
-            ciphertext["c1"] = tc.data._ecc_point_to_serializable(ciphertext["c1"])
-            ciphertext["c2"] = tc.data._ecc_point_to_serializable(ciphertext["c2"])
-            ciphertext_anti["c1"] = tc.data._ecc_point_to_serializable(ciphertext_anti["c1"])
-            ciphertext_anti["c2"] = tc.data._ecc_point_to_serializable(ciphertext_anti["c2"])
+            ciphertext["c1"] = self.serialize_ecc_point(ciphertext["c1"])
+            ciphertext["c2"] = self.serialize_ecc_point(ciphertext["c2"])
+            ciphertext_anti["c1"] = self.serialize_ecc_point(ciphertext_anti["c1"])
+            ciphertext_anti["c2"] = self.serialize_ecc_point(ciphertext_anti["c2"])
 
-            proof[0] = tc.data._ecc_point_to_serializable(proof[0])
-            proof[1] = tc.data._ecc_point_to_serializable(proof[1])
-            proof[2] = tc.data._ecc_point_to_serializable(proof[2])
-            proof[3] = tc.data._ecc_point_to_serializable(proof[3])
+            proof[0] = self.serialize_ecc_point(proof[0])
+            proof[1] = self.serialize_ecc_point(proof[1])
+            proof[2] = self.serialize_ecc_point(proof[2])
+            proof[3] = self.serialize_ecc_point(proof[3])
 
             tmp_enc_ptk = [] #enc(g^x1)
-            tmp_enc_ptk.append(tc.data._ecc_point_to_serializable(ballot["enc_ptk"][0]))
-            tmp_enc_ptk.append(tc.data._ecc_point_to_serializable(ballot["enc_ptk"][1]))
+            tmp_enc_ptk.append(self.serialize_ecc_point(ballot["enc_ptk"][0]))
+            tmp_enc_ptk.append(self.serialize_ecc_point(ballot["enc_ptk"][1]))
 
             tmp_enc_ptk_anti = []
-            tmp_enc_ptk_anti.append(tc.data._ecc_point_to_serializable(ballot["enc_ptk_anti"][0]))
-            tmp_enc_ptk_anti.append(tc.data._ecc_point_to_serializable(ballot["enc_ptk_anti"][1]))
+            tmp_enc_ptk_anti.append(self.serialize_ecc_point(ballot["enc_ptk_anti"][0]))
+            tmp_enc_ptk_anti.append(self.serialize_ecc_point(ballot["enc_ptk_anti"][1]))
             
 
             reenc = self.ege.re_encrypt(self.public_key.Q, ballot["ev"])
@@ -75,31 +77,31 @@ class Teller:
                 reenc[2],
             )
 
-            reenc[0] = tc.data._ecc_point_to_serializable(reenc[0])
-            reenc[1] = tc.data._ecc_point_to_serializable(reenc[1])
+            reenc[0] = self.serialize_ecc_point(reenc[0])
+            reenc[1] = self.serialize_ecc_point(reenc[1])
 
-            proof_re_enc["t_1"] = tc.data._ecc_point_to_serializable(proof_re_enc["t_1"])
-            proof_re_enc["t_2"] = tc.data._ecc_point_to_serializable(proof_re_enc["t_2"])
+            proof_re_enc["t_1"] = self.serialize_ecc_point(proof_re_enc["t_1"])
+            proof_re_enc["t_2"] = self.serialize_ecc_point(proof_re_enc["t_2"])
             
             y, gy = self.ege.keygen()
             enc_gy = self.ege.encrypt(
             self.public_key.Q, gy) 
            
-            enc_gy[0] = tc.data._ecc_point_to_serializable(enc_gy[0])
-            enc_gy[1] = tc.data._ecc_point_to_serializable(enc_gy[1])
+            enc_gy[0] = self.serialize_ecc_point(enc_gy[0])
+            enc_gy[1] = self.serialize_ecc_point(enc_gy[1])
             
             enc_gr = self.ege.encrypt(
             self.public_key.Q, self.curve.raise_p(r_i)) 
            
-            enc_gr[0] = tc.data._ecc_point_to_serializable(enc_gr[0])
-            enc_gr[1] = tc.data._ecc_point_to_serializable(enc_gr[1])
+            enc_gr[0] = self.serialize_ecc_point(enc_gr[0])
+            enc_gr[1] = self.serialize_ecc_point(enc_gr[1])
             
             s, gs = self.ege.keygen()
             enc_gs = self.ege.encrypt(
             self.public_key.Q, gs) 
            
-            enc_gs[0] = tc.data._ecc_point_to_serializable(enc_gs[0])
-            enc_gs[1] = tc.data._ecc_point_to_serializable(enc_gs[1])
+            enc_gs[0] = self.serialize_ecc_point(enc_gs[0])
+            enc_gs[1] = self.serialize_ecc_point(enc_gs[1])
             
 
 
@@ -129,7 +131,7 @@ class Teller:
             teller_registry.append(
                 {
                     "id": ballot["id"],
-                    "g_r": tc.data._ecc_point_to_serializable(
+                    "g_r": self.serialize_ecc_point(
                         self.curve.raise_p(r_i)
                     ),
                     "enc_ptk" : tmp_enc_ptk,
@@ -142,48 +144,48 @@ class Teller:
             ballot["spk"] = _ecc_key_to_serializable(ballot["spk"])
 
             temp_ev = ballot["ev"]
-            temp_ev[0] = tc.data._ecc_point_to_serializable(temp_ev[0])
-            temp_ev[1] = tc.data._ecc_point_to_serializable(temp_ev[1])
+            temp_ev[0] = self.serialize_ecc_point(temp_ev[0])
+            temp_ev[1] = self.serialize_ecc_point(temp_ev[1])
             
             temp_evanti = ballot["ev_anti"]
-            temp_evanti[0] = tc.data._ecc_point_to_serializable(temp_evanti[0])
-            temp_evanti[1] = tc.data._ecc_point_to_serializable(temp_evanti[1])
+            temp_evanti[0] = self.serialize_ecc_point(temp_evanti[0])
+            temp_evanti[1] = self.serialize_ecc_point(temp_evanti[1])
 
             temp_enc_ptk = ballot["enc_ptk"]
-            temp_enc_ptk[0] = tc.data._ecc_point_to_serializable(ballot["enc_ptk"][0])
-            temp_enc_ptk[1] = tc.data._ecc_point_to_serializable(ballot["enc_ptk"][1])
+            temp_enc_ptk[0] = self.serialize_ecc_point(ballot["enc_ptk"][0])
+            temp_enc_ptk[1] = self.serialize_ecc_point(ballot["enc_ptk"][1])
             
             temp_enc_ptk_anti = ballot["enc_ptk_anti"]
-            temp_enc_ptk_anti[0] = tc.data._ecc_point_to_serializable(ballot["enc_ptk_anti"][0])
-            temp_enc_ptk_anti[1] = tc.data._ecc_point_to_serializable(ballot["enc_ptk_anti"][1])
-            ballot["pi_1"][2] = tc.data._ecc_point_to_serializable(
+            temp_enc_ptk_anti[0] = self.serialize_ecc_point(ballot["enc_ptk_anti"][0])
+            temp_enc_ptk_anti[1] = self.serialize_ecc_point(ballot["enc_ptk_anti"][1])
+            ballot["pi_1"][2] = self.serialize_ecc_point(
                 ballot["pi_1"][2]
             )
-            ballot["pi_1_anti"][2] = tc.data._ecc_point_to_serializable(
+            ballot["pi_1_anti"][2] = self.serialize_ecc_point(
                 ballot["pi_1_anti"][2]
             )
-            ballot["pi_2"][0][0] = tc.data._ecc_point_to_serializable(
+            ballot["pi_2"][0][0] = self.serialize_ecc_point(
                 ballot["pi_2"][0][0]
             )
-            ballot["pi_2"][0][1] = tc.data._ecc_point_to_serializable(
+            ballot["pi_2"][0][1] = self.serialize_ecc_point(
                 ballot["pi_2"][0][1]
             )
-            ballot["pi_2"][1][0] = tc.data._ecc_point_to_serializable(
+            ballot["pi_2"][1][0] = self.serialize_ecc_point(
                 ballot["pi_2"][1][0]
             )
-            ballot["pi_2"][1][1] = tc.data._ecc_point_to_serializable(
+            ballot["pi_2"][1][1] = self.serialize_ecc_point(
                 ballot["pi_2"][1][1]
             )
-            ballot["pi_3"][0][0] = tc.data._ecc_point_to_serializable(
+            ballot["pi_3"][0][0] = self.serialize_ecc_point(
                 ballot["pi_3"][0][0]
             )
-            ballot["pi_3"][0][1] = tc.data._ecc_point_to_serializable(
+            ballot["pi_3"][0][1] = self.serialize_ecc_point(
                 ballot["pi_3"][0][1]
             )
-            ballot["pi_3"][1][0] = tc.data._ecc_point_to_serializable(
+            ballot["pi_3"][1][0] = self.serialize_ecc_point(
                 ballot["pi_3"][1][0]
             )
-            ballot["pi_3"][1][1] = tc.data._ecc_point_to_serializable(
+            ballot["pi_3"][1][1] = self.serialize_ecc_point(
                 ballot["pi_3"][1][1]
             )
             
@@ -460,12 +462,12 @@ class Teller:
         w_3 = r_3 - (u_3 * self.secret_key_share.y)
         q4.put(
             {
-                "p_1_1": tc.data._ecc_point_to_serializable(p_1_1),
-                "p_1_2": tc.data._ecc_point_to_serializable(p_1_2),
-                "p_2_1": tc.data._ecc_point_to_serializable(p_2_1),
-                "p_2_2": tc.data._ecc_point_to_serializable(p_2_2),
-                "p_3_1": tc.data._ecc_point_to_serializable(p_3_1),
-                "p_3_2": tc.data._ecc_point_to_serializable(p_3_2),
+                "p_1_1": self.serialize_ecc_point(p_1_1),
+                "p_1_2": self.serialize_ecc_point(p_1_2),
+                "p_2_1": self.serialize_ecc_point(p_2_1),
+                "p_2_2": self.serialize_ecc_point(p_2_2),
+                "p_3_1": self.serialize_ecc_point(p_3_1),
+                "p_3_2": self.serialize_ecc_point(p_3_2),
                 "w_1": w_1,
                 "w_2": w_2,
                 "w_3": w_3,
@@ -493,7 +495,7 @@ class Teller:
             result.append(
                 [
                     index,
-                    tc.data._ecc_point_to_serializable(
+                    self.serialize_ecc_point(
                         self.ege.threshold_decrypt(
                             item[1],
                             ciphertext,

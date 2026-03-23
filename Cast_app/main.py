@@ -1,12 +1,12 @@
-import psycopg2
 import os
-from Crypto.PublicKey import ECC
-import gmpy2
 import json
 import multiprocessing
 import argparse
 import time
 import random
+import psycopg2
+from Crypto.PublicKey import ECC
+import gmpy2
 import threshold_crypto as tc
 from threshold_crypto import CurveParameters
 from curve import Curve

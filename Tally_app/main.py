@@ -2,13 +2,17 @@ import os
 import select
 import json
 import sys
+import copy
 import multiprocessing
 import psycopg2
 from curve import Curve
 from Tallying import Teller
 from dotenv import load_dotenv
 import threshold_crypto as tc
-from pathlib import Path
+from Decoding import decode_bb_data
+from Encoding import ECCEncoder
+from util import deserialize_ep
+import traceback
 
 load_dotenv("../.env")
 
@@ -118,12 +122,16 @@ def listen():
 def handler(notify):
     print("New ballot Received", flush=True)
     data = json.loads(notify)
-
     con = get_listener_connection()
     cur = con.cursor()
 
+    cur.execute("SELECT * FROM encrypted_votes WHERE id = %s", (data["id"],))
+    ballot = cur.fetchone()
+
+    extended_ballot = extend_and_encode_vote(ballot)
+
     cur.execute(
-        "INSERT INTO extendedVotes (id, ballot) VALUES (%s, %s)",(data["id"], data["ballot"])
+        "INSERT INTO extendedVotes (id, ballot) VALUES (%s, %s)",(extended_ballot["id"], extended_ballot["ballot"])
     )
 
     con.commit()
@@ -132,6 +140,58 @@ def handler(notify):
 
     print(f"Inserted {data['id']} into extendedVotes", flush=True)
     
+def extend_and_encode_vote(row):
+    try:
+        decoded = decode_bb_data(row)
+        print("enc_ptk[0] type after decode:", type(decoded['enc_ptk'][0]), flush=True)
+
+        current_list = [[0, decoded]]
+        combined_outputs = []
+
+        for teller in tellers:
+            q1 = multiprocessing.Queue()
+            q2 = multiprocessing.Queue()
+            q3 = multiprocessing.Queue()
+            print("started queues", flush=True)
+            p = multiprocessing.Process(
+                target = teller.mp_raise_h, args=(current_list, q1, q2, q3)
+            )
+            p.start()
+            combined_outputs.append(q3.get())
+            p.join()
+            print("raised h", flush=True)
+
+        # Kombiner alle telleroutputs ligesom i den gamle tallying()
+        raised = []
+        for i in range(len(combined_outputs[0])):
+            ballot = combined_outputs[0][i][1]
+            prod_a = deserialize_ep(ballot["h_r"]["c1"])
+            prod_b = deserialize_ep(ballot["h_r"]["c2"])
+            prod_a_anti = deserialize_ep(ballot["h_r_anti"]["c1"])
+            prod_b_anti = deserialize_ep(ballot["h_r_anti"]["c2"])
+            sum_r = ballot["h_r"]["r"]
+            sum_r_anti = ballot["h_r_anti"]["r_anti"]
+
+            for j in range(1, len(combined_outputs)):
+                b = combined_outputs[j][i][1]
+                prod_a = prod_a + deserialize_ep(b["h_r"]["c1"])
+                prod_b = prod_b + deserialize_ep(b["h_r"]["c2"])
+                sum_r = sum_r + b["h_r"]["r"]
+                prod_a_anti = prod_a_anti + deserialize_ep(b["h_r_anti"]["c1"])
+                prod_b_anti = prod_b_anti + deserialize_ep(b["h_r_anti"]["c2"])
+                sum_r_anti = sum_r_anti + b["h_r_anti"]["r_anti"]
+
+            ballot["h_r"] = {"c1": prod_a, "c2": prod_b, "r": sum_r}
+            ballot["h_r_anti"] = {"c1": prod_a_anti, "c2": prod_b_anti, "r_anti": sum_r_anti}
+            raised.append([combined_outputs[0][i][0], ballot])
+
+        extended_ballot = {"id": decoded["id"], "ballot": raised}
+        encoded_ballot = json.dumps(extended_ballot, cls=ECCEncoder)
+        return encoded_ballot
+    except Exception as e:
+        print("extend_and_encode_vote FAILED:", e, flush=True)
+        traceback.print_exc()
+        raise
 
 
 try:

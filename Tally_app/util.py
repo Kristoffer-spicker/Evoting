@@ -12,7 +12,7 @@ def deserialize_pd(curve, pd):
 def deserialize_ep(dict_str):
     if (isinstance(dict_str, int)) and (dict_str == 0):
         return ECC.EccPoint(0, 0, "P-256")
-    return ECC.EccPoint(dict_str["x"], dict_str["y"], dict_str["curve"])
+    return ECC.EccPoint(int(dict_str["x"]), int(dict_str["y"]), dict_str["curve"])
 
 
 def _ecc_key_to_serializable(p: ECC.EccKey) -> Dict[str, Any]:
@@ -93,3 +93,12 @@ def find_entry_by_comm(comm, items):
         if point == comm:
             return item
     return None
+
+def to_tc_point(d):
+    """Deserialize a point dict and make it compatible with threshold_crypto."""
+    # Add curve field if missing (older serialized data may lack it)
+    if 'curve' not in d:
+        d = {**d, 'curve': 'P-256'}
+    point = deserialize_ep(d)
+    point._curve_name = 'P-256'  # only needed here, once, not scattered everywhere
+    return point
