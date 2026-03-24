@@ -5,7 +5,7 @@ from Cast_app.VCaster import VCaster
 
 
 class VVerify:
-    def __init__(self, curve, id, vote_min, vote_max, cur, con):
+    def __init__(self, curve, id, vote_min, vote_max, cur,con):
         self.id = id
         self.vote_min = vote_min
         self.vote_max = vote_max

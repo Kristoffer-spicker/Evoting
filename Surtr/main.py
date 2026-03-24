@@ -23,14 +23,14 @@ from util import (
     calculate_voter_term,
 )
 from subroutines import deserialize_ep
-from parties import Teller
+from Tallying import Teller
 from VCaster import VCaster
 
 
-load_dotenv("../Database/.env")
+load_dotenv("../.env")
 # pylint: disable=no-member
 
-#password = Path("../Database/password.txt").read_text().strip()
+
 # Set up the connection to the database
 con = psycopg2.connect(
     host="localhost",
@@ -41,17 +41,20 @@ con = psycopg2.connect(
 )
 cur = con.cursor()
 
+cur.execute("SELECT current_database()")
+print("Connected to:", cur.fetchone()[0])
+
 # Starts each run by clearing the database
 cur.execute("""
     SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
-        AND table_name = 'encryptedvotes'
+        AND table_name = 'encrypted_votes'
     )
 """)
 
 if cur.fetchone()[0]:
-    cur.execute("DELETE FROM encryptedVotes")
+    cur.execute("DELETE FROM encrypted_votes")
     con.commit()
 
 # Decodes from x, y coordinates to EccPoints
@@ -244,7 +247,7 @@ def voting():
         t_voting_single = t_voting_single + t_voting
 
 def retrieve_ballot(id):
-    cur.execute("SELECT * FROM encryptedVotes WHERE id = %s", (id,))
+    cur.execute("SELECT * FROM encrypted_votes WHERE id = %s", (id,))
     ballot = cur.fetchone()
     return decode_bb_data(ballot)
 

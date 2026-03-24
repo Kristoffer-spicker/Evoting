@@ -13,7 +13,7 @@ class ECCEncoder(json.JSONEncoder): #JSONEncoder is a class from the json module
         if isinstance(obj, ECC.EccKey): # For the part of the object that is a EccKey and exports it in a PEM format, which is another format for storing keys 
             return obj.export_key(format='PEM')
         if isinstance(obj, ECC.EccPoint): # EccPoints are converted to a standard coordinate format with its x and y coordinates
-            return {"x": str(obj.x), "y": str(obj.y)} 
+            return {"x": str(obj.x), "y": str(obj.y), "curve_name": obj.curve} 
         if isinstance(obj, bytes): # Objects of the type bytes are converted to their hex codes
             return obj.hex()
         if isinstance(obj, gmpy2.mpz): # Objects of the type mpz are converted to integers
@@ -163,7 +163,7 @@ class VCaster:
             "pi_3": self.wellformedness_proof_anti,
             "sum_r": self.sum_r,
         }
-        self.cur.execute("INSERT INTO encryptedVotes VALUES (%s, %s)", (self.id, json.dumps(bb_data, cls=ECCEncoder),))
+        self.cur.execute("INSERT INTO encrypted_votes VALUES (%s, %s)", (self.id, json.dumps(bb_data, cls=ECCEncoder),))
         self.con.commit()
 
     
