@@ -151,8 +151,9 @@ class Teller:
             temp_ev[1] = self.serialize_ecc_point(temp_ev[1])
             
             temp_evanti = ballot["ev_anti"]
-            temp_evanti[0] = self.serialize_ecc_point(temp_evanti[0])
-            temp_evanti[1] = self.serialize_ecc_point(temp_evanti[1])
+            for x in temp_evanti:
+                x[0] = self.serialize_ecc_point(x[0])
+                x[1] = self.serialize_ecc_point(x[1])
 
             temp_enc_ptk = ballot["enc_ptk"]
             temp_enc_ptk[0] = self.serialize_ecc_point(ballot["enc_ptk"][0])
@@ -179,6 +180,7 @@ class Teller:
             ballot["pi_2"][1][1] = self.serialize_ecc_point(
                 ballot["pi_2"][1][1]
             )
+            # KIG PÅ DET LORT HER ???
             ballot["pi_3"][0][0] = self.serialize_ecc_point(
                 ballot["pi_3"][0][0]
             )

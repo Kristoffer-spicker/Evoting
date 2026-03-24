@@ -90,10 +90,16 @@ def decode_bb_data(row):
         return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
     
     # for the vote, antivote, encrypted trapdoor key, and encrypted antitrapdoor key we convert the votes back to EccPoints and the keys to mpz formatting
-    for key in ['ev', 'ev_anti', 'enc_ptk', 'enc_ptk_anti']:
+    for key in ['ev', 'enc_ptk', 'enc_ptk_anti']:
         bb_data[key][0] = to_point(bb_data[key][0])
         bb_data[key][1] = to_point(bb_data[key][1])
         bb_data[key][2] = gmpy2.mpz(bb_data[key][2])
+
+    for key in ['ev_anti']:
+        for x in bb_data[key]:
+            x[0] = to_point(x[0])
+            x[1] = to_point(x[1])
+            x[2] = gmpy2.mpz(x[2])
     
     # The proofs are converted from x,y coordinates to EccPoints using the decode_point_recursive function
     for key in ['pi_1', 'pi_1_anti', 'pi_2', 'pi_3']:
@@ -175,6 +181,7 @@ def voting():
         teller_public_key = get_random_tpk(teller_public_keys)
         t_voting_single_start = time.time()
         voter.generate_trapdoor_keypair()
+        #Loop
         voter.generate_antitrapdoor_keypair()
         voter.encrypt_vote(teller_public_key)
 
