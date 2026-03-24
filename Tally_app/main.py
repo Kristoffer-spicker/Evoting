@@ -47,6 +47,9 @@ if cur.fetchone()[0]:
     cur.execute("DELETE FROM tellers")
     con.commit()
 
+cur.execute("DELETE FROM extendedvotes")
+con.commit()
+
 # This so Mathildes Macbook uses forks for multiprocessing instead of spawn
 multiprocessing.set_start_method('fork', force=True)
 
@@ -129,9 +132,10 @@ def handler(notify):
     ballot = cur.fetchone()
 
     extended_ballot = extend_and_encode_vote(ballot)
+    parsed = json.loads(extended_ballot)
 
     cur.execute(
-        "INSERT INTO extendedVotes (id, ballot) VALUES (%s, %s)",(extended_ballot["id"], extended_ballot["ballot"])
+        "INSERT INTO extendedVotes (id, ballot) VALUES (%s, %s) ON CONFLICT (id) DO UPDATE SET ballot = EXCLUDED.ballot", (parsed["id"], json.dumps(parsed["ballot"]))
     )
 
     con.commit()
@@ -143,7 +147,6 @@ def handler(notify):
 def extend_and_encode_vote(row):
     try:
         decoded = decode_bb_data(row)
-        print("enc_ptk[0] type after decode:", type(decoded['enc_ptk'][0]), flush=True)
 
         current_list = [[0, decoded]]
         combined_outputs = []
@@ -192,6 +195,7 @@ def extend_and_encode_vote(row):
         print("extend_and_encode_vote FAILED:", e, flush=True)
         traceback.print_exc()
         raise
+
 
 
 try:

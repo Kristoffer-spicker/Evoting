@@ -52,7 +52,6 @@ def decode_point_recursive(obj):
 # Decodes the ballots as stored in the database back to Ecc objects
 def decode_bb_data(row):
     bb_data = json.loads(row[1]) # Loads the json string of the ballot
-    print("ev type:", type(bb_data['ev']), "ev:", bb_data['ev'], flush=True)
 
     # Converts the public key back to ECC key formattign
     bb_data['spk'] = ECC.import_key(bb_data['spk'])
