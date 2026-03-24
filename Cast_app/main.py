@@ -177,12 +177,20 @@ def voting():
         voter.generate_trapdoor_keypair()
         voter.generate_antitrapdoor_keypair()
         voter.encrypt_vote(teller_public_key)
+
+        # Indsæt loop for alle andre kandidater
         voter.encrypt_antivote(teller_public_key) # encrypt other vote
         voter.encrypt_trapdoor(teller_public_key) # encrypt the trapdoor
+
+        #Indsæt loop for all andre kandidaters trapdoors
         voter.encrypt_antitrapdoor(teller_public_key) # encrypt the other trapdoor
         voter.generate_pok_trapdoor_keypair(teller_public_key)
+
+        # Loop for alle andre anti
         voter.generate_pok_antitrapdoor_keypair(teller_public_key)
         voter.generate_wellformedness_proof(teller_public_key)
+
+        # Loop for beviser for alle andre kandidater
         voter.generate_wellformedness_proof_anti(teller_public_key) # proof other vote
         voter.sign_ballot()
 
@@ -190,7 +198,9 @@ def voting():
         print("Vote has been cast for", voter.id)
 
         bb.append(bb_data)
+        time.sleep(10)
 
+# Returns the ballot cast by a voter by their id
 def retrieve_ballot(id):
     cur.execute("SELECT * FROM encrypted_votes WHERE id = %s", (id,))
     ballot = cur.fetchone()

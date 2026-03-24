@@ -31,6 +31,7 @@ class Teller:
         self.ege = ElGamalEncryption(self.curve)
         self.core_count = multiprocessing.cpu_count()
 
+    # takes ecc_points and converts them to a dict
     def serialize_ecc_point(self, p):
         return {"x": int(p.x), "y": int(p.y), "curve": p.curve}
 

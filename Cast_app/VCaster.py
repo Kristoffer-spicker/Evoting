@@ -33,8 +33,8 @@ class VCaster:
     def choose_vote_value(self):
         self.vote = random.randrange(self.vote_min, self.vote_max)
         
-
-    def cast_vote(self): #Function for the vote chosen by the voter
+    #Function for the vote chosen by the voter  
+    def cast_vote(self): 
         print("not implemented")
 
     def generate_dsa_keys(self):
@@ -47,10 +47,11 @@ class VCaster:
             teller_public_key.Q, self.g_vote
         )
 
-    def encrypt_antivote(self, teller_public_key):
+    def encrypt_antivote(self, teller_public_key): 
         self.ege = ElGamalEncryption(self.curve)
+        # add for loop between 0 and vote_max that makes antivote and skips the candidate id actually voted for
         self.g_antivote = self.curve.raise_p(int(abs(self.vote-1)))
-        self.encrypted_antivote = self.ege.encrypt(
+        self.encrypted_antivote_ = self.ege.encrypt(
             teller_public_key.Q, self.g_antivote
         )
 
@@ -136,12 +137,16 @@ class VCaster:
         self.sum_r = self.encrypted_vote[2]+self.encrypted_antivote[2]
         hash = self.curve.hash_to_mpz(
             str(self.encrypted_vote)
+            # Loop 
             + str(self.encrypted_antivote) 
             + str(self.encrypted_trapdoor)
+            # Loop
             + str(self.encrypted_antitrapdoor)
             + str(self.pok_trapdoor_key)
+            # Loop
             + str(self.pok_antitrapdoor_key)
             + str(self.wellformedness_proof)
+            # Loop
             + str(self.wellformedness_proof_anti)
             + str(self.sum_r)    
         )
@@ -163,7 +168,7 @@ class VCaster:
             "pi_3": self.wellformedness_proof_anti,
             "sum_r": self.sum_r,
         }
-        self.cur.execute("INSERT INTO encrypted_votes VALUES (%s, %s)", (self.id, json.dumps(bb_data, cls=ECCEncoder),))
+        self.cur.execute("INSERT INTO encrypted_votes VALUES (%s, %s)", (self.id, json.dumps(bb_data, cls=ECCEncoder),)) # adds the final ballot to the BB
         self.con.commit()
 
     
