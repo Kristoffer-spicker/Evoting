@@ -130,7 +130,8 @@ def encrypted_listen():
             conn.poll()
             while conn.notifies:
                 notify = conn.notifies.pop(0)
-                handler(notify.payload)
+                handler(notify)
+
         
 
 def handler(notify):
@@ -191,22 +192,31 @@ def extend_and_encode_vote(row):
             ballot = combined_outputs[0][i][1]
             prod_a = deserialize_ep(ballot["h_r"]["c1"])
             prod_b = deserialize_ep(ballot["h_r"]["c2"])
-            prod_a_anti = deserialize_ep(ballot["h_r_anti"]["c1"])
-            prod_b_anti = deserialize_ep(ballot["h_r_anti"]["c2"])
+            prod_a_anti = []
+            prod_b_anti = []
+            for k in range(len(ballot["h_r_anti"])):
+                prod_a_anti.append(deserialize_ep(ballot["h_r_anti"][k]["c1"]))
+                prod_b_anti.append(deserialize_ep(ballot["h_r_anti"][k]["c2"]))
             sum_r = ballot["h_r"]["r"]
-            sum_r_anti = ballot["h_r_anti"]["r_anti"]
+            
+            sum_r_anti = []
+            for l in range(len(ballot["h_r_anti"])):
+                sum_r_anti.append(ballot["h_r_anti"][l]["r_anti"])
 
             for j in range(1, len(combined_outputs)):
                 b = combined_outputs[j][i][1]
                 prod_a = prod_a + deserialize_ep(b["h_r"]["c1"])
                 prod_b = prod_b + deserialize_ep(b["h_r"]["c2"])
                 sum_r = sum_r + b["h_r"]["r"]
-                prod_a_anti = prod_a_anti + deserialize_ep(b["h_r_anti"]["c1"])
-                prod_b_anti = prod_b_anti + deserialize_ep(b["h_r_anti"]["c2"])
-                sum_r_anti = sum_r_anti + b["h_r_anti"]["r_anti"]
+                for m in range (len(b["h_r_anti"])):
+                    prod_a_anti[m] = prod_a_anti[m] + deserialize_ep(b["h_r_anti"][m]["c1"])
+                    prod_b_anti[m] = prod_b_anti[m] + deserialize_ep(b["h_r_anti"][m]["c2"])
+                for n in range (len(b["h_r_anti"])):
+                    sum_r_anti[n] = sum_r_anti[n] + b["h_r_anti"][n]["r_anti"]
 
             ballot["h_r"] = {"c1": prod_a, "c2": prod_b, "r": sum_r}
-            ballot["h_r_anti"] = {"c1": prod_a_anti, "c2": prod_b_anti, "r_anti": sum_r_anti}
+            for o in range (len(ballot["h_r_anti"])):
+                ballot["h_r_anti"].append( {"c1": prod_a_anti[o], "c2": prod_b_anti[o], "r_anti": sum_r_anti[o]})
             raised.append([combined_outputs[0][i][0], ballot])
 
         extended_ballot = {"id": decoded["id"], "ballot": raised}

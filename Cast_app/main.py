@@ -79,8 +79,13 @@ def decode_bb_data(row):
     
     # Takes the integers for the trapdoor keys and the sum of r back to mpz formatting
     bb_data['stk'] = gmpy2.mpz(bb_data['stk'])
-    bb_data['stk_anti'] = gmpy2.mpz(bb_data['stk_anti'])
+    #bb_data['stk_anti'] = gmpy2.mpz(bb_data['stk_anti'])
     bb_data['sum_r'] = gmpy2.mpz(bb_data['sum_r'])
+
+    for key in ['stk_anti']:
+        for x in bb_data[key]:
+            x = gmpy2.mpz(x)
+    
     
     # Takes the hex formatted signature and converts it back to bytes
     bb_data['sig'] = bytes.fromhex(bb_data['sig'])
@@ -90,12 +95,12 @@ def decode_bb_data(row):
         return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
     
     # for the vote, antivote, encrypted trapdoor key, and encrypted antitrapdoor key we convert the votes back to EccPoints and the keys to mpz formatting
-    for key in ['ev', 'enc_ptk', 'enc_ptk_anti']:
+    for key in ['ev', 'enc_ptk']:
         bb_data[key][0] = to_point(bb_data[key][0])
         bb_data[key][1] = to_point(bb_data[key][1])
         bb_data[key][2] = gmpy2.mpz(bb_data[key][2])
 
-    for key in ['ev_anti']:
+    for key in ['ev_anti', 'enc_ptk_anti']:
         for x in bb_data[key]:
             x[0] = to_point(x[0])
             x[1] = to_point(x[1])
@@ -133,7 +138,7 @@ if (
 
 
 vote_min = 0
-vote_max = 2
+vote_max = 3
 
 t_voting_single = 0
 t_verification_single = 0

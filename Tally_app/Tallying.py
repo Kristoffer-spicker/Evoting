@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import random
+import traceback
 
 import threshold_crypto as tc
 import gmpy2
@@ -54,22 +55,27 @@ class Teller:
             ciphertext, ciphertext_anti, proof, r_i = self.raise_h(self.public_key, ballot)
             ciphertext["c1"] = self.serialize_ecc_point(ciphertext["c1"])
             ciphertext["c2"] = self.serialize_ecc_point(ciphertext["c2"])
-            ciphertext_anti["c1"] = self.serialize_ecc_point(ciphertext_anti["c1"])
-            ciphertext_anti["c2"] = self.serialize_ecc_point(ciphertext_anti["c2"])
 
-            proof[0] = self.serialize_ecc_point(proof[0])
-            proof[1] = self.serialize_ecc_point(proof[1])
-            proof[2] = self.serialize_ecc_point(proof[2])
-            proof[3] = self.serialize_ecc_point(proof[3])
+            for i in range (len(ciphertext_anti)):
+                ciphertext_anti[i]["c1"] = self.serialize_ecc_point(ciphertext_anti[i]["c1"])
+                ciphertext_anti[i]["c2"] = self.serialize_ecc_point(ciphertext_anti[i]["c2"])
+
+            for i in range (len(proof)):
+                proof[i][0] = self.serialize_ecc_point(proof[i][0])
+                proof[i][1] = self.serialize_ecc_point(proof[i][1])
+                proof[i][2] = self.serialize_ecc_point(proof[i][2])
+                proof[i][3] = self.serialize_ecc_point(proof[i][3])
 
             tmp_enc_ptk = [] #enc(g^x1)
             tmp_enc_ptk.append(self.serialize_ecc_point(ballot["enc_ptk"][0]))
             tmp_enc_ptk.append(self.serialize_ecc_point(ballot["enc_ptk"][1]))
 
             tmp_enc_ptk_anti = []
-            tmp_enc_ptk_anti.append(self.serialize_ecc_point(ballot["enc_ptk_anti"][0]))
-            tmp_enc_ptk_anti.append(self.serialize_ecc_point(ballot["enc_ptk_anti"][1]))
-            
+            for i in range (len(tmp_enc_ptk_anti)):
+                temp_enc_ptk_anti = []
+                temp_enc_ptk_anti.append(self.serialize_ecc_point(ballot["enc_ptk_anti"][i][0]))
+                temp_enc_ptk_anti.append(self.serialize_ecc_point(ballot["enc_ptk_anti"][i][1]))
+                tmp_enc_ptk_anti.append(temp_enc_ptk_anti)            
 
             reenc = self.ege.re_encrypt(self.public_key.Q, ballot["ev"])
             nizk = NIZK(self.curve)
@@ -160,8 +166,10 @@ class Teller:
             temp_enc_ptk[1] = self.serialize_ecc_point(ballot["enc_ptk"][1])
             
             temp_enc_ptk_anti = ballot["enc_ptk_anti"]
-            temp_enc_ptk_anti[0] = self.serialize_ecc_point(ballot["enc_ptk_anti"][0])
-            temp_enc_ptk_anti[1] = self.serialize_ecc_point(ballot["enc_ptk_anti"][1])
+            for i in range (len(temp_enc_ptk_anti)):
+                temp_enc_ptk_anti[i][0] = self.serialize_ecc_point(ballot["enc_ptk_anti"][i][0])
+                temp_enc_ptk_anti[i][1] = self.serialize_ecc_point(ballot["enc_ptk_anti"][i][1])
+
             ballot["pi_1"][2] = self.serialize_ecc_point(
                 ballot["pi_1"][2]
             )
@@ -180,20 +188,12 @@ class Teller:
             ballot["pi_2"][1][1] = self.serialize_ecc_point(
                 ballot["pi_2"][1][1]
             )
-            # KIG PÅ DET LORT HER ???
-            ballot["pi_3"][0][0] = self.serialize_ecc_point(
-                ballot["pi_3"][0][0]
-            )
-            ballot["pi_3"][0][1] = self.serialize_ecc_point(
-                ballot["pi_3"][0][1]
-            )
-            ballot["pi_3"][1][0] = self.serialize_ecc_point(
-                ballot["pi_3"][1][0]
-            )
-            ballot["pi_3"][1][1] = self.serialize_ecc_point(
-                ballot["pi_3"][1][1]
-            )
-            
+            for proof in ballot["pi_3"]:
+                # proof[0] and proof[1] contain ECC points
+                for i in [0, 1]: # Looks at the first two parts ([ecc_point, ecc_point]) of the anti wellformedness proofs
+                    for j in [0, 1]: # Looks at the first two parts of each [ecc_point, ecc_point]
+                        if hasattr(proof[i][j], "x"):  # ECC point check by seeing if they contain the variable x
+                            proof[i][j] = self.serialize_ecc_point(proof[i][j])                           
 
             temp.append(ballot)
             list_out.append(temp)
@@ -600,27 +600,38 @@ class Teller:
 
 
         re_rand =  [enc_voter_public_key[0] * r_i , enc_voter_public_key[1] * r_i,  r_i]
-        re_rand_anti = [enc_voter_public_key_anti[0] * r_i , enc_voter_public_key_anti[1] * r_i,  r_i]
+
+        re_rand_anti = []
+        for i in range (len(enc_voter_public_key_anti)):
+            re_rand_anti.append([enc_voter_public_key_anti[i][0] * r_i , enc_voter_public_key_anti[i][1] * r_i,  r_i])
 
         ciphertext_t = self.ege.re_encrypt(self.public_key.Q, re_rand)
-        ciphertext_t_anti = self.ege.re_encrypt(self.public_key.Q, re_rand_anti)
+
+        ciphertext_t_anti = []
+        for i in range (len(re_rand_anti)):
+            ciphertext_t_anti.append(self.ege.re_encrypt(self.public_key.Q, re_rand_anti[i]))
 
         ciphertext = {"c1" : ciphertext_t[0] , "c2": ciphertext_t[1],   "r": ciphertext_t[3] }
-        ciphertext_anti = {"c1" : ciphertext_t_anti[0] , "c2" :  ciphertext_t_anti[1], "r_anti": ciphertext_t_anti[3]}
+
+        ciphertext_anti = []
+        for i in range (len(ciphertext_t_anti)):
+            ciphertext_anti.append({"c1" : ciphertext_t_anti[i][0] , "c2" :  ciphertext_t_anti[i][1], "r_anti": ciphertext_t_anti[i][3]})
 
       
         chmp = ChaumPedersenProof(self.curve)
         #prove that all ciphertexts are raise to r_i and re_encrypted
-        proof = chmp.prove_s( 
-            ciphertext,     
-            r_i,
-            ciphertext_t[3],
-            enc_voter_public_key, 
-            ciphertext_anti,
-            enc_voter_public_key_anti,
-            ciphertext_t_anti[3],
-            teller_public_key.Q,
-        )
+        proof = []
+        for i in range (len(ciphertext_t_anti)):
+            proof.append(chmp.prove_s( 
+                ciphertext,     
+                r_i,
+                ciphertext_t[3],
+                enc_voter_public_key, 
+                ciphertext_anti[i],
+                enc_voter_public_key_anti[i],
+                ciphertext_t_anti[i][3],
+                teller_public_key.Q,
+            ))
 
 
         return ciphertext, ciphertext_anti, proof,  r_i

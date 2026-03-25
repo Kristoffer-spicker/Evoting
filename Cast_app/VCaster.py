@@ -91,7 +91,7 @@ class VCaster:
                 r,
                 teller_public_key.Q,
                 self.vote_max,
-                int(abs(self.vote-1)),
+                int(i),
                 self.id,
             ))
 
@@ -100,7 +100,12 @@ class VCaster:
         self.secret_trapdoor_key, self.public_trapdoor_key = self.ege.keygen()
 
     def generate_antitrapdoor_keypair(self):#generate x2 and g^x2
-        self.secret_antitrapdoor_key, self.public_antitrapdoor_key = self.ege.keygen()
+        self.secret_antitrapdoor_key = []
+        self.public_antitrapdoor_key = []
+        for i in range (self.vote_max):
+            temp_secret_antitrapdoor_key, temp_public_antitrapdoor_key = self.ege.keygen()
+            self.secret_antitrapdoor_key.append(temp_secret_antitrapdoor_key)
+            self.public_antitrapdoor_key.append(temp_public_antitrapdoor_key)
 
     def encrypt_trapdoor(self, teller_public_key): #encrypt g^x1
         self.encrypted_trapdoor = self.ege.encrypt(
@@ -108,9 +113,11 @@ class VCaster:
         )
 
     def encrypt_antitrapdoor(self, teller_public_key):#encrypt g^x2
-        self.encrypted_antitrapdoor = self.ege.encrypt(
-            teller_public_key.Q, self.public_antitrapdoor_key
-        )
+        self.encrypted_antitrapdoor = []
+        for i in range (self.vote_max):
+            self.encrypted_antitrapdoor.append(self.ege.encrypt(
+                teller_public_key.Q, self.public_antitrapdoor_key[i]
+            ))
 
     def generate_pok_trapdoor_keypair(self, teller_public_key): #prove that the voter knows g^x1 and r
         encrypted_trapdoor = {
@@ -127,18 +134,20 @@ class VCaster:
         )
 
     def generate_pok_antitrapdoor_keypair(self, teller_public_key):#prove that the voter knows g^x2 and r
-        encrypted_antitrapdoor = {
-            "c1": self.encrypted_antitrapdoor[0],
-            "c2": self.encrypted_antitrapdoor[1],
-        }
-        r = self.encrypted_antitrapdoor[2]
-        chmp = ChaumPedersenProof(self.curve)
-        self.pok_antitrapdoor_key = chmp.prove(
-            encrypted_antitrapdoor,
-            r,
-            teller_public_key.Q,
-            self.public_antitrapdoor_key,
-        )
+        self.pok_antitrapdoor_key = []
+        for i in range (len(self.encrypted_antitrapdoor)):
+            encrypted_antitrapdoor = {
+                "c1": self.encrypted_antitrapdoor[i][0],
+                "c2": self.encrypted_antitrapdoor[i][1],
+            }
+            r = self.encrypted_antitrapdoor[i][2]
+            chmp = ChaumPedersenProof(self.curve)
+            self.pok_antitrapdoor_key = chmp.prove(
+                encrypted_antitrapdoor,
+                r,
+                teller_public_key.Q,
+                self.public_antitrapdoor_key[i],
+            )
 
     def sign_ballot(self):
         self.dsa = DSA(self.curve)
