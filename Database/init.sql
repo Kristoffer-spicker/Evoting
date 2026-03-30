@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS encrypted_votes (
     id        TEXT PRIMARY KEY,
-    ballot    TEXT NOT NULL
+    ballot    JSONB NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS tellers (
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS tellers (
 
 CREATE TABLE IF NOT EXISTS extended_votes (
     id        TEXT PRIMARY KEY,
-    ballot    TEXT NOT NULL
+    ballot    JSONB NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS reencrypted_triplets (
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS final_tally (
 CREATE OR REPLACE FUNCTION notify_encrypted_vote()
 RETURNS trigger AS $$
 BEGIN
-    PERFORM pg_notify('encrypted_votes', row_to_json(NEW)::text);
+    PERFORM pg_notify('encrypted_votes', NEW.id);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -39,7 +39,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION notify_extended_vote()
 RETURNS trigger AS $$
 BEGIN
-    PERFORM pg_notify('extended_votes', row_to_json(NEW)::text);
+    PERFORM pg_notify('extended_votes', NEW.id);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

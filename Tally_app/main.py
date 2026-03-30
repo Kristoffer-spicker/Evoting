@@ -60,11 +60,7 @@ multiprocessing.set_start_method('fork', force=True)
 num_tellers = 5
 k = 3
 
-q1 = multiprocessing.Queue()
-q2 = multiprocessing.Queue()
-
 tellers = []
-
 
 teller_proofs = []
 
@@ -130,7 +126,7 @@ def encrypted_listen():
             conn.poll()
             while conn.notifies:
                 notify = conn.notifies.pop(0)
-                handler(notify)
+                handler(notify.payload)
 
         
 
@@ -141,12 +137,10 @@ def handler(notify):
     Finally the extended and encoded vote is added to the extended_votes table
     """
     print("New ballot Received", flush=True)
-    data = json.loads(notify)
     con = get_listener_connection()
     cur = con.cursor()
-
-    cur.execute("SELECT * FROM encrypted_votes WHERE id = %s", (data["id"],))
-    ballot = cur.fetchone()
+    cur.execute("SELECT ballot FROM encrypted_votes WHERE id = %s", (notify,))
+    ballot = cur.fetchone()[0]
 
     extended_ballot = extend_and_encode_vote(ballot)
     parsed = json.loads(extended_ballot)
@@ -159,7 +153,6 @@ def handler(notify):
     cur.close()
     con.close()
 
-    print(f"Inserted {data['id']} into extended_votes", flush=True)
     
 def extend_and_encode_vote(row):
     """
@@ -171,9 +164,10 @@ def extend_and_encode_vote(row):
     try:
         decoded = decode_bb_data(row)
 
-        current_list = [[0, decoded]]
+        current_list = [[decoded["id"], decoded]]
         combined_outputs = []
 
+            
         for teller in tellers:
             q1 = multiprocessing.Queue()
             q2 = multiprocessing.Queue()
@@ -183,10 +177,21 @@ def extend_and_encode_vote(row):
                 target = teller.mp_raise_h, args=(current_list, q1, q2, q3)
             )
             p.start()
-            combined_outputs.append(q3.get())
+            try:
+                print(f"[PARENT] waiting for q1.get()", flush=True)
+                _ = json.loads(q1.get())
+                print(f"[PARENT] waiting for q2.get()", flush=True)
+                _ = json.loads(q2.get())
+                print(f"[PARENT] waiting for q3.get()", flush=True)
+                combined_outputs.append(json.loads(q3.get()))
+                print(f"[PARENT] got from q3.get()", flush=True)
+            except Exception as e:
+                print(f"[PARENT] ERROR getting queue: {e}", flush=True)
+                
+            
             p.join()
-            print("raised h", flush=True)
 
+       
         raised = []
         for i in range(len(combined_outputs[0])):
             ballot = combined_outputs[0][i][1]
@@ -228,7 +233,7 @@ def extend_and_encode_vote(row):
         raise
 
 
-def extended_listen():
+"""def extended_listen():
     conn = get_listener_connection()
     cur = conn.cursor()
     cur.execute("LISTEN extended_votes;")
@@ -243,11 +248,10 @@ def extended_listen():
                 extend_handler(notify.payload)
 
 def extend_handler(notify):
-    data = json.loads(notify)
+    data = notify
     con = get_listener_connection()
     cur = con.cursor()
-
-    cur.execute("SELECT * FROM extended_votes WHERE id = %s", (data["id"],))
+    cur.execute("SELECT ballot from extended_votes WHERE id = %s", (data,))
     ballot = cur.fetchone()
 
     triplets = reencryptTriplets(ballot)
@@ -260,7 +264,7 @@ def reencryptTriplets(ballot):
     print("triplet1 :", triplet1, flush=True)
     triplet2 = {decoded["ev_anti"], decoded["h_r_anti"], decoded["encryption_gr"]}
     print("triplet2 :", triplet2, flush=True)
-    return 3
+    return 3"""
 
 try:
     setup()
@@ -270,11 +274,11 @@ except Exception as e:
     sys.exit(1)
 
 
+
+# THEN start threads
 t1 = threading.Thread(target=encrypted_listen)
 t2 = threading.Thread(target=extended_listen)
-
 t1.start()
 t2.start()
-
 t1.join()
 t2.join()

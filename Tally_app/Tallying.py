@@ -14,6 +14,7 @@ from util import (
     serialize_pd,
 )
 from Crypto.PublicKey import ECC
+from Encoding import ECCEncoder
 
 
 from primitives import DSA, ElGamalEncryption, NIZK, ChaumPedersenProof
@@ -55,6 +56,7 @@ class Teller:
             ciphertext, ciphertext_anti, proof, r_i = self.raise_h(self.public_key, ballot)
             ciphertext["c1"] = self.serialize_ecc_point(ciphertext["c1"])
             ciphertext["c2"] = self.serialize_ecc_point(ciphertext["c2"])
+            print("step 1", flush=True)
 
             for i in range (len(ciphertext_anti)):
                 ciphertext_anti[i]["c1"] = self.serialize_ecc_point(ciphertext_anti[i]["c1"])
@@ -66,12 +68,14 @@ class Teller:
                 proof[i][2] = self.serialize_ecc_point(proof[i][2])
                 proof[i][3] = self.serialize_ecc_point(proof[i][3])
 
+            print("step 2", flush=True)
+
             tmp_enc_ptk = [] #enc(g^x1)
             tmp_enc_ptk.append(self.serialize_ecc_point(ballot["enc_ptk"][0]))
             tmp_enc_ptk.append(self.serialize_ecc_point(ballot["enc_ptk"][1]))
 
             tmp_enc_ptk_anti = []
-            for i in range (len(tmp_enc_ptk_anti)):
+            for i in range (len(ballot["enc_ptk_anti"])):
                 temp_enc_ptk_anti = []
                 temp_enc_ptk_anti.append(self.serialize_ecc_point(ballot["enc_ptk_anti"][i][0]))
                 temp_enc_ptk_anti.append(self.serialize_ecc_point(ballot["enc_ptk_anti"][i][1]))
@@ -85,6 +89,7 @@ class Teller:
                 ballot["ev"],
                 reenc[2],
             )
+            print("step 3", flush=True)
 
             reenc[0] = self.serialize_ecc_point(reenc[0])
             reenc[1] = self.serialize_ecc_point(reenc[1])
@@ -112,7 +117,7 @@ class Teller:
             enc_gs[0] = self.serialize_ecc_point(enc_gs[0])
             enc_gs[1] = self.serialize_ecc_point(enc_gs[1])
             
-
+            print("step 4", flush=True)
 
             teller_proof_record = {
                 "ev": ballot["ev"],
@@ -198,10 +203,13 @@ class Teller:
             temp.append(ballot)
             list_out.append(temp)
 
+            print("step 5", flush=True)
 
-        q1.put(teller_proofs)
-        q2.put(teller_registry)
-        q3.put(list_out)
+
+        q1.put(json.dumps(teller_proofs, cls=ECCEncoder))
+        q2.put(json.dumps(teller_registry, cls=ECCEncoder))
+        q3.put(json.dumps(list_out, cls=ECCEncoder))
+        print("step 6", flush=True)
 
     def ciphertext_list_split(self, list_0, n):
         k, m = divmod(len(list_0), n)

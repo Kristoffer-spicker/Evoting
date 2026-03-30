@@ -72,7 +72,7 @@ def decode_public_key(datas):
 
 # Decodes the ballots as stored in the database back to Ecc objects
 def decode_bb_data(row):
-    bb_data = json.loads(row[1]) # Loads the json string of the ballot
+    bb_data = row[1] # Loads the json string of the ballot
     
     # Converts the public key back to ECC key formattign
     bb_data['spk'] = ECC.import_key(bb_data['spk'])
@@ -128,7 +128,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-num_voters = 3
+num_voters = 10
 if (
     args.voter_count is not None
     and int(args.voter_count) > 0
@@ -138,7 +138,7 @@ if (
 
 
 vote_min = 0
-vote_max = 3
+vote_max = 10
 
 t_voting_single = 0
 t_verification_single = 0
@@ -216,7 +216,6 @@ def voting():
 def retrieve_ballot(id):
     cur.execute("SELECT * FROM encrypted_votes WHERE id = %s", (id,))
     ballot = cur.fetchone()
-    print(type(ballot))
     return decode_bb_data(ballot)
 
 def get_random_tpk(tpks):
