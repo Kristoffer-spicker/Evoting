@@ -54,6 +54,7 @@ def decode_ciphertext(c):
     """Decode a single ciphertext — handles both dict and list formats"""
     if isinstance(c, dict):
         # Dict format: {'c1': {...}, 'c2': {...}, 'r_anti': ...}
+        r_key = next(k for k in c if k not in ('c1', 'c2'))
         return [
             ECC.EccPoint(int(c['c1']['x']), int(c['c1']['y']), 'P-256'),
             ECC.EccPoint(int(c['c2']['x']), int(c['c2']['y']), 'P-256'),
@@ -85,10 +86,8 @@ def decode_bb_data(row):
 
     # --- Trapdoor keys ---
     bb_data['stk'] = gmpy2.mpz(bb_data['stk'])
-    bb_data['sum_r'] = gmpy2.mpz(bb_data['sum_r'])
-
-    # Fix: use enumerate to actually mutate the list
     bb_data['stk_anti'] = [gmpy2.mpz(x) for x in bb_data['stk_anti']]
+    bb_data['sum_r'] = gmpy2.mpz(bb_data['sum_r'])
 
     # --- Signature ---
     bb_data['sig'] = bytes.fromhex(bb_data['sig'])
@@ -107,3 +106,30 @@ def decode_bb_data(row):
             bb_data[key] = decode_point_recursive(bb_data[key])
 
     return bb_data
+
+def decode_extended_ballot(single_ballot):
+    def to_point(d):
+        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
+
+    def decode_ciphertext_list(c):
+        # Normalizes both dict and list formats into [point, point, mpz]
+        if isinstance(c, dict):
+            return [
+                to_point(c['c1']),
+                to_point(c['c2']),
+                gmpy2.mpz(c.get('r', c.get('r_anti', 0)))
+            ]
+        else:
+            return [
+                to_point(c[0]),
+                to_point(c[1]),
+                gmpy2.mpz(c[2])
+            ]
+
+    return {
+        "ev":        decode_ciphertext_list(single_ballot["ev"]),
+        "ev_anti":   [decode_ciphertext_list(c) for c in single_ballot["ev_anti"]],
+        "h_r":       decode_ciphertext_list(single_ballot["h_r"]),
+        "h_r_anti":  [decode_ciphertext_list(c) for c in single_ballot["h_r_anti"]],
+        "enc_gr":    decode_ciphertext_list(single_ballot["enc_gr"]),
+    }

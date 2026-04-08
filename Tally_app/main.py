@@ -10,6 +10,7 @@ from Tallying import Teller
 from dotenv import load_dotenv
 import threshold_crypto as tc
 from Decoding import decode_bb_data
+from Decoding import decode_extended_ballot
 from Encoding import ECCEncoder
 from util import deserialize_ep
 import traceback
@@ -220,8 +221,10 @@ def extend_and_encode_vote(row):
                     sum_r_anti[n] = sum_r_anti[n] + b["h_r_anti"][n]["r_anti"]
 
             ballot["h_r"] = {"c1": prod_a, "c2": prod_b, "r": sum_r}
-            for o in range (len(ballot["h_r_anti"])):
-                ballot["h_r_anti"].append( {"c1": prod_a_anti[o], "c2": prod_b_anti[o], "r_anti": sum_r_anti[o]})
+            ballot["h_r_anti"] = [
+                {"c1": prod_a_anti[o], "c2": prod_b_anti[o], "r_anti": sum_r_anti[o]}
+                for o in range(len(prod_a_anti))
+            ]
             raised.append([combined_outputs[0][i][0], ballot])
 
         extended_ballot = {"id": decoded["id"], "ballot": raised}
@@ -273,7 +276,7 @@ def reencryptTriplets(ballot):
     triplets = []
 
     for ballot_id, single_ballot in decoded_list:
-        decoded = decode_bb_data(single_ballot)
+        decoded = decode_extended_ballot(single_ballot)  # ← use new decoder
 
         triplets.append([decoded["ev"], decoded["h_r"], decoded["enc_gr"]])
 

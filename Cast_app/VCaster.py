@@ -64,7 +64,7 @@ class VCaster:
     def generate_wellformedness_proof(self, teller_public_key):
         encrypted_vote = {
             "c1": self.encrypted_vote[0],
-            "c2": self.encrypted_vote[0],
+            "c2": self.encrypted_vote[1],
         }
         r = self.encrypted_vote[2]
         chmp = ChaumPedersenProof(self.curve)
@@ -142,12 +142,12 @@ class VCaster:
             }
             r = self.encrypted_antitrapdoor[i][2]
             chmp = ChaumPedersenProof(self.curve)
-            self.pok_antitrapdoor_key = chmp.prove(
+            self.pok_antitrapdoor_key.append(chmp.prove(
                 encrypted_antitrapdoor,
                 r,
                 teller_public_key.Q,
                 self.public_antitrapdoor_key[i],
-            )
+            ))
 
     def sign_ballot(self):
         self.dsa = DSA(self.curve)
