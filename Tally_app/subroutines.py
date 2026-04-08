@@ -22,6 +22,20 @@ def gen_permutation(length):
     random.shuffle(i)
     return i
 
+def normalize_ciphertext(c, deserialize_ep):
+    """Normalize ciphertext to [c1_point, c2_point, r] regardless of source format"""
+    if isinstance(c, dict):
+        # Dict format from JSON: {'c1': {...}, 'c2': {...}, 'r_anti'/'r': int}
+        c1 = deserialize_ep(c['c1']) if isinstance(c['c1'], dict) else c['c1']
+        c2 = deserialize_ep(c['c2']) if isinstance(c['c2'], dict) else c['c2']
+        r  = c.get('r_anti') or c.get('r')
+        return [c1, c2, r]
+    elif isinstance(c, list):
+        # List format: [{x,y}, {x,y}, int]
+        c1 = deserialize_ep(c[0]) if isinstance(c[0], dict) else c[0]
+        c2 = deserialize_ep(c[1]) if isinstance(c[1], dict) else c[1]
+        return [c1, c2, c[2]]
+    raise ValueError(f"Unexpected ciphertext format: {type(c)}")
 
 class Mixnet:
     """A Terelius-Wikström Mixnet
@@ -50,6 +64,7 @@ class Mixnet:
         out = []
         for i in range(len(list)):
             index = list[i][0]
+            print(f"type of list[i][2]: {type(list[i][2])}, value: {list[i][2]}", flush=True)
             if not isinstance(list[i][1][0], ECC.EccPoint):
                 list[i][1][0] = deserialize_ep(list[i][1][0])
                 list[i][1][1] = deserialize_ep(list[i][1][1])

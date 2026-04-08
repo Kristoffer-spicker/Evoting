@@ -233,7 +233,7 @@ def extend_and_encode_vote(row):
         raise
 
 
-"""def extended_listen():
+def extended_listen():
     conn = get_listener_connection()
     cur = conn.cursor()
     cur.execute("LISTEN extended_votes;")
@@ -252,19 +252,42 @@ def extend_handler(notify):
     con = get_listener_connection()
     cur = con.cursor()
     cur.execute("SELECT ballot from extended_votes WHERE id = %s", (data,))
-    ballot = cur.fetchone()
+    ballot = cur.fetchone()[0]
 
     triplets = reencryptTriplets(ballot)
     parsed = json.loads(triplets)
 
+    cur.execute(
+        "INSERT INTO reencrypted_triplets (triplets) VALUES (%s)", (json.dumps(parsed))
+    )
+
+    con.commit()
+    cur.close()
+    con.close()
+
+
 
 def reencryptTriplets(ballot):
-    decoded = decode_bb_data(ballot)
-    triplet1 = {decoded["ev"], decoded["h_r"], decoded["encryption_gr"]}
-    print("triplet1 :", triplet1, flush=True)
-    triplet2 = {decoded["ev_anti"], decoded["h_r_anti"], decoded["encryption_gr"]}
-    print("triplet2 :", triplet2, flush=True)
-    return 3"""
+    decoded_list = json.loads(ballot) if isinstance(ballot, str) else ballot
+
+    triplets = []
+
+    for ballot_id, single_ballot in decoded_list:
+        decoded = decode_bb_data(single_ballot)
+
+        triplets.append([decoded["ev"], decoded["h_r"], decoded["enc_gr"]])
+
+        for i in range(len(decoded["ev_anti"])):
+            triplets.append([
+                decoded["ev_anti"][i],
+                decoded["h_r_anti"][i],
+                decoded["enc_gr"]
+            ])
+
+    for teller in tellers:
+        triplets = teller.re_encryption_mix(triplets)
+
+    return triplets
 
 try:
     setup()
