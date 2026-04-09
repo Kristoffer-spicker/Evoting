@@ -22,6 +22,13 @@ def gen_permutation(length):
     random.shuffle(i)
     return i
 
+def serialize_point(p):
+    """Wrapper to serialize ECC points regardless of whether they come from
+    pycryptodome (uses .curve) or threshold_crypto (uses ._curve_name)"""
+    if isinstance(p, ECC.EccPoint):
+        return {"x": int(p.x), "y": int(p.y), "curve": p.curve}
+    return tc.data._ecc_point_to_serializable(p)
+
 def normalize_ciphertext(c, deserialize_ep):
     """Normalize ciphertext to [c1_point, c2_point, r] regardless of source format"""
     if isinstance(c, dict):
@@ -64,7 +71,6 @@ class Mixnet:
         out = []
         for i in range(len(list)):
             index = list[i][0]
-            print(f"type of list[i][2]: {type(list[i][2])}, value: {list[i][2]}", flush=True)
             if not isinstance(list[i][1][0], ECC.EccPoint):
                 list[i][1][0] = deserialize_ep(list[i][1][0])
                 list[i][1][1] = deserialize_ep(list[i][1][1])
@@ -79,22 +85,22 @@ class Mixnet:
             re_encryption3 = ege.re_encrypt(public_key, list[i][3])
             temp = []
             temp.append(index)
-            re_encryption[0] = tc.data._ecc_point_to_serializable(
+            re_encryption[0] = serialize_point(
                 re_encryption[0]
             )
-            re_encryption[1] = tc.data._ecc_point_to_serializable(
+            re_encryption[1] = serialize_point(
                 re_encryption[1]
             )
-            re_encryption2[0] = tc.data._ecc_point_to_serializable(
+            re_encryption2[0] = serialize_point(
                 re_encryption2[0]
             )
-            re_encryption2[1] = tc.data._ecc_point_to_serializable(
+            re_encryption2[1] = serialize_point(
                 re_encryption2[1]
             )
-            re_encryption3[0] = tc.data._ecc_point_to_serializable(
+            re_encryption3[0] = serialize_point(
                 re_encryption3[0]
             )
-            re_encryption3[1] = tc.data._ecc_point_to_serializable(
+            re_encryption3[1] = serialize_point(
                 re_encryption3[1]
             )
             temp.append(re_encryption)
@@ -130,9 +136,18 @@ class Mixnet:
         for item in list_votes:
             temp = []
             temp.append(index)
-            temp.append(item[0])
-            temp.append(item[1])
-            temp.append(item[2])
+            if isinstance(item, list) and len(item) == 3:
+                # Plain triplet [ct1, ct2, ct3] — from subsequent teller rounds
+                temp.append(item[0])
+                temp.append(item[1])
+                temp.append(item[2])
+            elif isinstance(item, list) and len(item) == 4:
+                # Already tagged [index, ct1, ct2, ct3] — shouldn't happen but guard anyway
+                temp.append(item[1])
+                temp.append(item[2])
+                temp.append(item[3])
+            else:
+                raise ValueError(f"Unexpected triplet format: {type(item)}, len={len(item) if isinstance(item, list) else 'N/A'}")
             list_tagged.append(temp)
             index = index + 1
 
@@ -186,8 +201,8 @@ class Mixnet:
         list_vh = list_votes
         for i in range(len(list_vh)):
             if isinstance(list_vh[i][1][0], ECC.EccPoint):
-                lvi_1 = tc.data._ecc_point_to_serializable(list_vh[i][1][0])
-                lvi_2 = tc.data._ecc_point_to_serializable(list_vh[i][1][1])
+                lvi_1 = serialize_point(list_vh[i][1][0])
+                lvi_2 = serialize_point(list_vh[i][1][1])
             else:
                 lvi_1 = list_vh[i][1][0]
                 lvi_2 = list_vh[i][1][1]
@@ -197,28 +212,28 @@ class Mixnet:
 
         for i in range(len(list_1h)):
             if isinstance(list_1h[i][0][0], ECC.EccPoint):
-                list_1h[i][0][0] = tc.data._ecc_point_to_serializable(
+                list_1h[i][0][0] = serialize_point(
                     list_1h[i][0][0]
                 )
-                list_1h[i][0][1] = tc.data._ecc_point_to_serializable(
+                list_1h[i][0][1] = serialize_point(
                     list_1h[i][0][1]
                 )
-                list_1h[i][1][0] = tc.data._ecc_point_to_serializable(
+                list_1h[i][1][0] = serialize_point(
                     list_1h[i][1][0]
                 )
-                list_1h[i][1][1] = tc.data._ecc_point_to_serializable(
+                list_1h[i][1][1] = serialize_point(
                     list_1h[i][1][1]
                 )
-                list_1h[i][2][0] = tc.data._ecc_point_to_serializable(
+                list_1h[i][2][0] = serialize_point(
                     list_1h[i][2][0]
                 )
-                list_1h[i][2][1] = tc.data._ecc_point_to_serializable(
+                list_1h[i][2][1] = serialize_point(
                     list_1h[i][2][1]
                 )
 
         pc_expl = str("")
         for item in permutation_commitment["c"]:
-            pc_expl = pc_expl + str(tc.data._ecc_point_to_serializable(item))
+            pc_expl = pc_expl + str(serialize_point(item))
 
         fix_string = str(list_vh) + str(list_1h) + str(pc_expl)
         base_hasher = hashlib.sha256() 
@@ -323,33 +338,33 @@ class Mixnet:
         t_hat_expl = str("")
         for item in t_hat:
             t_hat_expl = t_hat_expl + str(
-                tc.data._ecc_point_to_serializable(item)
+                serialize_point(item)
             )
 
         c_expl = str("")
         for item in c:
-            c_expl = c_expl + str(tc.data._ecc_point_to_serializable(item))
+            c_expl = c_expl + str(serialize_point(item))
 
         pc_expl = str("")
         for item in permutation_commitment["c"]:
-            pc_expl = pc_expl + str(tc.data._ecc_point_to_serializable(item))
+            pc_expl = pc_expl + str(serialize_point(item))
 
         c_hash = hashlib.sha256(
             (
                 str(list_vh)
                 + str(list_1h)
                 + str(pc_expl)
-                + str(tc.data._ecc_point_to_serializable(h))
+                + str(serialize_point(h))
                 + str(c_expl)
-                + str(tc.data._ecc_point_to_serializable(public_key))
-                + str(tc.data._ecc_point_to_serializable(t1))
-                + str(tc.data._ecc_point_to_serializable(t2))
-                + str(tc.data._ecc_point_to_serializable(t3))
-                + str(tc.data._ecc_point_to_serializable(t_4_1))
-                + str(tc.data._ecc_point_to_serializable(t_4_2))
+                + str(serialize_point(public_key))
+                + str(serialize_point(t1))
+                + str(serialize_point(t2))
+                + str(serialize_point(t3))
+                + str(serialize_point(t_4_1))
+                + str(serialize_point(t_4_2))
                 + str(t_hat_expl)
-                + str(tc.data._ecc_point_to_serializable(t_4_3))
-                + str(tc.data._ecc_point_to_serializable(t_4_4))
+                + str(serialize_point(t_4_3))
+                + str(serialize_point(t_4_4))
             ).encode("UTF-8")
         ).hexdigest()
         c_hash = gmpy2.mpz("0x" + c_hash) % self.curve.get_pars().order
@@ -428,12 +443,12 @@ class Mixnet:
         c_ver_tilde = 0
         pc_expl = str("")
         for item in permutation_commitment["c"]:
-            pc_expl = pc_expl + str(tc.data._ecc_point_to_serializable(item))
+            pc_expl = pc_expl + str(serialize_point(item))
         list_vh = list_0
         for i in range(len(list_vh)):
             if isinstance(list_vh[i][1][0], ECC.EccPoint):
-                lvi_1 = tc.data._ecc_point_to_serializable(list_vh[i][1][0])
-                lvi_2 = tc.data._ecc_point_to_serializable(list_vh[i][1][1])
+                lvi_1 = serialize_point(list_vh[i][1][0])
+                lvi_2 = serialize_point(list_vh[i][1][1])
                 lvi_3 = list_vh[i][1][2]
             else:
                 lvi_1 = list_vh[i][1][0]
@@ -444,16 +459,16 @@ class Mixnet:
 
         for i in range(len(list_1h)):
             if isinstance(list_1h[i][1][0], ECC.EccPoint):
-                list_1h[i][0][0] = tc.data._ecc_point_to_serializable(
+                list_1h[i][0][0] = serialize_point(
                     list_1h[i][0][0]
                 )
-                list_1h[i][0][1] = tc.data._ecc_point_to_serializable(
+                list_1h[i][0][1] = serialize_point(
                     list_1h[i][0][1]
                 )
-                list_1h[i][1][0] = tc.data._ecc_point_to_serializable(
+                list_1h[i][1][0] = serialize_point(
                     list_1h[i][1][0]
                 )
-                list_1h[i][1][1] = tc.data._ecc_point_to_serializable(
+                list_1h[i][1][1] = serialize_point(
                     list_1h[i][1][1]
                 )
 
@@ -500,16 +515,16 @@ class Mixnet:
         t_hat_expl = str("")
         for item in t_hat:
             t_hat_expl = t_hat_expl + str(
-                tc.data._ecc_point_to_serializable(item)
+                serialize_point(item)
             )
 
         c_expl = str("")
         for item in c:
-            c_expl = c_expl + str(tc.data._ecc_point_to_serializable(item))
+            c_expl = c_expl + str(serialize_point(item))
 
         pc_expl = str("")
         for item in permutation_commitment["c"]:
-            pc_expl = pc_expl + str(tc.data._ecc_point_to_serializable(item))
+            pc_expl = pc_expl + str(serialize_point(item))
 
         c_ver_vect = c_prod + (-h_prod)
         c_ver_hash = (
@@ -520,17 +535,17 @@ class Mixnet:
                         str(list_vh)
                         + str(list_1h)
                         + str(pc_expl)
-                        + str(tc.data._ecc_point_to_serializable(h))
+                        + str(serialize_point(h))
                         + str(c_expl)
-                        + str(tc.data._ecc_point_to_serializable(public_key))
-                        + str(tc.data._ecc_point_to_serializable(t1))
-                        + str(tc.data._ecc_point_to_serializable(t2))
-                        + str(tc.data._ecc_point_to_serializable(t3))
-                        + str(tc.data._ecc_point_to_serializable(t_4_1))
-                        + str(tc.data._ecc_point_to_serializable(t_4_2))
+                        + str(serialize_point(public_key))
+                        + str(serialize_point(t1))
+                        + str(serialize_point(t2))
+                        + str(serialize_point(t3))
+                        + str(serialize_point(t_4_1))
+                        + str(serialize_point(t_4_2))
                         + str(t_hat_expl)
-                        + str(tc.data._ecc_point_to_serializable(t_4_3))
-                        + str(tc.data._ecc_point_to_serializable(t_4_4))
+                        + str(serialize_point(t_4_3))
+                        + str(serialize_point(t_4_4))
                     ).encode("UTF8")
                 ).hexdigest()
             )
@@ -642,7 +657,7 @@ class Mixnet:
             temp.append(
                 {
                     "v": list[i][1]["v"],
-                    "comm": tc.data._ecc_point_to_serializable(commitment),
+                    "comm": serialize_point(commitment),
                 }
             )
             output.append(temp)
@@ -706,8 +721,8 @@ class Mixnet:
 
         for i in range(len(list_vh)):
             if isinstance(list_vh[i]["v"], ECC.EccPoint):
-                lvi_1 = tc.data._ecc_point_to_serializable(list_vh[i]["v"])
-                lvi_2 = tc.data._ecc_point_to_serializable(list_vh[i]["comm"])
+                lvi_1 = serialize_point(list_vh[i]["v"])
+                lvi_2 = serialize_point(list_vh[i]["comm"])
 
             else:
                 lvi_1 = list_vh[i]["v"]
@@ -718,16 +733,16 @@ class Mixnet:
 
         for i in range(len(list_1h)):
             if isinstance(list_1h[i][0], ECC.EccPoint):
-                list_1h[i][0] = tc.data._ecc_point_to_serializable(
+                list_1h[i][0] = serialize_point(
                     list_1h[i][0]
                 )
-                list_1h[i][1] = tc.data._ecc_point_to_serializable(
+                list_1h[i][1] = serialize_point(
                     list_1h[i][1]
                 )
 
         pc_expl = str("")
         for item in permutation_commitment["c"]:
-            pc_expl = pc_expl + str(tc.data._ecc_point_to_serializable(item))
+            pc_expl = pc_expl + str(serialize_point(item))
 
         u = [0] * count
         u_prime = [0] * count
@@ -813,24 +828,24 @@ class Mixnet:
         t_hat_expl = str("")
         for item in t_hat:
             t_hat_expl = t_hat_expl + str(
-                tc.data._ecc_point_to_serializable(item)
+                serialize_point(item)
             )
 
         c_expl = str("")
         for item in c:
-            c_expl = c_expl + str(tc.data._ecc_point_to_serializable(item))
+            c_expl = c_expl + str(serialize_point(item))
 
         c_hash = hashlib.sha256(
             (
                 str(list_vh)
                 + str(list_1h)
                 + str(pc_expl)
-                + str(tc.data._ecc_point_to_serializable(h))
+                + str(serialize_point(h))
                 + str(c_expl)
-                + str(tc.data._ecc_point_to_serializable(t1))
-                + str(tc.data._ecc_point_to_serializable(t2))
-                + str(tc.data._ecc_point_to_serializable(t3))
-                + str(tc.data._ecc_point_to_serializable(t_4_1))
+                + str(serialize_point(t1))
+                + str(serialize_point(t2))
+                + str(serialize_point(t3))
+                + str(serialize_point(t_4_1))
                 + str(t_hat_expl)
             ).encode("UTF-8")
         ).hexdigest()
@@ -902,8 +917,8 @@ class Mixnet:
 
         for i in range(len(list_vh)):
             if isinstance(list_vh[i]["v"], ECC.EccPoint):
-                lvi_1 = tc.data._ecc_point_to_serializable(list_vh[i]["v"])
-                lvi_2 = tc.data._ecc_point_to_serializable(list_vh[i]["comm"])
+                lvi_1 = serialize_point(list_vh[i]["v"])
+                lvi_2 = serialize_point(list_vh[i]["comm"])
 
             else:
                 lvi_1 = list_vh[i]["v"]
@@ -914,15 +929,15 @@ class Mixnet:
 
         for i in range(len(list_1h)):
             if isinstance(list_1h[i][0], ECC.EccPoint):
-                list_1h[i][0] = tc.data._ecc_point_to_serializable(
+                list_1h[i][0] = serialize_point(
                     list_1h[i][0]
                 )
-                list_1h[i][1] = tc.data._ecc_point_to_serializable(
+                list_1h[i][1] = serialize_point(
                     list_1h[i][1]
                 )
 
         for item in permutation_commitment["c"]:
-            pc_expl = pc_expl + str(tc.data._ecc_point_to_serializable(item))
+            pc_expl = pc_expl + str(serialize_point(item))
         for i in range(count):
             u_ver[i] = (
                 gmpy2.mpz(
@@ -943,12 +958,12 @@ class Mixnet:
         t_hat_expl = str("")
         for item in t_hat:
             t_hat_expl = t_hat_expl + str(
-                tc.data._ecc_point_to_serializable(item)
+                serialize_point(item)
             )
 
         c_expl = str("")
         for item in c:
-            c_expl = c_expl + str(tc.data._ecc_point_to_serializable(item))
+            c_expl = c_expl + str(serialize_point(item))
 
         c_ver_vect = c_prod + (-h_prod)
         c_ver_hash = (
@@ -959,12 +974,12 @@ class Mixnet:
                         str(list_vh)
                         + str(list_1h)
                         + str(pc_expl)
-                        + str(tc.data._ecc_point_to_serializable(h))
+                        + str(serialize_point(h))
                         + str(c_expl)
-                        + str(tc.data._ecc_point_to_serializable(t1))
-                        + str(tc.data._ecc_point_to_serializable(t2))
-                        + str(tc.data._ecc_point_to_serializable(t3))
-                        + str(tc.data._ecc_point_to_serializable(t_4_1))
+                        + str(serialize_point(t1))
+                        + str(serialize_point(t2))
+                        + str(serialize_point(t3))
+                        + str(serialize_point(t_4_1))
                         + str(t_hat_expl)
                     ).encode("UTF8")
                 ).hexdigest()

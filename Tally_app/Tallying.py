@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 import random
-import traceback
 
 import threshold_crypto as tc
 import gmpy2
@@ -13,8 +12,8 @@ from util import (
     _ecc_key_to_serializable,
     serialize_pd,
 )
-from Crypto.PublicKey import ECC
 from Encoding import ECCEncoder
+from Crypto.PublicKey import ECC
 
 
 from primitives import DSA, ElGamalEncryption, NIZK, ChaumPedersenProof
@@ -33,7 +32,6 @@ class Teller:
         self.ege = ElGamalEncryption(self.curve)
         self.core_count = multiprocessing.cpu_count()
 
-    # takes ecc_points and converts them to a dict
     def serialize_ecc_point(self, p):
         return {"x": int(p.x), "y": int(p.y), "curve": p.curve}
 
@@ -52,34 +50,32 @@ class Teller:
             ballot = list_in[i][1]
             index = list_in[i][0]
 
-            #reenc(g^x1r_i)
             ciphertext, ciphertext_anti, proof, r_i = self.raise_h(self.public_key, ballot)
+
             ciphertext["c1"] = self.serialize_ecc_point(ciphertext["c1"])
             ciphertext["c2"] = self.serialize_ecc_point(ciphertext["c2"])
-            print("step 1", flush=True)
 
-            for i in range (len(ciphertext_anti)):
-                ciphertext_anti[i]["c1"] = self.serialize_ecc_point(ciphertext_anti[i]["c1"])
-                ciphertext_anti[i]["c2"] = self.serialize_ecc_point(ciphertext_anti[i]["c2"])
+            for ct in ciphertext_anti:
+                ct["c1"] = self.serialize_ecc_point(ct["c1"])
+                ct["c2"] = self.serialize_ecc_point(ct["c2"])
 
-            for i in range (len(proof)):
-                proof[i][0] = self.serialize_ecc_point(proof[i][0])
-                proof[i][1] = self.serialize_ecc_point(proof[i][1])
-                proof[i][2] = self.serialize_ecc_point(proof[i][2])
-                proof[i][3] = self.serialize_ecc_point(proof[i][3])
-
-            print("step 2", flush=True)
+            for p in proof:
+                p[0] = self.serialize_ecc_point(p[0])
+                p[1] = self.serialize_ecc_point(p[1])
+                p[2] = self.serialize_ecc_point(p[2])
+                p[3] = self.serialize_ecc_point(p[3])
 
             tmp_enc_ptk = [] #enc(g^x1)
             tmp_enc_ptk.append(self.serialize_ecc_point(ballot["enc_ptk"][0]))
             tmp_enc_ptk.append(self.serialize_ecc_point(ballot["enc_ptk"][1]))
 
             tmp_enc_ptk_anti = []
-            for i in range (len(ballot["enc_ptk_anti"])):
-                temp_enc_ptk_anti = []
-                temp_enc_ptk_anti.append(self.serialize_ecc_point(ballot["enc_ptk_anti"][i][0]))
-                temp_enc_ptk_anti.append(self.serialize_ecc_point(ballot["enc_ptk_anti"][i][1]))
-                tmp_enc_ptk_anti.append(temp_enc_ptk_anti)            
+            for ct in ballot["enc_ptk_anti"]:
+                tmp_enc_ptk_anti.append([
+                    self.serialize_ecc_point(ct[0]),
+                    self.serialize_ecc_point(ct[1])
+                ])
+            
 
             reenc = self.ege.re_encrypt(self.public_key.Q, ballot["ev"])
             nizk = NIZK(self.curve)
@@ -89,7 +85,6 @@ class Teller:
                 ballot["ev"],
                 reenc[2],
             )
-            print("step 3", flush=True)
 
             reenc[0] = self.serialize_ecc_point(reenc[0])
             reenc[1] = self.serialize_ecc_point(reenc[1])
@@ -117,7 +112,7 @@ class Teller:
             enc_gs[0] = self.serialize_ecc_point(enc_gs[0])
             enc_gs[1] = self.serialize_ecc_point(enc_gs[1])
             
-            print("step 4", flush=True)
+
 
             teller_proof_record = {
                 "ev": ballot["ev"],
@@ -161,55 +156,49 @@ class Teller:
             temp_ev[0] = self.serialize_ecc_point(temp_ev[0])
             temp_ev[1] = self.serialize_ecc_point(temp_ev[1])
             
-            temp_evanti = ballot["ev_anti"]
-            for x in temp_evanti:
-                x[0] = self.serialize_ecc_point(x[0])
-                x[1] = self.serialize_ecc_point(x[1])
+            for ct in ballot["ev_anti"]:
+                ct[0] = self.serialize_ecc_point(ct[0])
+                ct[1] = self.serialize_ecc_point(ct[1])
 
             temp_enc_ptk = ballot["enc_ptk"]
             temp_enc_ptk[0] = self.serialize_ecc_point(ballot["enc_ptk"][0])
             temp_enc_ptk[1] = self.serialize_ecc_point(ballot["enc_ptk"][1])
             
-            temp_enc_ptk_anti = ballot["enc_ptk_anti"]
-            for i in range (len(temp_enc_ptk_anti)):
-                temp_enc_ptk_anti[i][0] = self.serialize_ecc_point(ballot["enc_ptk_anti"][i][0])
-                temp_enc_ptk_anti[i][1] = self.serialize_ecc_point(ballot["enc_ptk_anti"][i][1])
+            for ct in ballot["enc_ptk_anti"]:
+                ct[0] = self.serialize_ecc_point(ct[0])
+                ct[1] = self.serialize_ecc_point(ct[1])
 
             ballot["pi_1"][2] = self.serialize_ecc_point(
                 ballot["pi_1"][2]
             )
-            ballot["pi_1_anti"][2] = self.serialize_ecc_point(
-                ballot["pi_1_anti"][2]
-            )
-            ballot["pi_2"][0][0] = self.serialize_ecc_point(
-                ballot["pi_2"][0][0]
-            )
-            ballot["pi_2"][0][1] = self.serialize_ecc_point(
-                ballot["pi_2"][0][1]
-            )
-            ballot["pi_2"][1][0] = self.serialize_ecc_point(
-                ballot["pi_2"][1][0]
-            )
-            ballot["pi_2"][1][1] = self.serialize_ecc_point(
-                ballot["pi_2"][1][1]
-            )
+            for proof in ballot["pi_1_anti"]:
+                proof[2] = self.serialize_ecc_point(proof[2])   
+
+            for i in range(len(ballot["pi_2"][0])):
+                if hasattr(ballot["pi_2"][0][i], "x"):
+                    ballot["pi_2"][0][i] = self.serialize_ecc_point(ballot["pi_2"][0][i])
+
+
+            for i in range(len(ballot["pi_2"][1])):
+                if hasattr(ballot["pi_2"][1][i], "x"):
+                    ballot["pi_2"][1][i] = self.serialize_ecc_point(ballot["pi_2"][1][i])
+   
             for proof in ballot["pi_3"]:
-                # proof[0] and proof[1] contain ECC points
-                for i in [0, 1]: # Looks at the first two parts ([ecc_point, ecc_point]) of the anti wellformedness proofs
-                    for j in [0, 1]: # Looks at the first two parts of each [ecc_point, ecc_point]
-                        if hasattr(proof[i][j], "x"):  # ECC point check by seeing if they contain the variable x
-                            proof[i][j] = self.serialize_ecc_point(proof[i][j])                           
+                for i in range (len(proof[0])):
+                    if hasattr(proof[0][i], "x"):
+                        proof[0][i] = self.serialize_ecc_point(proof[0][i])
+                for i in range(len(proof[1])):
+                    if hasattr(proof[1][i], "x"):
+                        proof[1][i] = self.serialize_ecc_point(proof[1][i])
+            
 
             temp.append(ballot)
             list_out.append(temp)
-
-            print("step 5", flush=True)
 
 
         q1.put(json.dumps(teller_proofs, cls=ECCEncoder))
         q2.put(json.dumps(teller_registry, cls=ECCEncoder))
         q3.put(json.dumps(list_out, cls=ECCEncoder))
-        print("step 6", flush=True)
 
     def ciphertext_list_split(self, list_0, n):
         k, m = divmod(len(list_0), n)
@@ -601,48 +590,42 @@ class Teller:
 
     def raise_h(self, teller_public_key, ballot):
         r_i = self.curve.get_random()
-        enc_voter_public_key = ballot["enc_ptk"] #enc(g^x1)
+        enc_voter_public_key = ballot["enc_ptk"]
         enc_voter_public_key_anti = ballot["enc_ptk_anti"]
 
-        ege = ElGamalEncryption(self.curve)
-
-
-        re_rand =  [enc_voter_public_key[0] * r_i , enc_voter_public_key[1] * r_i,  r_i]
-
-        re_rand_anti = []
-        for i in range (len(enc_voter_public_key_anti)):
-            re_rand_anti.append([enc_voter_public_key_anti[i][0] * r_i , enc_voter_public_key_anti[i][1] * r_i,  r_i])
-
+        re_rand = [enc_voter_public_key[0] * r_i, enc_voter_public_key[1] * r_i, r_i]
         ciphertext_t = self.ege.re_encrypt(self.public_key.Q, re_rand)
+        ciphertext = {"c1": ciphertext_t[0], "c2": ciphertext_t[1], "r": ciphertext_t[3]}
 
-        ciphertext_t_anti = []
-        for i in range (len(re_rand_anti)):
-            ciphertext_t_anti.append(self.ege.re_encrypt(self.public_key.Q, re_rand_anti[i]))
+        ciphertext_t_anti_list = []
+        for i in range(len(enc_voter_public_key_anti)):
+            re_rand_anti = [
+                enc_voter_public_key_anti[i][0] * r_i,
+                enc_voter_public_key_anti[i][1] * r_i,
+                r_i
+            ]
+            ciphertext_t_anti_list.append(self.ege.re_encrypt(self.public_key.Q, re_rand_anti))
 
-        ciphertext = {"c1" : ciphertext_t[0] , "c2": ciphertext_t[1],   "r": ciphertext_t[3] }
+        ciphertext_anti_list = [
+            {"c1": ct[0], "c2": ct[1], "r_anti": ct[3]}
+            for ct in ciphertext_t_anti_list
+        ]
 
-        ciphertext_anti = []
-        for i in range (len(ciphertext_t_anti)):
-            ciphertext_anti.append({"c1" : ciphertext_t_anti[i][0] , "c2" :  ciphertext_t_anti[i][1], "r_anti": ciphertext_t_anti[i][3]})
-
-      
         chmp = ChaumPedersenProof(self.curve)
-        #prove that all ciphertexts are raise to r_i and re_encrypted
         proof = []
-        for i in range (len(ciphertext_t_anti)):
-            proof.append(chmp.prove_s( 
-                ciphertext,     
+        for i in range(len(ciphertext_t_anti_list)):
+            proof.append(chmp.prove_s(
+                ciphertext,
                 r_i,
                 ciphertext_t[3],
-                enc_voter_public_key, 
-                ciphertext_anti[i],
+                enc_voter_public_key,
+                ciphertext_anti_list[i],
                 enc_voter_public_key_anti[i],
-                ciphertext_t_anti[i][3],
+                ciphertext_t_anti_list[i][3],
                 teller_public_key.Q,
             ))
 
-
-        return ciphertext, ciphertext_anti, proof,  r_i
+        return ciphertext, ciphertext_anti_list, proof, r_i
 
     def verify_proof_h_r(curve, enc_ptk , h_r, enc_ptk_anti, h_r_anti,  proof, teller_public_key):
         chmp = ChaumPedersenProof(curve)

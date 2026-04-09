@@ -261,7 +261,7 @@ def extend_handler(notify):
     parsed = json.loads(triplets)
 
     cur.execute(
-        "INSERT INTO reencrypted_triplets (triplets) VALUES (%s)", (json.dumps(parsed))
+        "INSERT INTO reencrypted_triplets (triplet) VALUES (%s)", (json.dumps(parsed),)
     )
 
     con.commit()
@@ -288,9 +288,10 @@ def reencryptTriplets(ballot):
             ])
 
     for teller in tellers:
-        triplets = teller.re_encryption_mix(triplets)
+        result = teller.re_encryption_mix(triplets)
+        triplets = result[0]  # list_1 is the re-encrypted triplets
 
-    return triplets
+    return json.dumps(triplets, cls=ECCEncoder)
 
 try:
     setup()
