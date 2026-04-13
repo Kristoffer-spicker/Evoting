@@ -1,8 +1,5 @@
-from Crypto.PublicKey import ECC
 import gmpy2
-import json
-import threshold_crypto as tc
-from util import to_tc_point
+from Crypto.PublicKey import ECC
 # pylint: disable=no-member
 
 

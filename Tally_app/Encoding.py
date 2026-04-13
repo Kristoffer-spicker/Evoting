@@ -1,6 +1,6 @@
-from Crypto.PublicKey import ECC
 import json
 import gmpy2
+from Crypto.PublicKey import ECC
 # pylint: disable=no-member
 
 

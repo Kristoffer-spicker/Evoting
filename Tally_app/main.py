@@ -3,8 +3,9 @@ import select
 import json
 import sys
 import multiprocessing
-import psycopg2
 import threading
+import traceback
+import psycopg2
 from curve import Curve
 from Tallying import Teller
 from dotenv import load_dotenv
@@ -13,7 +14,7 @@ from Decoding import decode_bb_data
 from Decoding import decode_extended_ballot
 from Encoding import ECCEncoder
 from util import deserialize_ep
-import traceback
+
 
 load_dotenv("../.env")
 
@@ -53,6 +54,10 @@ if cur.fetchone()[0]:
 
 # Removes all extended votes at start time
 cur.execute("DELETE FROM extended_votes")
+con.commit()
+
+# Removes all re-encrypted triplets at start time
+cur.execute("TRUNCATE TABLE reencrypted_triplets RESTART IDENTITY CASCADE")
 con.commit()
 
 # This is so Mathildes Macbook uses forks for multiprocessing instead of spawn
@@ -237,6 +242,11 @@ def extend_and_encode_vote(row):
 
 
 def extended_listen():
+    """
+    Listen to the extended_votes table 
+    Starts by connecting to the server
+    Then runs a while true loop that checks the table continuously
+    """
     conn = get_listener_connection()
     cur = conn.cursor()
     cur.execute("LISTEN extended_votes;")
@@ -251,6 +261,13 @@ def extended_listen():
                 extend_handler(notify.payload)
 
 def extend_handler(notify):
+    """
+    The function called when a new vote has been extended and is
+    that vote is found in the extended_votes table
+    Takes an extended vote, take the created triplets and re-encrypts the triplets, for 
+    both the candidate voted for but also all other candidat options, and puts them trough a mixnet.
+    Finally the re-encrypted triplets is added to the reencrypted_triplets table
+    """
     data = notify
     con = get_listener_connection()
     cur = con.cursor()
@@ -271,6 +288,14 @@ def extend_handler(notify):
 
 
 def reencryptTriplets(ballot):
+    """
+    Takes an encoded extended vote
+    That vote is then decodeed
+    Then the triplet for the candidate voted for is pulled out, and the triplets for
+    the remainign candidates not voted for and added to a triplets list.
+    Then the triplets are put trough the encryption mixnet
+    Lastly the re-encrypted triplets are encoded after the mixnet via the custom encoder from the encoding class
+    """
     decoded_list = json.loads(ballot) if isinstance(ballot, str) else ballot
 
     triplets = []

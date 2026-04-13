@@ -2,8 +2,8 @@ import multiprocessing
 import hashlib
 # pylint: disable=no-member
 import json
-import os
-import random
+
+
 
 import threshold_crypto as tc
 import gmpy2
@@ -171,10 +171,13 @@ class Teller:
             ballot["pi_1"][2] = self.serialize_ecc_point(
                 ballot["pi_1"][2]
             )
+
+            # So that it not only goes over the first anti proof, but more so it works with N candidates
             for proof in ballot["pi_1_anti"]:
                 proof[2] = self.serialize_ecc_point(proof[2])   
 
             for i in range(len(ballot["pi_2"][0])):
+                #Checks if it is an ECCPoint object with an x coordinate
                 if hasattr(ballot["pi_2"][0][i], "x"):
                     ballot["pi_2"][0][i] = self.serialize_ecc_point(ballot["pi_2"][0][i])
 
@@ -182,7 +185,8 @@ class Teller:
             for i in range(len(ballot["pi_2"][1])):
                 if hasattr(ballot["pi_2"][1][i], "x"):
                     ballot["pi_2"][1][i] = self.serialize_ecc_point(ballot["pi_2"][1][i])
-   
+
+            #Goes over the list length so it supports proofs for N candidates
             for proof in ballot["pi_3"]:
                 for i in range (len(proof[0])):
                     if hasattr(proof[0][i], "x"):
@@ -588,6 +592,7 @@ class Teller:
         except Exception as e:
             print(e)
 
+## NOTE:should we look at the r_i value it should probably nto be the same randomness value for every voter
     def raise_h(self, teller_public_key, ballot):
         r_i = self.curve.get_random()
         enc_voter_public_key = ballot["enc_ptk"]
