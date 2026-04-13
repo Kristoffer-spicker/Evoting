@@ -64,6 +64,7 @@ def reencryptTriplets(ballot, tellers):
                 decoded["h_r_anti"][i],
                 decoded["enc_gr"]
             ])
+    print("triplet example", triplets[1], flush=True)
 
     for teller in tellers:
         result = teller.re_encryption_mix(triplets)
