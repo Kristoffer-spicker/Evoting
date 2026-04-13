@@ -33,8 +33,8 @@ class VCaster:
     def choose_vote_value(self):
         self.vote = random.randrange(self.vote_min, self.vote_max)
         
-
-    def cast_vote(self): #Function for the vote chosen by the voter
+    #Function for the vote chosen by the voter  
+    def cast_vote(self): 
         print("not implemented")
 
     def generate_dsa_keys(self):
@@ -47,12 +47,19 @@ class VCaster:
             teller_public_key.Q, self.g_vote
         )
 
-    def encrypt_antivote(self, teller_public_key):
+    def encrypt_antivote(self, teller_public_key): 
         self.ege = ElGamalEncryption(self.curve)
-        self.g_antivote = self.curve.raise_p(int(abs(self.vote-1)))
-        self.encrypted_antivote = self.ege.encrypt(
-            teller_public_key.Q, self.g_antivote
-        )
+        self.encrypted_antivote = []
+        # add for loop between 0 and vote_max that makes antivote and skips the candidate id actually voted on
+        for i in range(self.vote_min, self.vote_max):
+            if i == self.vote: 
+                continue
+            else:
+                self.g_antivote = self.curve.raise_p(int(i))
+                self.encrypted_antivote.append(self.ege.encrypt(
+                    teller_public_key.Q, self.g_antivote
+                ))
+                print("Added antivote", self.encrypt_antivote, i, flush=True)
 
     def generate_wellformedness_proof(self, teller_public_key):
         encrypted_vote = {
@@ -71,27 +78,34 @@ class VCaster:
         )
 
     def generate_wellformedness_proof_anti(self, teller_public_key):
-        encrypted_antivote = {
-            "c1": self.encrypted_antivote[0],
-            "c2": self.encrypted_antivote[1],
-        }
-        r = self.encrypted_antivote[2]
-        chmp = ChaumPedersenProof(self.curve)
-        self.wellformedness_proof_anti = chmp.prove_or_n(
-            encrypted_antivote,
-            r,
-            teller_public_key.Q,
-            self.vote_max,
-            int(abs(self.vote-1)),
-            self.id,
-        )
+        self.wellformedness_proof_anti = []
+        for i in range (0, len(self.encrypted_antivote)):
+            encrypted_antivote = {
+                "c1": self.encrypted_antivote[i][0],
+                "c2": self.encrypted_antivote[i][1],
+            }
+            r = self.encrypted_antivote[i][2]
+            chmp = ChaumPedersenProof(self.curve)
+            self.wellformedness_proof_anti.append(chmp.prove_or_n(
+                encrypted_antivote,
+                r,
+                teller_public_key.Q,
+                self.vote_max,
+                int(i),
+                self.id,
+            ))
 
     def generate_trapdoor_keypair(self): #generate x1 and g^x1
         self.ege = ElGamalEncryption(self.curve)
         self.secret_trapdoor_key, self.public_trapdoor_key = self.ege.keygen()
 
     def generate_antitrapdoor_keypair(self):#generate x2 and g^x2
-        self.secret_antitrapdoor_key, self.public_antitrapdoor_key = self.ege.keygen()
+        self.secret_antitrapdoor_key = []
+        self.public_antitrapdoor_key = []
+        for i in range (self.vote_max):
+            temp_secret_antitrapdoor_key, temp_public_antitrapdoor_key = self.ege.keygen()
+            self.secret_antitrapdoor_key.append(temp_secret_antitrapdoor_key)
+            self.public_antitrapdoor_key.append(temp_public_antitrapdoor_key)
 
     def encrypt_trapdoor(self, teller_public_key): #encrypt g^x1
         self.encrypted_trapdoor = self.ege.encrypt(
@@ -99,9 +113,11 @@ class VCaster:
         )
 
     def encrypt_antitrapdoor(self, teller_public_key):#encrypt g^x2
-        self.encrypted_antitrapdoor = self.ege.encrypt(
-            teller_public_key.Q, self.public_antitrapdoor_key
-        )
+        self.encrypted_antitrapdoor = []
+        for i in range (self.vote_max):
+            self.encrypted_antitrapdoor.append(self.ege.encrypt(
+                teller_public_key.Q, self.public_antitrapdoor_key[i]
+            ))
 
     def generate_pok_trapdoor_keypair(self, teller_public_key): #prove that the voter knows g^x1 and r
         encrypted_trapdoor = {
@@ -118,30 +134,36 @@ class VCaster:
         )
 
     def generate_pok_antitrapdoor_keypair(self, teller_public_key):#prove that the voter knows g^x2 and r
-        encrypted_antitrapdoor = {
-            "c1": self.encrypted_antitrapdoor[0],
-            "c2": self.encrypted_antitrapdoor[1],
-        }
-        r = self.encrypted_antitrapdoor[2]
-        chmp = ChaumPedersenProof(self.curve)
-        self.pok_antitrapdoor_key = chmp.prove(
-            encrypted_antitrapdoor,
-            r,
-            teller_public_key.Q,
-            self.public_antitrapdoor_key,
-        )
+        self.pok_antitrapdoor_key = []
+        for i in range (len(self.encrypted_antitrapdoor)):
+            encrypted_antitrapdoor = {
+                "c1": self.encrypted_antitrapdoor[i][0],
+                "c2": self.encrypted_antitrapdoor[i][1],
+            }
+            r = self.encrypted_antitrapdoor[i][2]
+            chmp = ChaumPedersenProof(self.curve)
+            self.pok_antitrapdoor_key.append(chmp.prove(
+                encrypted_antitrapdoor,
+                r,
+                teller_public_key.Q,
+                self.public_antitrapdoor_key[i],
+            ))
 
     def sign_ballot(self):
         self.dsa = DSA(self.curve)
-        self.sum_r = self.encrypted_vote[2]+self.encrypted_antivote[2]
+        anti_sum = sum(ct[2] for ct in self.encrypted_antivote)
+        self.sum_r = self.encrypted_vote[2]+anti_sum
         hash = self.curve.hash_to_mpz(
             str(self.encrypted_vote)
-            + str(self.encrypted_antivote) 
+            + str(self.encrypted_antivote)
             + str(self.encrypted_trapdoor)
+            # Loop
             + str(self.encrypted_antitrapdoor)
             + str(self.pok_trapdoor_key)
+            # Loop
             + str(self.pok_antitrapdoor_key)
             + str(self.wellformedness_proof)
+            # Loop
             + str(self.wellformedness_proof_anti)
             + str(self.sum_r)    
         )
@@ -163,7 +185,7 @@ class VCaster:
             "pi_3": self.wellformedness_proof_anti,
             "sum_r": self.sum_r,
         }
-        self.cur.execute("INSERT INTO encrypted_votes VALUES (%s, %s)", (self.id, json.dumps(bb_data, cls=ECCEncoder),))
+        self.cur.execute("INSERT INTO encrypted_votes VALUES (%s, %s)", (self.id, json.dumps(bb_data, cls=ECCEncoder),)) # adds the final ballot to the BB
         self.con.commit()
 
     

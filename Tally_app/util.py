@@ -9,15 +9,15 @@ def deserialize_pd(curve, pd):
     return tc.data.PartialDecryption(pd["x"], yc_1, curve)
 
 
-def deserialize_ep(dict_str):
-    if (isinstance(dict_str, int)) and (dict_str == 0):
-        return ECC.EccPoint(0, 0, "P-256")
-    return ECC.EccPoint(int(dict_str["x"]), int(dict_str["y"]), dict_str["curve"])
+def deserialize_ep(d):
+    """Handles both 'curve' and 'curve_name' key formats"""
+    curve = d.get('curve') or d.get('curve_name', 'P-256')
+    return ECC.EccPoint(int(d['x']), int(d['y']), curve)
 
 
 def _ecc_key_to_serializable(p: ECC.EccKey) -> Dict[str, Any]:
     x, y = p.pointQ.xy
-    return {"x": int(x), "y": int(y)}
+    return {"curve_name": "P-256" ,"x": int(x), "y": int(y)}
 
 
 def serialize_pd(pd):

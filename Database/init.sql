@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS encrypted_votes (
     id        TEXT PRIMARY KEY,
-    ballot    TEXT NOT NULL
+    ballot    JSONB NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS tellers (
@@ -8,20 +8,22 @@ CREATE TABLE IF NOT EXISTS tellers (
     t_pk      TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS extendedVotes (
+CREATE TABLE IF NOT EXISTS extended_votes (
     id        TEXT PRIMARY KEY,
-    ballot    TEXT NOT NULL
+    ballot    JSONB NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS reencryptedTriplets (
-    triplet    TEXT PRIMARY KEY
+CREATE TABLE IF NOT EXISTS reencrypted_triplets (
+    id         INT PRIMARY KEY,
+    triplet    JSONB NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS decryptedTriplets (
-    triplet     TEXT PRIMARY KEY
+CREATE TABLE IF NOT EXISTS decrypted_triplets (
+    id         INT PRIMARY KEY,
+    triplet    JSONB NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS finalTally (
+CREATE TABLE IF NOT EXISTS final_tally (
     candidate_id  TEXT PRIMARY KEY,
     vote_count    INT
 );
@@ -30,12 +32,26 @@ CREATE TABLE IF NOT EXISTS finalTally (
 CREATE OR REPLACE FUNCTION notify_encrypted_vote()
 RETURNS trigger AS $$
 BEGIN
-    PERFORM pg_notify('encrypted_votes', row_to_json(NEW)::text);
+    PERFORM pg_notify('encrypted_votes', NEW.id);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function for extended_votes notifications
+CREATE OR REPLACE FUNCTION notify_extended_vote()
+RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify('extended_votes', NEW.id);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 -- The trigger that calls the function on every INSERT
 CREATE OR REPLACE TRIGGER encrypted_vote_inserted
-AFTER INSERT ON "encrypted_votes"
+AFTER INSERT ON encrypted_votes
 FOR EACH ROW EXECUTE FUNCTION notify_encrypted_vote();
+
+-- Trigger for extended_votes
+CREATE OR REPLACE TRIGGER extended_vote_inserted
+AFTER INSERT ON extended_votes
+FOR EACH ROW EXECUTE FUNCTION notify_extended_vote();

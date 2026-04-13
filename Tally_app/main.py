@@ -2,20 +2,22 @@ import os
 import select
 import json
 import sys
-import copy
 import multiprocessing
+import threading
+import time
+import argparse
 import psycopg2
 from curve import Curve
 from Tallying import Teller
 from dotenv import load_dotenv
 import threshold_crypto as tc
-from Decoding import decode_bb_data
-from Encoding import ECCEncoder
-from util import deserialize_ep
-import traceback
+from extend_handling import handler
+from triplet_handling import extend_handler
+
 
 load_dotenv("../.env")
 
+# Makes the connection to our database in the docker container
 def get_listener_connection():
     con = psycopg2.connect(
         host="db",
@@ -28,6 +30,7 @@ def get_listener_connection():
     print("Connected!", flush=True)
     return con
 
+#Calls the listener in try catch to establish connection to DB
 try:
     con = get_listener_connection()
     cur = con.cursor()
@@ -36,31 +39,37 @@ except Exception as e:
     print("FAILED TO CONNECT TO DB:", e, flush=True)
     sys.exit(1)
 
-cur.execute("""
-    SELECT EXISTS (
-        SELECT FROM information_schema.tables
-        WHERE table_schema = 'public'
-        AND table_name = 'tellers'    
-    )
-""")
-if cur.fetchone()[0]:
-    cur.execute("DELETE FROM tellers")
-    con.commit()
 
-cur.execute("DELETE FROM extendedvotes")
-con.commit()
 
-# This so Mathildes Macbook uses forks for multiprocessing instead of spawn
+parser = argparse.ArgumentParser(
+    description="Sutr implementation"
+)
+
+parser.add_argument(
+    "election_time", metavar="N", type=int, help="Time for casting"
+)
+parser.add_argument(
+    "number_of_tellers", metavar="N", type=int, help="The total number of tellers for the election"
+)
+parser.add_argument(
+    "k", metavar="N", type=int, help="Threshold for number of correctly running tellers"
+)
+args = parser.parse_args()
+
+# This is so Mathildes Macbook uses forks for multiprocessing instead of spawn
 multiprocessing.set_start_method('fork', force=True)
 
-num_tellers = 5
-k = 3
+num_tellers = args.number_of_tellers
+k = args.k
 
-q1 = multiprocessing.Queue()
-q2 = multiprocessing.Queue()
+voting_phase_timer = args.election_time
+
+def start_decrypt(e_timer):
+    time.sleep(e_timer)
+    print("voting phase has ended", flush=True)
+    
 
 tellers = []
-
 
 teller_proofs = []
 
@@ -70,6 +79,7 @@ teller_registry = []
 
 curve = Curve("P-256")
 
+# Converts a public key to dict formatting
 def custom_serializer(obj):
     if isinstance(obj, tc.data.PublicKey):
         return {
@@ -80,6 +90,7 @@ def custom_serializer(obj):
             "curve_name": obj.curve_params._name
         }
     raise TypeError("Object of type '{}' is not serializable".format(type(obj).__name__))
+
 def setup():
     """The setup phase of the protocol.
     Sets up 'num_tellers' teller objects.
@@ -105,7 +116,12 @@ def setup():
     
 
 
-def listen():
+def encrypted_listen():
+    """
+    Setups the listener for the encryptedvotes table
+    Starts by connecting to the server
+    Then runs a while true loop that checks the table continuously
+    """
     conn = get_listener_connection()
     cur = conn.cursor()
     print("About to issue LISTEN", flush=True)
@@ -119,84 +135,27 @@ def listen():
             conn.poll()
             while conn.notifies:
                 notify = conn.notifies.pop(0)
-                handler(notify.payload)
-        
-
-def handler(notify):
-    print("New ballot Received", flush=True)
-    data = json.loads(notify)
-    con = get_listener_connection()
-    cur = con.cursor()
-
-    cur.execute("SELECT * FROM encrypted_votes WHERE id = %s", (data["id"],))
-    ballot = cur.fetchone()
-
-    extended_ballot = extend_and_encode_vote(ballot)
-    parsed = json.loads(extended_ballot)
-
-    cur.execute(
-        "INSERT INTO extendedVotes (id, ballot) VALUES (%s, %s) ON CONFLICT (id) DO UPDATE SET ballot = EXCLUDED.ballot", (parsed["id"], json.dumps(parsed["ballot"]))
-    )
-
-    con.commit()
-    cur.close()
-    con.close()
-
-    print(f"Inserted {data['id']} into extendedVotes", flush=True)
-    
-def extend_and_encode_vote(row):
-    try:
-        decoded = decode_bb_data(row)
-
-        current_list = [[0, decoded]]
-        combined_outputs = []
-
-        for teller in tellers:
-            q1 = multiprocessing.Queue()
-            q2 = multiprocessing.Queue()
-            q3 = multiprocessing.Queue()
-            print("started queues", flush=True)
-            p = multiprocessing.Process(
-                target = teller.mp_raise_h, args=(current_list, q1, q2, q3)
-            )
-            p.start()
-            combined_outputs.append(q3.get())
-            p.join()
-            print("raised h", flush=True)
-
-        # Kombiner alle telleroutputs ligesom i den gamle tallying()
-        raised = []
-        for i in range(len(combined_outputs[0])):
-            ballot = combined_outputs[0][i][1]
-            prod_a = deserialize_ep(ballot["h_r"]["c1"])
-            prod_b = deserialize_ep(ballot["h_r"]["c2"])
-            prod_a_anti = deserialize_ep(ballot["h_r_anti"]["c1"])
-            prod_b_anti = deserialize_ep(ballot["h_r_anti"]["c2"])
-            sum_r = ballot["h_r"]["r"]
-            sum_r_anti = ballot["h_r_anti"]["r_anti"]
-
-            for j in range(1, len(combined_outputs)):
-                b = combined_outputs[j][i][1]
-                prod_a = prod_a + deserialize_ep(b["h_r"]["c1"])
-                prod_b = prod_b + deserialize_ep(b["h_r"]["c2"])
-                sum_r = sum_r + b["h_r"]["r"]
-                prod_a_anti = prod_a_anti + deserialize_ep(b["h_r_anti"]["c1"])
-                prod_b_anti = prod_b_anti + deserialize_ep(b["h_r_anti"]["c2"])
-                sum_r_anti = sum_r_anti + b["h_r_anti"]["r_anti"]
-
-            ballot["h_r"] = {"c1": prod_a, "c2": prod_b, "r": sum_r}
-            ballot["h_r_anti"] = {"c1": prod_a_anti, "c2": prod_b_anti, "r_anti": sum_r_anti}
-            raised.append([combined_outputs[0][i][0], ballot])
-
-        extended_ballot = {"id": decoded["id"], "ballot": raised}
-        encoded_ballot = json.dumps(extended_ballot, cls=ECCEncoder)
-        return encoded_ballot
-    except Exception as e:
-        print("extend_and_encode_vote FAILED:", e, flush=True)
-        traceback.print_exc()
-        raise
+                handler(notify.payload, get_listener_connection(), tellers)
 
 
+def extended_listen():
+    """
+    Listen to the extended_votes table 
+    Starts by connecting to the server
+    Then runs a while true loop that checks the table continuously
+    """
+    conn = get_listener_connection()
+    cur = conn.cursor()
+    cur.execute("LISTEN extended_votes;")
+    print("Listening on extended_votes", flush=True)
+    while True:
+        if select.select([conn], [], [], 5) == ([], [], []):
+            continue
+        else:
+            conn.poll()
+            while conn.notifies:
+                notify = conn.notifies.pop(0)
+                extend_handler(notify.payload, conn, tellers)
 
 try:
     setup()
@@ -205,8 +164,12 @@ except Exception as e:
     print("SETUP FAILED:", e, flush=True)
     sys.exit(1)
 
-try:
-    listen()
-except Exception as e:
-    print("LISTEN FAILED:", e, flush=True)
-    sys.exit(1)
+
+# THEN start threads
+threading.Thread(target=start_decrypt, args=(voting_phase_timer,)).start()
+t1 = threading.Thread(target=encrypted_listen)
+t2 = threading.Thread(target=extended_listen)
+t1.start()
+t2.start()
+t1.join()
+t2.join()

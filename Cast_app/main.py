@@ -4,6 +4,7 @@ import multiprocessing
 import argparse
 import time
 import random
+import threading
 import psycopg2
 from Crypto.PublicKey import ECC
 import gmpy2
@@ -16,15 +17,27 @@ from dotenv import load_dotenv
 
 load_dotenv("../.env")
 
+def get_connection():
+    con = psycopg2.connect(
+        host="db",
+        port=5432,
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+    )
+    return con
 
-con = psycopg2.connect(
-    host="db",
-    port=5432,
-    dbname=os.getenv("DB_NAME"),
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-)
-cur = con.cursor()
+
+try:
+    con = get_connection()
+    cur = con.cursor()
+    cur.execure("SELECT COUNT(*) FROM tellers")
+    count = cur.fetchone()[0]
+    if count == 0:
+        time.sleep(3)
+except Exception as e:
+    print("FAILED to retrieve from tally", e, flush=True)
+    
 
 cur.execute("SELECT current_database()")
 print("Connected to:", cur.fetchone()[0])
@@ -37,10 +50,6 @@ cur.execute("""
         AND table_name = 'encrypted_votes'
     )
 """)
-
-if cur.fetchone()[0]:
-    cur.execute("DELETE FROM encrypted_votes")
-    con.commit()
 
 # Decodes from x, y coordinates to EccPoints
 def decode_point_recursive(obj):
@@ -72,15 +81,16 @@ def decode_public_key(datas):
 
 # Decodes the ballots as stored in the database back to Ecc objects
 def decode_bb_data(row):
-    bb_data = json.loads(row[1]) # Loads the json string of the ballot
+    bb_data = row[1] # Loads the json string of the ballot
     
     # Converts the public key back to ECC key formattign
     bb_data['spk'] = ECC.import_key(bb_data['spk'])
     
     # Takes the integers for the trapdoor keys and the sum of r back to mpz formatting
     bb_data['stk'] = gmpy2.mpz(bb_data['stk'])
-    bb_data['stk_anti'] = gmpy2.mpz(bb_data['stk_anti'])
+    bb_data['stk_anti'] = [gmpy2.mpz(x) for x in bb_data['stk_anti']]
     bb_data['sum_r'] = gmpy2.mpz(bb_data['sum_r'])
+
     
     # Takes the hex formatted signature and converts it back to bytes
     bb_data['sig'] = bytes.fromhex(bb_data['sig'])
@@ -90,10 +100,16 @@ def decode_bb_data(row):
         return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
     
     # for the vote, antivote, encrypted trapdoor key, and encrypted antitrapdoor key we convert the votes back to EccPoints and the keys to mpz formatting
-    for key in ['ev', 'ev_anti', 'enc_ptk', 'enc_ptk_anti']:
+    for key in ['ev', 'enc_ptk']:
         bb_data[key][0] = to_point(bb_data[key][0])
         bb_data[key][1] = to_point(bb_data[key][1])
         bb_data[key][2] = gmpy2.mpz(bb_data[key][2])
+
+    for key in ['ev_anti', 'enc_ptk_anti']:
+        for x in bb_data[key]:
+            x[0] = to_point(x[0])
+            x[1] = to_point(x[1])
+            x[2] = gmpy2.mpz(x[2])
     
     # The proofs are converted from x,y coordinates to EccPoints using the decode_point_recursive function
     for key in ['pi_1', 'pi_1_anti', 'pi_2', 'pi_3']:
@@ -114,10 +130,13 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "voter_count", metavar="N", type=int, help="Number of voters"
 )
+parser.add_argument(
+    "vote_timer", metavar="N", type=int, help="Total time of election"
+)
 
 args = parser.parse_args()
 
-num_voters = 3
+num_voters = 10
 if (
     args.voter_count is not None
     and int(args.voter_count) > 0
@@ -127,7 +146,7 @@ if (
 
 
 vote_min = 0
-vote_max = 2
+vote_max = 10
 
 t_voting_single = 0
 t_verification_single = 0
@@ -135,10 +154,8 @@ t_re_enc_mix_ver = 0
 t_mixing = [0] * num_voters
 t_decryption = [0] * num_voters
 
-
 voters = []
 
-bb = []
 cur.execute("SELECT t_pk FROM tellers")
 raw_keys = cur.fetchall()
 teller_public_keys = [decode_public_key(row) for row in raw_keys]
@@ -146,6 +163,18 @@ teller_public_keys = [decode_public_key(row) for row in raw_keys]
 
 curve = Curve("P-256")
 
+election_time = int(args.vote_timer)
+
+def election_timer(e_time):
+    time.sleep(e_time)
+    print("election is done", flush=True)
+    shutdown()
+
+def shutdown():
+    cur.close()
+    con.close()
+
+    os._exit(0)
 
 def poc_setup():
     """Sets up voter IDs and voter objects for 'vote_max' voters.
@@ -175,31 +204,38 @@ def voting():
         teller_public_key = get_random_tpk(teller_public_keys)
         t_voting_single_start = time.time()
         voter.generate_trapdoor_keypair()
+        #Loop
         voter.generate_antitrapdoor_keypair()
         voter.encrypt_vote(teller_public_key)
+
+        # Indsæt loop for alle andre kandidater
         voter.encrypt_antivote(teller_public_key) # encrypt other vote
         voter.encrypt_trapdoor(teller_public_key) # encrypt the trapdoor
+
+        #Indsæt loop for all andre kandidaters trapdoors
         voter.encrypt_antitrapdoor(teller_public_key) # encrypt the other trapdoor
         voter.generate_pok_trapdoor_keypair(teller_public_key)
+
+        # Loop for alle andre anti
         voter.generate_pok_antitrapdoor_keypair(teller_public_key)
         voter.generate_wellformedness_proof(teller_public_key)
+
+        # Loop for beviser for alle andre kandidater
         voter.generate_wellformedness_proof_anti(teller_public_key) # proof other vote
-        voter.sign_ballot()
-
-        bb_data = retrieve_ballot(voter.id)
         print("Vote has been cast for", voter.id)
+        voter.sign_ballot()
+        time.sleep(10)
 
-        bb.append(bb_data)
-
-def retrieve_ballot(id):
+# Returns the ballot cast by a voter by their id
+"""def retrieve_ballot(id):
     cur.execute("SELECT * FROM encrypted_votes WHERE id = %s", (id,))
     ballot = cur.fetchone()
-    print(type(ballot))
-    return decode_bb_data(ballot)
+    return decode_bb_data(ballot)"""
 
 def get_random_tpk(tpks):
     encoded_pk = random.choice(tpks)
     return encoded_pk
 
+threading.Thread(target=election_timer, args=(election_time,)).start()
 poc_setup()
 voting()

@@ -1,8 +1,5 @@
-from Crypto.PublicKey import ECC
 import gmpy2
-import json
-import threshold_crypto as tc
-from util import to_tc_point
+from Crypto.PublicKey import ECC
 # pylint: disable=no-member
 
 
@@ -50,34 +47,86 @@ def decode_point_recursive(obj):
     return obj
 
 # Decodes the ballots as stored in the database back to Ecc objects
-def decode_bb_data(row):
-    bb_data = json.loads(row[1]) # Loads the json string of the ballot
+def decode_ciphertext(c):
+    """Decode a single ciphertext — handles both dict and list formats"""
+    if isinstance(c, dict):
+        # Dict format: {'c1': {...}, 'c2': {...}, 'r_anti': ...}
+        r_key = next(k for k in c if k not in ('c1', 'c2'))
+        return [
+            ECC.EccPoint(int(c['c1']['x']), int(c['c1']['y']), 'P-256'),
+            ECC.EccPoint(int(c['c2']['x']), int(c['c2']['y']), 'P-256'),
+            gmpy2.mpz(c['r_anti'])
+        ]
+    elif isinstance(c, list):
+        # List format: [{x,y}, {x,y}, int]
+        return [
+            ECC.EccPoint(int(c[0]['x']), int(c[0]['y']), 'P-256'),
+            ECC.EccPoint(int(c[1]['x']), int(c[1]['y']), 'P-256'),
+            gmpy2.mpz(c[2])
+        ]
+    else:
+        raise ValueError(f"Unexpected ciphertext format: {type(c)}")
 
-    # Converts the public key back to ECC key formattign
-    bb_data['spk'] = ECC.import_key(bb_data['spk'])
-    
-    # Takes the integers for the trapdoor keys and the sum of r back to mpz formatting
+def decode_bb_data(row):
+    bb_data = row
+
+    # --- SPK ---
+    spk_data = bb_data['spk']
+    if isinstance(spk_data, dict):
+        bb_data['spk'] = ECC.construct(
+            curve=spk_data["curve_name"],
+            point_x=int(spk_data["x"]),
+            point_y=int(spk_data["y"])
+        )
+    elif isinstance(spk_data, str):
+        bb_data['spk'] = ECC.import_key(spk_data)
+
+    # --- Trapdoor keys ---
     bb_data['stk'] = gmpy2.mpz(bb_data['stk'])
-    bb_data['stk_anti'] = gmpy2.mpz(bb_data['stk_anti'])
+    bb_data['stk_anti'] = [gmpy2.mpz(x) for x in bb_data['stk_anti']]
     bb_data['sum_r'] = gmpy2.mpz(bb_data['sum_r'])
-    
-    # Takes the hex formatted signature and converts it back to bytes
+
+    # --- Signature ---
     bb_data['sig'] = bytes.fromhex(bb_data['sig'])
-    
-    # Converts x,y coordinates back to EccPoints
-    def to_point(d):
-        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
-    
-    # for the vote, antivote, encrypted trapdoor key, and encrypted antitrapdoor key we convert the votes back to EccPoints and the keys to mpz formatting
-    for key in ['ev', 'ev_anti', 'enc_ptk', 'enc_ptk_anti']:
-        bb_data[key][0] = to_point(bb_data[key][0])
-        bb_data[key][1] = to_point(bb_data[key][1])
-        bb_data[key][2] = gmpy2.mpz(bb_data[key][2])
-    
-    # The proofs are converted from x,y coordinates to EccPoints using the decode_point_recursive function
+
+    # --- Single ciphertexts ---
+    for key in ['ev', 'enc_ptk']:
+        bb_data[key] = decode_ciphertext(bb_data[key])
+
+    # --- Lists of ciphertexts ---
+    for key in ['ev_anti', 'enc_ptk_anti']:
+        bb_data[key] = [decode_ciphertext(c) for c in bb_data[key]]
+
+    # --- Proofs ---
     for key in ['pi_1', 'pi_1_anti', 'pi_2', 'pi_3']:
         if key in bb_data:
             bb_data[key] = decode_point_recursive(bb_data[key])
 
-    # Finally the original ballot is returned
     return bb_data
+
+def decode_extended_ballot(single_ballot):
+    def to_point(d):
+        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
+
+    def decode_ciphertext_list(c):
+        # Normalizes both dict and list formats into [point, point, mpz]
+        if isinstance(c, dict):
+            return [
+                to_point(c['c1']),
+                to_point(c['c2']),
+                gmpy2.mpz(c.get('r', c.get('r_anti', 0)))
+            ]
+        else:
+            return [
+                to_point(c[0]),
+                to_point(c[1]),
+                gmpy2.mpz(c[2])
+            ]
+
+    return {
+        "ev":        decode_ciphertext_list(single_ballot["ev"]),
+        "ev_anti":   [decode_ciphertext_list(c) for c in single_ballot["ev_anti"]],
+        "h_r":       decode_ciphertext_list(single_ballot["h_r"]),
+        "h_r_anti":  [decode_ciphertext_list(c) for c in single_ballot["h_r_anti"]],
+        "enc_gr":    decode_ciphertext_list(single_ballot["enc_gr"]),
+    }
