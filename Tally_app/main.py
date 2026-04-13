@@ -5,17 +5,14 @@ import sys
 import multiprocessing
 import threading
 import time
-import traceback
 import argparse
 import psycopg2
 from curve import Curve
 from Tallying import Teller
 from dotenv import load_dotenv
 import threshold_crypto as tc
-from Decoding import decode_bb_data
-from Decoding import decode_extended_ballot
-from Encoding import ECCEncoder
-from util import deserialize_ep
+from extend_handling import handler
+from triplet_handling import extend_handler
 
 
 load_dotenv("../.env")
@@ -138,113 +135,7 @@ def encrypted_listen():
             conn.poll()
             while conn.notifies:
                 notify = conn.notifies.pop(0)
-                handler(notify.payload)
-
-        
-
-def handler(notify):
-    """
-    The function called when a new vote is found in the table
-    Takes a encrypted vote decodes, extends and encodes it
-    Finally the extended and encoded vote is added to the extended_votes table
-    """
-    print("New ballot Received", flush=True)
-    con = get_listener_connection()
-    cur = con.cursor()
-    cur.execute("SELECT ballot FROM encrypted_votes WHERE id = %s", (notify,))
-    ballot = cur.fetchone()[0]
-
-    extended_ballot = extend_and_encode_vote(ballot)
-    parsed = json.loads(extended_ballot)
-
-    cur.execute(
-        "INSERT INTO extended_votes (id, ballot) VALUES (%s, %s) ON CONFLICT (id) DO UPDATE SET ballot = EXCLUDED.ballot", (parsed["id"], json.dumps(parsed["ballot"]))
-    )
-
-    con.commit()
-    cur.close()
-    con.close()
-
-    
-def extend_and_encode_vote(row):
-    """
-    Takes an encoded vote 
-    The vote is then decoded
-    Then the decoded vote is run through the mp_raise_h function which extends the vote this is done with multiprocessing
-    Lastly it builts the final extended vote and finally encoded via the custom encoder from the encoding class
-    """
-    try:
-        decoded = decode_bb_data(row)
-
-        current_list = [[decoded["id"], decoded]]
-        combined_outputs = []
-
-            
-        for teller in tellers:
-            q1 = multiprocessing.Queue()
-            q2 = multiprocessing.Queue()
-            q3 = multiprocessing.Queue()
-            print("started queues", flush=True)
-            p = multiprocessing.Process(
-                target = teller.mp_raise_h, args=(current_list, q1, q2, q3)
-            )
-            p.start()
-            try:
-                print(f"[PARENT] waiting for q1.get()", flush=True)
-                _ = json.loads(q1.get())
-                print(f"[PARENT] waiting for q2.get()", flush=True)
-                _ = json.loads(q2.get())
-                print(f"[PARENT] waiting for q3.get()", flush=True)
-                combined_outputs.append(json.loads(q3.get()))
-                print(f"[PARENT] got from q3.get()", flush=True)
-            except Exception as e:
-                print(f"[PARENT] ERROR getting queue: {e}", flush=True)
-                
-            
-            p.join()
-
-       
-        raised = []
-        for i in range(len(combined_outputs[0])):
-            ballot = combined_outputs[0][i][1]
-            prod_a = deserialize_ep(ballot["h_r"]["c1"])
-            prod_b = deserialize_ep(ballot["h_r"]["c2"])
-            prod_a_anti = []
-            prod_b_anti = []
-            for k in range(len(ballot["h_r_anti"])):
-                prod_a_anti.append(deserialize_ep(ballot["h_r_anti"][k]["c1"]))
-                prod_b_anti.append(deserialize_ep(ballot["h_r_anti"][k]["c2"]))
-            sum_r = ballot["h_r"]["r"]
-            
-            sum_r_anti = []
-            for l in range(len(ballot["h_r_anti"])):
-                sum_r_anti.append(ballot["h_r_anti"][l]["r_anti"])
-
-            for j in range(1, len(combined_outputs)):
-                b = combined_outputs[j][i][1]
-                prod_a = prod_a + deserialize_ep(b["h_r"]["c1"])
-                prod_b = prod_b + deserialize_ep(b["h_r"]["c2"])
-                sum_r = sum_r + b["h_r"]["r"]
-                for m in range (len(b["h_r_anti"])):
-                    prod_a_anti[m] = prod_a_anti[m] + deserialize_ep(b["h_r_anti"][m]["c1"])
-                    prod_b_anti[m] = prod_b_anti[m] + deserialize_ep(b["h_r_anti"][m]["c2"])
-                for n in range (len(b["h_r_anti"])):
-                    sum_r_anti[n] = sum_r_anti[n] + b["h_r_anti"][n]["r_anti"]
-
-            ballot["h_r"] = {"c1": prod_a, "c2": prod_b, "r": sum_r}
-            ballot["h_r_anti"] = [
-                {"c1": prod_a_anti[o], "c2": prod_b_anti[o], "r_anti": sum_r_anti[o]}
-                for o in range(len(prod_a_anti))
-            ]
-            raised.append([combined_outputs[0][i][0], ballot])
-
-        extended_ballot = {"id": decoded["id"], "ballot": raised}
-        encoded_ballot = json.dumps(extended_ballot, cls=ECCEncoder)
-        return encoded_ballot
-    except Exception as e:
-        print("extend_and_encode_vote FAILED:", e, flush=True)
-        traceback.print_exc()
-        raise
+                handler(notify.payload, get_listener_connection(), tellers)
 
 
 def extended_listen():
@@ -264,77 +155,7 @@ def extended_listen():
             conn.poll()
             while conn.notifies:
                 notify = conn.notifies.pop(0)
-                extend_handler(notify.payload)
-
-def extend_handler(notify):
-    """
-    The function called when a new vote has been extended and is
-    that vote is found in the extended_votes table
-    Takes an extended vote, take the created triplets and re-encrypts the triplets, for 
-    both the candidate voted for but also all other candidat options, and puts them trough a mixnet.
-    Finally the re-encrypted triplets is added to the reencrypted_triplets table
-    """
-    data = notify
-    con = get_listener_connection()
-    cur = con.cursor()
-    cur.execute("SELECT ballot from extended_votes WHERE id = %s", (data,))
-    ballot = cur.fetchone()[0]
-
-    triplets = reencryptTriplets(ballot)
-    parsed = json.loads(triplets)
-    # For-loop to go trough each triplet for a voter and insert them in the reencrypted_triplets table
-    for trip in parsed:
-        # Selects the highest id in the table
-        cur.execute ( "SELECT max(id) FROM reencrypted_triplets")
-        id = cur.fetchone()[0]
-        if (id is None):
-            id = 0
-            print("id is none updated to 0", flush=True)
-        else: 
-            id = int(id) + 1
-            print("id is good :))", flush=True)
-        
-        cur.execute(
-            "INSERT INTO reencrypted_triplets (id, triplet) VALUES (%s, %s)", (id, json.dumps(trip),)
-            )
-
-
-    con.commit()
-    cur.close()
-    con.close()
-
-
-
-def reencryptTriplets(ballot):
-    """
-    Takes an encoded extended vote
-    That vote is then decodeed
-    Then the triplet for the candidate voted for is pulled out, and the triplets for
-    the remainign candidates not voted for and added to a triplets list.
-    Then the triplets are put trough the encryption mixnet
-    Lastly the re-encrypted triplets are encoded after the mixnet via the custom encoder from the encoding class
-    """
-    decoded_list = json.loads(ballot) if isinstance(ballot, str) else ballot
-
-    triplets = []
-
-    for ballot_id, single_ballot in decoded_list:
-        decoded = decode_extended_ballot(single_ballot)  # ← use new decoder
-
-        triplets.append([decoded["ev"], decoded["h_r"], decoded["enc_gr"]])
-
-        for i in range(len(decoded["ev_anti"])):
-            triplets.append([
-                decoded["ev_anti"][i],
-                decoded["h_r_anti"][i],
-                decoded["enc_gr"]
-            ])
-
-    for teller in tellers:
-        result = teller.re_encryption_mix(triplets)
-        triplets = result[0]  # list_1 is the re-encrypted triplets
-
-    return json.dumps(triplets, cls=ECCEncoder)
+                extend_handler(notify.payload, conn, tellers)
 
 try:
     setup()
@@ -342,7 +163,6 @@ try:
 except Exception as e:
     print("SETUP FAILED:", e, flush=True)
     sys.exit(1)
-
 
 
 # THEN start threads
