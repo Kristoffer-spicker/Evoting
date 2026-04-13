@@ -4,6 +4,7 @@ import multiprocessing
 import argparse
 import time
 import random
+import threading
 import psycopg2
 from Crypto.PublicKey import ECC
 import gmpy2
@@ -16,15 +17,27 @@ from dotenv import load_dotenv
 
 load_dotenv("../.env")
 
+def get_connection():
+    con = psycopg2.connect(
+        host="db",
+        port=5432,
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+    )
+    return con
 
-con = psycopg2.connect(
-    host="db",
-    port=5432,
-    dbname=os.getenv("DB_NAME"),
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-)
-cur = con.cursor()
+
+try:
+    con = get_connection()
+    cur = con.cursor()
+    cur.execure("SELECT COUNT(*) FROM tellers")
+    count = cur.fetchone()[0]
+    if count == 0:
+        time.sleep(3)
+except Exception as e:
+    print("FAILED to retrieve from tally", e, flush=True)
+    
 
 cur.execute("SELECT current_database()")
 print("Connected to:", cur.fetchone()[0])
@@ -37,10 +50,6 @@ cur.execute("""
         AND table_name = 'encrypted_votes'
     )
 """)
-
-if cur.fetchone()[0]:
-    cur.execute("DELETE FROM encrypted_votes")
-    con.commit()
 
 # Decodes from x, y coordinates to EccPoints
 def decode_point_recursive(obj):
@@ -121,6 +130,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "voter_count", metavar="N", type=int, help="Number of voters"
 )
+parser.add_argument(
+    "vote_timer", metavar="N", type=int, help="Total time of election"
+)
 
 args = parser.parse_args()
 
@@ -142,10 +154,8 @@ t_re_enc_mix_ver = 0
 t_mixing = [0] * num_voters
 t_decryption = [0] * num_voters
 
-
 voters = []
 
-bb = []
 cur.execute("SELECT t_pk FROM tellers")
 raw_keys = cur.fetchall()
 teller_public_keys = [decode_public_key(row) for row in raw_keys]
@@ -153,6 +163,18 @@ teller_public_keys = [decode_public_key(row) for row in raw_keys]
 
 curve = Curve("P-256")
 
+election_time = int(args.vote_timer)
+
+def election_timer(e_time):
+    time.sleep(e_time)
+    print("election is done", flush=True)
+    shutdown()
+
+def shutdown():
+    cur.close()
+    con.close()
+
+    os._exit(0)
 
 def poc_setup():
     """Sets up voter IDs and voter objects for 'vote_max' voters.
@@ -200,23 +222,20 @@ def voting():
 
         # Loop for beviser for alle andre kandidater
         voter.generate_wellformedness_proof_anti(teller_public_key) # proof other vote
-        voter.sign_ballot()
-
-        bb_data = retrieve_ballot(voter.id)
         print("Vote has been cast for", voter.id)
-
-        bb.append(bb_data)
+        voter.sign_ballot()
         time.sleep(10)
 
 # Returns the ballot cast by a voter by their id
-def retrieve_ballot(id):
+"""def retrieve_ballot(id):
     cur.execute("SELECT * FROM encrypted_votes WHERE id = %s", (id,))
     ballot = cur.fetchone()
-    return decode_bb_data(ballot)
+    return decode_bb_data(ballot)"""
 
 def get_random_tpk(tpks):
     encoded_pk = random.choice(tpks)
     return encoded_pk
 
+threading.Thread(target=election_timer, args=(election_time,)).start()
 poc_setup()
 voting()

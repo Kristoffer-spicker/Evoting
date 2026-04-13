@@ -4,7 +4,9 @@ import json
 import sys
 import multiprocessing
 import threading
+import time
 import traceback
+import argparse
 import psycopg2
 from curve import Curve
 from Tallying import Teller
@@ -40,31 +42,35 @@ except Exception as e:
     print("FAILED TO CONNECT TO DB:", e, flush=True)
     sys.exit(1)
 
-# Find and deletes the contents of the tellers table when started
-cur.execute("""
-    SELECT EXISTS (
-        SELECT FROM information_schema.tables
-        WHERE table_schema = 'public'
-        AND table_name = 'tellers'    
-    )
-""")
-if cur.fetchone()[0]:
-    cur.execute("DELETE FROM tellers")
-    con.commit()
 
-# Removes all extended votes at start time
-cur.execute("DELETE FROM extended_votes")
-con.commit()
 
-# Removes all re-encrypted triplets at start time
-cur.execute("TRUNCATE TABLE reencrypted_triplets RESTART IDENTITY CASCADE")
-con.commit()
+parser = argparse.ArgumentParser(
+    description="Sutr implementation"
+)
+
+parser.add_argument(
+    "election_time", metavar="N", type=int, help="Time for casting"
+)
+parser.add_argument(
+    "number_of_tellers", metavar="N", type=int, help="The total number of tellers for the election"
+)
+parser.add_argument(
+    "k", metavar="N", type=int, help="Threshold for number of correctly running tellers"
+)
+args = parser.parse_args()
 
 # This is so Mathildes Macbook uses forks for multiprocessing instead of spawn
 multiprocessing.set_start_method('fork', force=True)
 
-num_tellers = 5
-k = 3
+num_tellers = args.number_of_tellers
+k = args.k
+
+voting_phase_timer = args.election_time
+
+def start_decrypt(e_timer):
+    time.sleep(e_timer)
+    print("voting phase has ended", flush=True)
+    
 
 tellers = []
 
@@ -276,10 +282,22 @@ def extend_handler(notify):
 
     triplets = reencryptTriplets(ballot)
     parsed = json.loads(triplets)
+    # For-loop to go trough each triplet for a voter and insert them in the reencrypted_triplets table
+    for trip in parsed:
+        # Selects the highest id in the table
+        cur.execute ( "SELECT max(id) FROM reencrypted_triplets")
+        id = cur.fetchone()[0]
+        if (id is None):
+            id = 0
+            print("id is none updated to 0", flush=True)
+        else: 
+            id = int(id) + 1
+            print("id is good :))", flush=True)
+        
+        cur.execute(
+            "INSERT INTO reencrypted_triplets (id, triplet) VALUES (%s, %s)", (id, json.dumps(trip),)
+            )
 
-    cur.execute(
-        "INSERT INTO reencrypted_triplets (triplet) VALUES (%s)", (json.dumps(parsed),)
-    )
 
     con.commit()
     cur.close()
@@ -328,6 +346,7 @@ except Exception as e:
 
 
 # THEN start threads
+threading.Thread(target=start_decrypt, args=(voting_phase_timer,)).start()
 t1 = threading.Thread(target=encrypted_listen)
 t2 = threading.Thread(target=extended_listen)
 t1.start()

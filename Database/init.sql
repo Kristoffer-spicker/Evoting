@@ -14,12 +14,12 @@ CREATE TABLE IF NOT EXISTS extended_votes (
 );
 
 CREATE TABLE IF NOT EXISTS reencrypted_triplets (
-    id         SERIAL PRIMARY KEY,
+    id         INT PRIMARY KEY,
     triplet    JSONB NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS decrypted_triplets (
-    id         SERIAL PRIMARY KEY,
+    id         INT PRIMARY KEY,
     triplet    JSONB NOT NULL
 );
 
