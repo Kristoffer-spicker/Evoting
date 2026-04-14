@@ -13,6 +13,8 @@ from dotenv import load_dotenv
 import threshold_crypto as tc
 from extend_handling import handler
 from triplet_handling import extend_handler
+from extended_triplets import final_triplets
+
 
 
 load_dotenv("../.env")
@@ -67,7 +69,7 @@ voting_phase_timer = args.election_time
 def start_decrypt(e_timer):
     time.sleep(e_timer)
     print("voting phase has ended", flush=True)
-    
+    final_triplets(cur, con, tellers)
 
 tellers = []
 
@@ -156,6 +158,8 @@ def extended_listen():
             while conn.notifies:
                 notify = conn.notifies.pop(0)
                 extend_handler(notify.payload, conn, tellers)
+
+    
 
 try:
     setup()
