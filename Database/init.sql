@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS encrypted_votes (
 CREATE TABLE IF NOT EXISTS candidates (
     id        INT PRIMARY KEY,
     curve_p   JSONB NOT NULL
-):
+);
 
 CREATE TABLE IF NOT EXISTS tellers (
     id        TEXT PRIMARY KEY,
