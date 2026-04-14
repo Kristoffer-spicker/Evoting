@@ -1,6 +1,6 @@
 services:
   tally_app:
-    command: ["python3", "main.py", "65", "5", "3"]
+    command: ["python3", "main.py", "35", "5", "3"]
     build:
       context: ./Tally_app
     environment:
@@ -31,7 +31,7 @@ services:
         condition: service_healthy
 
   cast_app:
-    command: ["python3", "main.py", "50", "60"]
+    command: ["python3", "main.py", "50", "30"]
     build:
       context: ./Cast_app
     environment: 

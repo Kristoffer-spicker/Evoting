@@ -13,6 +13,8 @@ from dotenv import load_dotenv
 import threshold_crypto as tc
 from extend_handling import handler
 from triplet_handling import extend_handler
+from extended_triplets import final_triplets
+
 
 
 load_dotenv("../.env")
@@ -67,7 +69,7 @@ voting_phase_timer = args.election_time
 def start_decrypt(e_timer):
     time.sleep(e_timer)
     print("voting phase has ended", flush=True)
-    final_triplets()
+    final_triplets(cur, con, tellers)
 
 tellers = []
 
@@ -156,26 +158,6 @@ def extended_listen():
             while conn.notifies:
                 notify = conn.notifies.pop(0)
                 extend_handler(notify.payload, conn, tellers)
-
-# NOTE: New decoder needed for decoding reenc, eng_gy and enc_gs
-def final_triplets():
-    # Retrieving the 3 elements from the newly generated tripelt witht he actual vote
-    # -> 0 -> 1 is to get inside all of the outer arrays.
-    cur.execute("""
-        SELECT 
-            ballot -> 0 -> 1 -> 'reenc'  AS re_enc,
-            ballot -> 0 -> 1 -> 'enc_gy' AS new_com,
-            ballot -> 0 -> 1 -> 'enc_gs' AS new_key
-        FROM extended_votes
-    """)
-    con.commit()
-    triplets = cur.fetchall()
-    
-    for teller in tellers:
-        result = teller.re_encryption_mix(triplets)
-        triplets = result[0]  # list_1 is the re-encrypted triplets
-        print("remix and reincryption complete", flush=True)
-    
 
     
 

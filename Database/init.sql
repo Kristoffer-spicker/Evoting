@@ -18,7 +18,17 @@ CREATE TABLE IF NOT EXISTS reencrypted_triplets (
     triplet    JSONB NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS reencrypted_extend_triplets (
+    id         INT PRIMARY KEY,
+    triplet    JSONB NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS decrypted_triplets (
+    id         INT PRIMARY KEY,
+    triplet    JSONB NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS decrypted_extend_triplets (
     id         INT PRIMARY KEY,
     triplet    JSONB NOT NULL
 );
