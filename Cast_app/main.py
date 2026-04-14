@@ -183,6 +183,11 @@ def poc_setup():
     ('vote_min':'vote_max').
     Adds all 'voter' objects to the 'voters' list.
     """
+    for i in range(0, vote_max):
+        curve_p = curve.raise_p(i)
+        cur.execute ("INSERT INTO candidates VALUES (%s, %s)", (i, curve_p))
+        con.commit()
+
     for i in range(0, num_voters):
         id = "VT" + str(i)
         voter = VCaster(curve, id, vote_min, vote_max, cur, con)
@@ -225,12 +230,6 @@ def voting():
         print("Vote has been cast for", voter.id)
         voter.sign_ballot()
         time.sleep(10)
-
-# Returns the ballot cast by a voter by their id
-"""def retrieve_ballot(id):
-    cur.execute("SELECT * FROM encrypted_votes WHERE id = %s", (id,))
-    ballot = cur.fetchone()
-    return decode_bb_data(ballot)"""
 
 def get_random_tpk(tpks):
     encoded_pk = random.choice(tpks)

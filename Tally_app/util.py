@@ -1,8 +1,13 @@
 from Crypto.PublicKey import ECC
 from typing import Iterable, List, Any, Dict
-
 import threshold_crypto as tc
 
+def serialize_point(p):
+    """Wrapper to serialize ECC points regardless of whether they come from
+    pycryptodome (uses .curve) or threshold_crypto (uses ._curve_name)"""
+    if isinstance(p, ECC.EccPoint):
+        return {"x": int(p.x), "y": int(p.y), "curve": p.curve}
+    return tc.data._ecc_point_to_serializable(p)
 
 def deserialize_pd(curve, pd):
     yc_1 = ECC.EccPoint(pd["yc1"]["x"], pd["yc1"]["y"], pd["yc1"]["curve"])
@@ -21,7 +26,7 @@ def _ecc_key_to_serializable(p: ECC.EccKey) -> Dict[str, Any]:
 
 
 def serialize_pd(pd):
-    return {"x": pd.x, "yc1": tc.data._ecc_point_to_serializable(pd.yC1)}
+    return {"x": pd.x, "yc1": serialize_point(pd.yC1)}
 
 
 def multi_dim_index(list, key):

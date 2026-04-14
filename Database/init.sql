@@ -3,6 +3,11 @@ CREATE TABLE IF NOT EXISTS encrypted_votes (
     ballot    JSONB NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS candidates (
+    id        INT PRIMARY KEY,
+    curve_p   JSONB NOT NULL
+):
+
 CREATE TABLE IF NOT EXISTS tellers (
     id        TEXT PRIMARY KEY,
     t_pk      TEXT NOT NULL
@@ -55,6 +60,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
 
 -- The trigger that calls the function on every INSERT
 CREATE OR REPLACE TRIGGER encrypted_vote_inserted

@@ -1,5 +1,7 @@
 import json
 import gmpy2
+import time
+import multiprocessing
 from Crypto.PublicKey import ECC
 from Encoding import ECCEncoder
 
@@ -73,6 +75,11 @@ def final_triplets(cur, con, tellers):
         cur.execute(
             "INSERT INTO reencrypted_extend_triplets (id, triplet) VALUES (%s, %s)", (id, json.dumps(trip),)
             )
+
+        con.commit()
+
+    triplet_decryption(mixedtrips, tellers, cur)
+    con.commit()
     
     
 
@@ -83,3 +90,168 @@ def final_triplets(cur, con, tellers):
 
 
 
+def triplet_decryption(triplets, tellers, cur):
+    time_now = time.time()
+    tagged_ciphertexts = tellers[1].tag_ciphertexts(triplets)
+    split_ciphertexts = tellers[1].ciphertext_list_split(
+        tagged_ciphertexts, multiprocessing.cpu_count()
+    )
+    compound_pd = []
+    compound_pd2 = []
+    compound_pd3 = []
+    for teller in tellers:
+        q1 = multiprocessing.Queue()
+        q2 = multiprocessing.Queue()
+        q3 = multiprocessing.Queue()
+        q4 = multiprocessing.Queue()
+        processes = [
+            multiprocessing.Process(
+                target=teller.mp_partial_decrypt, args=(ciph, q1, q2, q3, q4)
+            )
+            for ciph in split_ciphertexts
+        ]
+        for p in processes:
+            p.daemon = True
+            p.start()
+        data = []
+        data2 = []
+        data3 = []
+        proofs = []
+        for p in processes:
+            data = data + q1.get()
+            data2 = data2 + q2.get()
+            data3 = data3 + q3.get()
+            proofs.append(q4.get())
+        for p in processes:
+            p.join()
+            # p.close()
+        compound_pd.append(data)
+        compound_pd2.append(data2)
+        compound_pd3.append(data3)
+
+    
+
+    final_pd = []
+    final_pd2 = []
+    final_pd3 = []
+    
+
+    compound_maps = [
+        [dict(row) for row in dataset]
+        for dataset in [compound_pd, compound_pd2, compound_pd3]
+    ]
+    
+    final_pd, final_pd2, final_pd3 = [], [], []
+    final_pds = [final_pd, final_pd2, final_pd3]
+    
+    all_keys = [key for key, _ in compound_pd[0]]  # keys like 0, 1, 2, ...
+    
+    for i in all_keys:
+        for dataset_idx in range(3):
+            subtemp = [row.get(i, None) for row in compound_maps[dataset_idx]]
+            final_pds[dataset_idx].append([i, subtemp])
+    
+    print("Decryption first part done in ",time.time() - time_now)
+
+    global decrypted
+    #1 ciphertext (votes)
+    split_ciphertexts = tellers[0].ciphertext_list_split(
+        final_pd, multiprocessing.cpu_count()
+    )
+    processes = [
+        multiprocessing.Process(
+            target=tellers[0].mp_full_decrypt,
+            args=(ciph, tagged_ciphertexts, 1, q1),
+        )
+        for ciph in split_ciphertexts
+    ]
+    for p in processes:
+        p.daemon = True
+        p.start()
+    data = []
+    for p in processes:
+        data = data + q1.get()
+
+    for p in processes:
+        p.join()
+        # p.close()
+    vote_list = data
+
+
+
+    print("Decryption of votes  done in ",time.time() - time_now)
+    time_now = time.time()
+    #2 ciphertext (commitments)
+    split_ciphertexts = tellers[0].ciphertext_list_split(
+        final_pd2, multiprocessing.cpu_count()
+    )
+    processes = [
+        multiprocessing.Process(
+            target=tellers[0].mp_full_decrypt,
+            args=(ciph, tagged_ciphertexts, 2, q1),
+        )
+        for ciph in split_ciphertexts
+    ]
+    for p in processes:
+        p.daemon = True
+        p.start()
+    data = []
+    for p in processes:
+        data = data + q1.get()
+
+    for p in processes:
+        p.join()
+        # p.close()
+    comm_list = data
+    
+    print("Decryption of trapdoors  done in ",time.time() - time_now)
+    time_now = time.time()
+    #3 ciphertext (tellers' trapdoor)
+    split_ciphertexts = tellers[0].ciphertext_list_split(
+        final_pd3, multiprocessing.cpu_count()
+    )
+    processes = [
+        multiprocessing.Process(
+            target=tellers[0].mp_full_decrypt,
+            args=(ciph, tagged_ciphertexts, 3, q1),
+        )
+        for ciph in split_ciphertexts
+    ]
+    for p in processes:
+        p.daemon = True
+        p.start()
+    data = []
+    for p in processes:
+        data = data + q1.get()
+
+    for p in processes:
+        p.join()
+        # p.close()
+    trap_list = data
+    print("Decryption of dual keys  done in ",time.time() - time_now)
+
+    comm = None
+    trap = None
+    decrypted = []
+    for item in vote_list:
+        index = item[0]
+        for subitem in comm_list:
+            if subitem[0] == index:
+                comm = subitem[1]
+                for asubitem in trap_list:
+                    if asubitem[0] == index:
+                        trap = asubitem[1]
+                        break
+                decrypted.append({"v": item[1], "comm": comm, "dkey": trap})
+
+    for trip in decrypted:
+        cur.execute ( "SELECT max(id) FROM decrypted_extend_triplets")
+        id = cur.fetchone()[0]
+        if (id is None):
+            id = 0
+        else: 
+            id = int(id) + 1
+            
+        cur.execute(
+            "INSERT INTO decrypted_extend_triplets (id, triplet) VALUES (%s, %s)", (id, json.dumps(trip),)
+            )
