@@ -11,7 +11,10 @@ import gmpy2
 import threshold_crypto as tc
 from threshold_crypto import CurveParameters
 from curve import Curve
-from VCaster import VCaster
+from VCaster import (
+    VCaster,
+    ECCEncoder
+)
 from dotenv import load_dotenv
 # pylint: disable=no-member
 
@@ -31,7 +34,7 @@ def get_connection():
 try:
     con = get_connection()
     cur = con.cursor()
-    cur.execure("SELECT COUNT(*) FROM tellers")
+    cur.execute("SELECT COUNT(*) FROM tellers")
     count = cur.fetchone()[0]
     if count == 0:
         time.sleep(3)
@@ -183,6 +186,12 @@ def poc_setup():
     ('vote_min':'vote_max').
     Adds all 'voter' objects to the 'voters' list.
     """
+    for i in range(0, vote_max):
+        curve_p = curve.raise_p(i)
+        encoded = json.dumps(curve_p, cls=ECCEncoder)
+        cur.execute ("INSERT INTO candidates VALUES (%s, %s)", (i, encoded))
+        con.commit()
+
     for i in range(0, num_voters):
         id = "VT" + str(i)
         voter = VCaster(curve, id, vote_min, vote_max, cur, con)
@@ -225,12 +234,6 @@ def voting():
         print("Vote has been cast for", voter.id)
         voter.sign_ballot()
         time.sleep(10)
-
-# Returns the ballot cast by a voter by their id
-"""def retrieve_ballot(id):
-    cur.execute("SELECT * FROM encrypted_votes WHERE id = %s", (id,))
-    ballot = cur.fetchone()
-    return decode_bb_data(ballot)"""
 
 def get_random_tpk(tpks):
     encoded_pk = random.choice(tpks)
