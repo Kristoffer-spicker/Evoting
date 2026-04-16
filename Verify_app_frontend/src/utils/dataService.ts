@@ -151,7 +151,8 @@ const candidate: Candidate = {
 };
 
 async function createCandidate() {
-  const response = await fetch("http://127.0.0.1:8000/addcandidates/", {
+  const url = (import.meta as any).env?.VITE_API_URL;
+  const response = await fetch(url + "/addcandidates/", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -172,7 +173,7 @@ async function createCandidate() {
 
 const saveVoterToBack4app = async (name: string, voterId: string, password: string): Promise<Voter> => {
   try {
-    createCandidate();
+    await createCandidate();
     
     const existingVoter = await back4appClient.findVoterByVoterID(voterId.trim());
     if (existingVoter) {
