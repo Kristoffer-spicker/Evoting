@@ -1,0 +1,8 @@
+.inlineIcon {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+  color: #21272f;
+}

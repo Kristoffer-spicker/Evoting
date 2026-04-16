@@ -1,0 +1,175 @@
+.completePage {
+  min-height: 100vh;
+  background-color: #f5f5f0;
+}
+
+.contentWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  padding-top: 1.5rem;
+}
+
+.pageContainer {
+  width: 100%;
+  max-width: 96rem;
+}
+
+
+.successCard {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  padding: 2rem;
+  margin: 1.5rem auto;
+  max-width: 56rem;
+  
+}
+
+.successContent {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.successIcon {
+  width: 50px;
+  height: 50px;
+  background-color: #2D5F3F;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.successText {
+  font-size: 1.2rem;
+  color: #2D5F3F;
+  margin: 0;
+  font-family: 'Arimo', Arial, sans-serif;
+  line-height: 1.5;
+}
+
+
+.nextStepCard {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  padding: 4rem;
+  margin: 1.5rem auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 56rem;
+  margin-bottom: 5rem;
+}
+
+.nextStepTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2D5F3F;
+  margin: 0 0 1.5rem 0;
+  font-family: 'Arimo', Arial, sans-serif;
+  align-self: flex-start;
+}
+
+.nextStepText {
+  font-size: 1rem;
+  color: #1a1a1a;
+  margin: 0 0 1.5rem 0;
+  font-family: 'Arimo', Arial, sans-serif;
+  line-height: 1.5;
+  align-self: flex-start;
+}
+
+
+.verifyButton {
+  width: 100%;
+  max-width: 500px;
+  padding: 0.875rem 2rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: 'Arimo', Arial, sans-serif;
+  transition: background-color 0.2s ease;
+  margin-bottom: 1.5rem;
+  margin-top: 5rem;
+}
+
+.verifyButtonEnabled {
+  background: #2D5F3F;
+  color: white;
+}
+
+.verifyButtonEnabled:hover {
+  background: #243528;
+}
+
+.verifyButtonEnabled:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(45, 95, 63, 0.5);
+}
+
+.verifyButtonDisabled {
+  background: #9ca3af;
+  color: white;
+  cursor: not-allowed;
+}
+
+
+.infoSection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: #f5f5f0;
+  border-radius: 8px;
+  padding: 1rem;
+  width: 100%;
+  max-width: 500px;
+  box-sizing: border-box;
+  margin-bottom: 1.5rem;
+}
+
+.infoIcon {
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.infoText {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  font-family: 'Arimo', Arial, sans-serif;
+  line-height: 1.5;
+}
+
+
+.closeButton {
+  background: white;
+  color: #1a1a1a;
+  padding: 0.875rem 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: 'Arimo', Arial, sans-serif;
+  transition: background-color 0.2s ease;
+  min-width: 150px;
+  margin-top: 2rem;
+}
+
+.closeButton:hover {
+  background: #f9fafb;
+}
+
+.closeButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.5);
+}

@@ -1,0 +1,125 @@
+
+.progressBar {
+  background: white;
+  position: relative;
+  width: 100%;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.progressContainer {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 5.994px 62.85px 0.606px 62.85px;
+  position: relative;
+  width: 100%;
+}
+
+.phaseTitle {
+  display: flex;
+  height: 15.994px;
+  align-items: flex-start;
+  width: 100%;
+  font-family: 'Arimo', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 16px;
+  text-align: center;
+  color: #2d5f3f;
+  justify-content: center;
+  margin-bottom: 3.996px;
+}
+
+
+.stepsContainer {
+  display: flex;
+  height: 50.994px;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+}
+
+.stepWrapper {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  flex: 1 1 0%;
+}
+
+.stepWrapperLast {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.stepContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.998px;
+}
+
+
+.stepCircle {
+  position: relative;
+  border-radius: 50%;
+  width: 23.996px;
+  height: 23.996px;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Arimo', Arial, sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 13.333px;
+  color: #4a4a4a;
+}
+
+.stepCircle.active {
+  background: #2d5f3f;
+  color: white;
+}
+
+
+.stepLabel {
+  font-family: 'Arimo', Arial, sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 12.5px;
+  text-align: center;
+  width: 90px;
+  color: #4a4a4a;
+  word-wrap: break-word;
+}
+
+.stepLabel.activeLabel {
+  color: #2d5f3f;
+}
+
+
+.connectorLine {
+  background: #e5e7eb;
+  height: 3px;
+  flex: 1;
+  margin: 11px 7.992px 0 7.992px;
+  align-self: flex-start;
+}
+
+.connectorLine.connectorActive {
+  background: #2d5f3f;
+}
+
+
+.progressText {
+  position: absolute;
+  right: 10.28px;
+  top: 5px;
+  font-weight: 600;
+  font-family: 'Arimo', Arial, sans-serif;
+  font-size: 13px;
+  color: #2d5f3f;
+}

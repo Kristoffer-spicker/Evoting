@@ -1,0 +1,75 @@
+
+.card {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+}
+
+
+.iconContainer {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.successIcon {
+  width: 80px;
+  height: 80px;
+  color: #195A7D;
+}
+
+
+.contentContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+
+.greeting {
+  font-size: 30px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.voterName {
+  color: #195A7D;
+  font-weight: 600;
+}
+
+.completionMessage {
+  font-size: 25px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.verificationInfo {
+  font-size: 20px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.phaseEmphasis {
+  color: #195A7D;
+  font-weight: 500;
+}
+
+.resultInfo {
+  font-size: 20px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.thankYou {
+  font-size: 20px;
+  color: #000000;
+  text-align: center;
+  margin: 0;
+  padding-top: 8px;
+  line-height: 1.4;
+}

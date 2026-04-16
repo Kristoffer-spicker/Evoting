@@ -1,0 +1,88 @@
+
+.exampleContainer {
+  padding: 16px;
+  border-top: 2px solid #ced1d8;
+}
+
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #195A7D;
+  margin: 16px 0 16px 0;
+  line-height: 1.4;
+}
+
+.exampleContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.exampleText {
+  font-size: 20px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.exampleSubtitle {
+  font-size: 20px;
+  color: #000000;
+  margin: 10px 0 0 0;
+  line-height: 1.5;
+}
+
+.stepsList {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding-left: 8px;
+}
+
+.stepText {
+  font-size: 20px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.stepExample {
+  font-size: 20px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.5;
+  padding-left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.numberBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: #e5ebed;
+  color: rgb(29, 102, 138);
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 600;
+  border: 1px solid #195A7D;
+}
+
+.conclusionText {
+  font-size: 20px;
+  color: #000000;
+  margin: 20px 0 0 0;
+  line-height: 1.5;
+}
+
+.nbSection {
+  margin: 40px 0 40px 0;
+  font-size: 20px;
+  color: #3d3b3b;
+  font-style: italic;
+  line-height: 1.5;
+}

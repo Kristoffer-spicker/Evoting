@@ -1,0 +1,95 @@
+.headerContainer {
+  text-align: center;
+  padding: 24px 16px 16px 16px;
+}
+
+.headerTitle {
+  font-size: 28px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0;
+  line-height: 1.4;
+}
+
+
+.iconOuterContainer {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.iconCircle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: #d5e5f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.successIcon {
+  width: 80px;
+  height: 80px;
+  color: #195A7D;
+}
+
+
+.messageContainer {
+  text-align: center;
+  padding: 16px;
+}
+
+.messageText {
+  font-size: 20px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.5;
+}
+
+
+.nextStepCard {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+  margin: 30px 0;
+}
+
+.nextStepTitle {
+  font-size: 22px;
+  font-weight: 600;
+  color: #195A7D;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.nextStepText {
+  font-size: 20px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.5;
+}
+
+
+.doneButtonContainer {
+  padding: 16px;
+  margin-top: auto;
+}
+
+.doneButton {
+  width: 100%;
+  padding: 14px 16px;
+  background: #195A7D;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 22px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.doneButton:hover {
+  background: #001a2b;
+}

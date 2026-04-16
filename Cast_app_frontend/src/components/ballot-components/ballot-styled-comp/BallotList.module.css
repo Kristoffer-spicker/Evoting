@@ -1,0 +1,95 @@
+
+.ballotContainer {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.ballotTitle {
+  color: #195A7D;
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+
+.candidatesList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+.candidateItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 2px solid #c4c7cb;
+  transition: all 0.2s ease;
+}
+
+.candidateItemDefault {
+  background: white;
+}
+
+.candidateItemSelected {
+  border: 2px solid #c4c7cb;
+  background: white;
+}
+
+.candidateItemHighlighted {
+  border-color: #195A7D;
+  background: #EBF4FA;
+}
+
+
+.positionNumber {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.positionNumberSelected {
+  background: #E5E7EB;
+  color: #195A7D;
+  border : 1px solid #195A7D;
+}
+
+.positionNumberDefault {
+  background: #E5E7EB;
+  color: #195A7D;
+  border : 1px solid #195A7D;
+}
+
+.numberText {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+
+.candidateInfo {
+  flex: 1;
+}
+
+.candidateName {
+  font-size: 20px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.chosenLabel {
+  font-size: 12px;
+  color: #195A7D;
+  margin: 2px 0 0 0;
+  line-height: 1.4;
+  font-weight: 500;
+}

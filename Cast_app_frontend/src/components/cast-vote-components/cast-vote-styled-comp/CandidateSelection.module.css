@@ -1,0 +1,91 @@
+
+.partyContainer {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+}
+
+
+.partyName {
+  color: #195A7D;
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.candidatesContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+.candidateLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 4px;
+  border: 1px solid #D4D8D9;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.candidateLabelDefault {
+  background: white;
+}
+
+.candidateLabelDefault:hover {
+  border-color: #195A7D;
+  background: #F7FAFC;
+}
+
+.candidateLabelSelected {
+  border-color: #195A7D;
+  background: #D8E1E6;
+}
+
+
+.candidateRadio {
+  width: 20px;
+  height: 20px;
+  accent-color: #195A7D;
+  cursor: pointer;
+  flex-shrink: 0;
+  appearance: none;
+  border: 2px solid #787b7b;
+  border-radius: 50%;
+  background-color: white;
+  position: relative;
+}
+
+.candidateRadio:checked {
+  border-color: #195A7D;
+  background-color: white;
+}
+
+.candidateRadio:checked::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #195A7D;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.candidateRadio:focus {
+  outline: none;
+}
+
+
+.candidateName {
+  font-size: 20px;
+  color: #000000;
+  line-height: 1.4;
+  flex: 1;
+}

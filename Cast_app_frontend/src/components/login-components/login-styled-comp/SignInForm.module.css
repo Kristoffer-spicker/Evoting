@@ -1,0 +1,151 @@
+
+.formCard {
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+
+.errorMessage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.errorIcon {
+  width: 20px;
+  height: 20px;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.errorText {
+  color: #dc2626;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+
+.formCard form {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  color: #000000;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.fieldInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #8e9394;
+  border-radius: 6px;
+  font-size: 18px;
+  color: #000000;
+  background: white;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.fieldInput::placeholder {
+  color: #b3b9ba;
+}
+
+.fieldInput:focus {
+  outline: none;
+  border-color: #195A7D;
+  box-shadow: 0 0 0 2px rgba(25, 90, 125, 0.1);
+}
+
+
+.submitButton {
+  width: 100%;
+  background: #195A7D;
+  color: white;
+  padding: 10px 0;
+  border-radius: 6px;
+  border: none;
+  font-size: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.submitButton:hover {
+  background: #001a2b;
+}
+
+.submitButton:active {
+  background: #001420;
+}
+
+
+.passwordFieldWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordFieldWrapper .fieldInput {
+  padding-right: 48px;
+}
+
+
+.passwordToggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.passwordToggle:focus {
+  outline: none;
+}
+
+
+.eyeIcon {
+  width: 20px;
+  height: 20px;
+  color: #4a4f57;
+  transition: color 0.2s ease;
+}
+
+.eyeIcon:hover {
+  color: #242932;
+}
+
+.hiddenField {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}

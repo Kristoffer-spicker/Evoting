@@ -1,0 +1,133 @@
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalContent {
+  position: relative;
+  background: #FFFEFA;
+  border-radius: 16px;
+  padding: 40px 60px;
+  box-shadow: 0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 500px;
+  width: 90%;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background-color: transparent;
+  border: none;
+  font-size: 28px;
+  color: #2F4539;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+  vertical-align: middle;
+  line-height: 1;
+  padding: 0;
+}
+
+.closeButton:hover {
+  background-color: #F5F5F2;
+}
+
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.modalCandidate {
+  font-family: 'Arimo', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 28px;
+  color: #376A39;
+  margin: 0;
+  text-align: center;
+}
+
+.modalIdent {
+  font-family: 'Arimo', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 28px;
+  color: #376A39;
+  margin: 0;
+  text-align: center;
+}
+
+.modalIdentifier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  background: #E8EDEB;
+  border-radius: 16px;
+  width: 100%;
+}
+
+.modalEmoji {
+  font-family: 'Arimo', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 150px;
+  line-height: 130px;
+  color: #000000;
+  text-align: center;
+}
+
+.modalWord {
+  font-family: 'Arimo', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 35px;
+  line-height: 55px;
+  color: #2F4539;
+  text-align: center;
+}

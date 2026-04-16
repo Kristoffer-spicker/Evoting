@@ -1,0 +1,163 @@
+.navigation {
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem 1.5rem;
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.backButton {
+  color: #2d5f3f;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.backButton:hover {
+  color: #234a32;
+}
+
+.backIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 2;
+}
+
+
+
+.title {
+  font-family: 'Arimo', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #2d5f3f;
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.helpButton {
+  color: #376A39;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.helpButton:hover {
+  background: rgba(55, 106, 57, 0.1);
+  border-color: #376A39;
+}
+
+.helpIcon {
+  width: 1.90rem;
+  height: 1.90rem;
+  stroke-width: 2;
+}
+
+.profileButton {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  width: auto;
+  height: 50px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: .25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.profileButton:hover {
+  background: rgba(55, 106, 57, 0.1);
+  border-color: #376A39;
+}
+
+.profileButtonActive {
+  background: rgba(55, 106, 57, 0.05);
+  border-color: #376A39;
+}
+
+.profileIcon {
+  width: 30px;
+  height: 30px;
+}
+
+
+.profileContainer {
+  position: relative;
+}
+
+.profileDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #376A39;
+  border-radius: 10px;
+  box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.15), 0 6px 8px -2px rgba(0, 0, 0, 0.1);
+  min-width: 300px;
+  z-index: 1000;
+  margin-top: 8px;
+}
+
+.userInfo {
+  padding: 20px 24px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.userNameText,
+.voteIdText {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.voteIdText {
+  margin-bottom: 0;
+}
+
+.logoutOption {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.950rem;
+  font-weight: 600;
+  color: #dc2626;
+  transition: background-color 0.2s ease;
+}
+
+.logoutOption:hover {
+  background-color: #fef2f2;
+}

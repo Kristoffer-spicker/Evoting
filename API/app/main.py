@@ -1,11 +1,11 @@
 from typing import Annotated
 import os
-import psycopg2
-from sqlalchemy import Column
-from sqlalchemy.dialects.postgresql import JSONB
+import psycopg2 
+from sqlalchemy import Column # type: ignore # pylint: disable=import-error
+from sqlalchemy.dialects.postgresql import JSONB # type: ignore # pylint: disable=import-error
 from fastapi import FastAPI, Depends, Query, HTTPException # type: ignore # pylint: disable=import-error
 from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
-
+from fastapi.middleware.cors import CORSMiddleware # type: ignore # pylint: disable=import-error
 app = FastAPI()
 
 class Candidate(SQLModel, table=True):
@@ -32,6 +32,14 @@ def get_session():
         yield session
 
 SessionDep = Annotated[Session, Depends(get_session)]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],    
+)
 
 @app.on_event("startup")
 async def on_startup():

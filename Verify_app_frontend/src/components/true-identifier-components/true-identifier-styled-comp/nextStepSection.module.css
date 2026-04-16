@@ -1,0 +1,79 @@
+
+.nextStepCard {
+  background: #deefe3;
+  border-left: 3.64px solid #2F4539;
+  border-radius: 10px;
+  padding: 24px 24px 0px 28px;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.nextStepHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.nextStepIcon {
+  width: 24px;
+  height: 24px;
+  color: #2F4539;
+  flex-shrink: 0;
+}
+
+.nextStepTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1A1A1A;
+  line-height: 27px;
+  font-family: 'Arimo', Arial, sans-serif;
+  margin: 0;
+}
+
+.nextStepContent {
+  margin-bottom: 24px;
+}
+
+.nextStepDescription,
+.nextStepInstruction,
+.nextStepWarning {
+  font-size: 16px;
+  font-weight: 400;
+  color: #1A1A1A;
+  line-height: 26px;
+  margin: 0 0 8px 0;
+  font-family: 'Arimo', Arial, sans-serif;
+}
+
+.nextStepWarning {
+  margin-bottom: 0;
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 60px;
+  margin-bottom: 50px;;
+  margin-right: 50px;
+}
+
+.continueButton {
+  background-color: #2D5F3F;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.continueButton:hover {
+  background-color: #243528;
+}
