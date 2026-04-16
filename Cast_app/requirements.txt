@@ -4,3 +4,4 @@ git+https://github.com/tompetersen/threshold-crypto.git
 typing
 python-dotenv
 psycopg2-binary
+fastapi

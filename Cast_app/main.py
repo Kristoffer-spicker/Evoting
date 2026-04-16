@@ -9,6 +9,7 @@ import psycopg2
 from Crypto.PublicKey import ECC
 import gmpy2
 import threshold_crypto as tc
+from fastapi import FastAPI  # type: ignore # pylint: disable=import-error
 from threshold_crypto import CurveParameters
 from curve import Curve
 from VCaster import (
@@ -29,6 +30,9 @@ def get_connection():
         password=os.getenv("DB_PASSWORD"),
     )
     return con
+
+app = FastAPI()
+
 
 
 try:
