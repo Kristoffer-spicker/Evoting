@@ -1,0 +1,415 @@
+
+.page {
+  min-height: 100vh;
+  background-color: #f5f5f0;
+}
+
+
+.progressBar {
+  
+  position: relative;
+  width: 100%;
+  padding-top: 20px;
+}
+
+.progressContainer {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  width: 100%;
+}
+
+.progressTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2d5f3f;
+  text-align: center;
+  margin: 0;
+  font-family: 'Arimo', Arial, sans-serif;
+}
+
+
+.mainContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  padding-top: 1.5rem;
+}
+
+.contentContainer {
+  width: 100%;
+  max-width: 96rem;
+}
+
+.gridLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+
+.leftCard {
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.inactiveState {
+  color: #4a4a4a;
+}
+
+/* when hasn't voted*/
+.inactiveContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 700px;
+  min-height: 2px;
+  max-height: 2px;
+  margin: 0 auto;
+  padding-top: 2rem;
+}
+
+.inactiveContainer .contactButton {
+  width: auto;
+  min-width: 300px;
+  margin-top: 2rem;
+}
+
+.activeState {
+  color: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.statusBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-radius: 6px;
+  padding: 1rem;
+  border: 1px solid;
+  margin-bottom: 1rem;
+  padding-top: 20px;
+}
+
+.statusBox.inactive {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.statusBox.success {
+  background-color: #e8f0ea;
+  border-color: rgba(45, 95, 63, 0.2);
+}
+
+.statusBox.warning {
+  background-color: #fef2f2;
+  border-color: rgba(220, 38, 38, 0.2);
+  border-left: 3.64px solid #dc2626;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  margin-top: 15rem;
+}
+
+.iconCircle {
+  background-color: #2d5f3f;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statusIcon {
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+}
+
+.statusIcon.inactive {
+  color: #9ca3af;
+}
+
+.statusIcon.success {
+  color: #ffffff;
+}
+
+.statusIcon.warning {
+  color: #dc2626;
+  width: 35px;
+  height: 35px;
+  margin-top: 2px;
+}
+
+.statusTitle {
+  color: #1a1a1a;
+  margin-bottom: 8px;
+  font-weight: 500;
+  margin-top: 16px;
+}
+
+.statusText {
+  font-size: 1.1rem;
+  font-weight: 400;
+  padding-top: 0px;
+}
+
+.conditionsList {
+  font-size: 0.875rem;
+  margin-left: 1rem;
+  list-style: none;
+  padding: 0;
+}
+
+.conditionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.conditionIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.conditionIcon.completed {
+  color: #2d5f3f;
+}
+
+.conditionIcon.incomplete {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #9ca3af;
+}
+
+.textContent {
+  margin-bottom: 1rem;
+  flex-grow: 1;
+}
+
+.textContent p {
+  margin-bottom: 1rem;
+}
+
+.textContent p:last-child {
+  margin-bottom: 0;
+}
+
+
+.instructionContainer {
+  background-color: #f5f5f0;
+  border-radius: 6px;
+  padding: 1.5rem 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.instructionHeading {
+  color: #2d5f3f;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  font-family: 'Arimo', Arial, sans-serif;
+}
+
+.instructionText {
+  color: #1a1a1a;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0 0 1rem 0;
+}
+
+.instructionTextBold {
+  color: #1a1a1a;
+  font-size: 1rem;
+  line-height: 1.6;
+  font-weight: 400;
+  margin: 0;
+}
+
+.contactButton {
+  background-color: #2D5F3F;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  font-size: 1rem;
+  margin-top: auto;
+}
+
+.contactButton:hover {
+  background-color: #243528;
+}
+
+
+.rightCard {
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  padding: 3rem;
+}
+
+.hintText {
+  color: #1a1a1a;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 2.5rem 0 1rem 0;
+}
+
+.searchSection {
+  margin-bottom: 1.5rem;
+}
+
+.searchRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  outline: none;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: #2d5f3f;
+}
+
+.searchInput:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+}
+
+.searchButton {
+  background-color: #2D5F3F;
+  color: white;
+  padding: 8px 24px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.searchButton:hover:not(:disabled) {
+  background-color: #243528;
+}
+
+.searchButton:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.searchIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.tableContainer {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tableWrapper {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableHead {
+  background-color: #f5f5f0;
+  position: sticky;
+  top: 0;
+}
+
+.tableHeadCell {
+  text-align: left;
+  padding: 12px 16px;
+  color: #1a1a1a;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 500;
+}
+
+.tableRow {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s ease;
+}
+
+.tableRow:hover {
+  background-color: #f9fafb;
+}
+
+.tableRow.clickable {
+  cursor: pointer;
+}
+
+.tableRow.clickable:hover {
+  background-color: #e8f0ea;
+}
+
+.tableRow.highlighted {
+  background-color: #e8f0ea;
+}
+
+.tableRow.inactive {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tableCell {
+  padding: 12px 16px;
+}
+
+.identifierCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.identifierEmoji {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.identifierWord {
+  color: #1a1a1a;
+  font-size: 1rem;
+}
+
+.candidateName {
+  color: #1a1a1a;
+  font-size: 1rem;
+}
+
+.tableHint {
+  font-size: 0.950rem;
+  margin-top: 1rem;
+}

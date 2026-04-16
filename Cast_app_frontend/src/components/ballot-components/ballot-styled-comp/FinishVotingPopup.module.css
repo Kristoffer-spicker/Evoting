@@ -1,0 +1,124 @@
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popup {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 16px;
+  max-width: 400px;
+  width: 90%;
+  margin: 1rem;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.iconContainer {
+  width: 70px;
+  height: 70px;
+  background-color: #f9ecd7;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem auto;
+}
+
+.warningIcon {
+  width: 40px;
+  height: 40px;
+  color: #eb9603;
+}
+
+.title {
+  font-size: 25px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1rem 0;
+}
+
+.subtitle {
+  font-size: 20px;
+  color: #1a1a1a;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.message {
+  font-size: 20px;
+  color: #1a1a1a;
+  margin: 0 0 2rem 0;
+  line-height: 1.5;
+}
+
+.boldItalic {
+  font-weight: 700;
+  font-style: italic;
+}
+
+.question {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 2rem 0;
+}
+
+.buttonContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.finishButton {
+  width: 100%;
+  padding: 14px 0;
+  background-color: #195A7D;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.finishButton:hover {
+  background-color: #0f3d54;
+}
+
+.finishButton:focus {
+  outline: 2px solid #195A7D;
+  outline-offset: 2px;
+}
+
+.reviewButton {
+  width: 100%;
+  padding: 14px 0;
+  background-color: transparent;
+  color: #195A7D;
+  border: 2px solid #195A7D;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reviewButton:hover {
+  background-color: #f0f7fa;
+}
+
+.reviewButton:focus {
+  outline: 2px solid #195A7D;
+  outline-offset: 2px;
+}

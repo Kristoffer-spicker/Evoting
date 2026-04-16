@@ -1,0 +1,29 @@
+
+.errorPageMinimal {
+  min-height: 100vh;
+  background-color: #f5f5f0;
+  padding: 40px 20px;
+}
+
+.errorMessageContainer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.errorMessageIcon {
+  width: 20px;
+  height: 20px;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.errorMessageText {
+  font-family: 'Arimo', Arial, sans-serif;
+  font-size: 0.95rem;
+  color: #1a1a1a;
+}

@@ -1,0 +1,149 @@
+.progressContainer {
+  width: 100%;
+  padding: 20px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.progressSteps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1400px;
+  gap: 0;
+  padding: 0 20px 0 130px;
+}
+
+.stepWrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+  flex: none;
+  width: calc(100% / 5);
+}
+
+.stepWrapper:not(:last-child) {
+  flex: 1;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+  position: relative;
+  flex: none;
+}
+
+.stepCircle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Arimo', Arial, sans-serif;
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+.stepCircle.active {
+  background-color: #2D5F3F;
+  color: white;
+}
+
+.stepCircle.completed {
+  background-color: #2D5F3F;
+  color: white;
+}
+
+.stepCircle.inactive {
+  background-color: #D1D5DB;
+  color: #6B7280;
+}
+
+.stepLabel {
+  font-size: 12px;
+  font-family: 'Arimo', Arial, sans-serif;
+  text-align: center;
+  color: #4A4A4A;
+  line-height: 1.2;
+  width: 80px;
+  word-wrap: break-word;
+  margin-top: 8px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepConnector {
+  height: 2px;
+  flex: 1;
+  margin: 0;
+  position: absolute;
+  top: 16px;
+  left: 32px;
+  right: -32px;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.connectorCompleted {
+  background-color: #2D5F3F;
+}
+
+.connectorIncomplete {
+  background-color: #D1D5DB;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .progressSteps {
+    gap: 0;
+    padding: 0 10px;
+  }
+  
+  .stepWrapper {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .stepCircle {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  
+  .stepLabel {
+    font-size: 10px;
+    max-width: 80px;
+  }
+  
+  .stepConnector {
+    margin: 0 8px;
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stepCircle {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+  
+  .stepLabel {
+    font-size: 9px;
+    max-width: 60px;
+  }
+  
+  .stepConnector {
+    margin: 0 4px;
+    margin-bottom: 18px;
+  }
+}

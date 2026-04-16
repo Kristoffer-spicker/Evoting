@@ -1,0 +1,87 @@
+
+.identifierCard {
+  background-color: white;
+  border-radius: 8px;
+  padding: 50px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  min-height: 600px;
+}
+
+.identifierTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2D5F3F;
+  margin: 0 0 20px 0;
+}
+
+.identifierDisplayArea {
+  background-color: #f3f8f5;
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+}
+
+.identifierContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.emojiDisplay {
+  font-size: 15rem;
+  line-height: 1;
+}
+
+.wordDisplay {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-transform: capitalize;
+}
+
+
+.importantSection {
+  background: #FFF4E6;
+  border-left: 3.64px solid #FF9800;
+  border-radius: 10px;
+  padding: 24px 24px 0px 28px;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.importantHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.warningIcon {
+  width: 24px;
+  height: 24px;
+  color: #FF9800;
+  flex-shrink: 0;
+}
+
+.importantText {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1A1A1A;
+  line-height: 27px;
+  font-family: 'Arimo', Arial, sans-serif;
+  margin: 0;
+}
+
+.importantMessage {
+  font-size: 16px;
+  font-weight: 400;
+  color: #1A1A1A;
+  line-height: 26px;
+  margin: 0 0 24px 0;
+  font-family: 'Arimo', Arial, sans-serif;
+}

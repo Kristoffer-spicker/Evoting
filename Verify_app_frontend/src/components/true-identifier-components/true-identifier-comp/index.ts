@@ -1,0 +1,5 @@
+export { TrueIdentifierContent } from './TrueIdentifierContent'
+export { InstructionSection } from './InstructionSection'
+export { IdentifierDisplay } from './IdentifierDisplay'
+export { NextStepSection } from './NextStepSection'
+export { WarningPopup } from './WarningPopup'

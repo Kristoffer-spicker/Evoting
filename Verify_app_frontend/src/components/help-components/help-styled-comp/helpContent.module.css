@@ -1,0 +1,130 @@
+.content {
+  flex: 1;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.contentInner {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 3rem;
+}
+
+.section {
+  margin-bottom: 4rem;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 1.5rem 0;
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: #374151;
+  line-height: 1.75;
+}
+
+.sectionBody p {
+  margin: 0;
+}
+
+.sectionBody strong {
+  color: #111827;
+}
+
+.divider {
+  border-top: 1px solid #e5e7eb;
+  margin-bottom: 4rem;
+}
+
+/* Numbered list for "What makes SURTR different" */
+.numberedList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-left: 1rem;
+}
+
+.numberedItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.numberedItemTitle {
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+/* Step sections within voting guide */
+.stepSection {
+  margin-top: 2.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.stepSection:first-of-type {
+  margin-top: 1.5rem;
+}
+
+.stepTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 1rem 0;
+}
+
+.deviceLabel {
+  font-weight: 600;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+/* Ordered list */
+.orderedList {
+  list-style-type: decimal;
+  margin: 0.5rem 0 0 2rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.orderedList li {
+  padding-left: 0.25rem;
+}
+
+/* Unordered list */
+.unorderedList {
+  list-style-type: disc;
+  margin: 0.5rem 0 0 2rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.unorderedList li {
+  padding-left: 0.25rem;
+}
+
+/* Important note styling */
+.importantNote {
+  margin-left: 2rem;
+  margin-top: 1rem;
+}
+
+/* System message styling */
+.systemMessage {
+  margin-left: 2rem;
+  font-weight: 600;
+  color: #111827;
+}

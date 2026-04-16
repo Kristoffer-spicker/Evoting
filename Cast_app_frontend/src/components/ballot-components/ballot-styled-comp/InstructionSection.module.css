@@ -1,0 +1,53 @@
+
+
+.instructionContainer {
+  padding: 20px;
+}
+
+.sectionTitle {
+  font-size: 23px;
+  font-weight: 700;
+  color: #195A7D;
+  margin: 0 0 35px 0;
+  line-height: 1.4;
+}
+
+
+.instructionInfoBox {
+  background: #e5ecf1;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 40px;
+  margin-top: 30px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid #b9c7cb;
+}
+
+.instructionInfoIcon {
+  color: #25576d;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.instructionInfoText {
+  font-size: 20px;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.instructionContent {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.instructionText {
+  font-size: 20px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.5;
+}

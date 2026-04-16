@@ -1,0 +1,14 @@
+
+.headerContainer {
+  padding: 16px;
+}
+
+.headerTitle {
+  font-size: 25px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0;
+  margin-top: 30px;
+  text-align: center;
+  line-height: .5;
+}

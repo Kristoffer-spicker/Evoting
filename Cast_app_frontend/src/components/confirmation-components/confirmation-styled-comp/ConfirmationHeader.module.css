@@ -1,0 +1,38 @@
+
+.headerSection {
+  background: #d4e8ef;
+  border-bottom: 2px solid #356b7a;
+}
+
+.headerContent {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.menuButton {
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.menuButton:hover {
+  background: #F7FAFC;
+}
+
+.menuIcon {
+  width: 30px;
+  height: 30px;
+  color: #195A7D;
+}
+
+.appName {
+  color: #195A7D;
+  font-size: 25px;
+  font-weight: 500;
+  margin: 0;
+}

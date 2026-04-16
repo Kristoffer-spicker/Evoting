@@ -1,0 +1,209 @@
+
+.instructionCard {
+  background-color: white;
+  border-radius: 8px;
+  padding: 50px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  min-height: 600px;
+}
+
+
+.instructionBox {
+  background: #f3f8f5;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.instructionTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1rem 0;
+  font-family: 'Arimo', Arial, sans-serif;
+}
+
+.instructionText {
+  font-size: 1rem;
+  color: #010101;
+  line-height: 1.5;
+  margin: 0 0 1.2rem 0;
+  font-family: 'Arimo', Arial, sans-serif;
+}
+
+.instructionText:last-of-type {
+  margin-bottom: 2rem;
+}
+
+
+.exampleSection {
+  background-color: #FFFFFF;
+  border-radius: 8px;
+  padding: 40px;
+  margin-top: 5rem;
+}
+
+.exampleTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 20px 0;
+}
+
+.exampleDescription {
+  margin: 0 0 24px 0;
+  font-size: 1rem;
+  color: #080808;
+  line-height: 1.5;
+}
+
+
+.tableContainer {
+  margin: 40px 0 40px 0;
+  border: 1px solid #818487;
+  border-radius: 6px;
+  overflow: visible;
+  position: relative;
+}
+
+.verificationTable {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+}
+
+.verificationTable thead tr {
+  background-color: #f9fafb;
+}
+
+.tableHeaderIdentifier,
+.tableHeaderCandidate {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #070707;
+  border-bottom: 1px solid #d1d5db;
+  font-size: 0.9rem;
+}
+
+.tableCell {
+  padding: 16px;
+  border-bottom: 1px solid #999a9d;
+  font-size: 1rem;
+  vertical-align: middle;
+}
+
+.verificationTable tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.verificationTable tbody tr:last-child {
+  border-bottom: none;
+}
+
+.tableIdentifier {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+
+.tableDiceEmoji {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.tableDiceText {
+  color: #333;
+  font-weight: 500;
+  line-height: 1;
+}
+
+
+.highlightedIdentifier {
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-height: 40px;
+}
+
+.identifierCircle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 2px dashed #3b82f6;
+  border-radius: 25px;
+  padding: 8px 16px;
+  background-color: white;
+  margin-left: -15px;
+}
+
+
+.arrowContainer {
+  position: absolute;
+  left: -55px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+}
+
+.arrowLine {
+  width: 30px;
+  height: 0;
+  border-top: 2px dashed #3b82f6;
+}
+
+.arrowHead {
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 8px solid #3b82f6;
+}
+
+
+.noticeSection {
+  margin: 24px 0;
+  font-size: 1rem;
+  color: #020202;
+  line-height: 1.6;
+}
+
+.noticeLabel {
+  font-weight: 400;
+  color: #000000;
+}
+
+.noticeIdentifier {
+  font-weight: 700;
+}
+
+.noticeCandidate {
+  font-weight: 700;
+}
+
+
+.nbSection {
+  margin: 70px 0 40px 0;
+  font-size: 1rem;
+  color: #292828;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.exampleNote {
+  margin: 0 0 24px 0;
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.finalNote {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #333;
+  line-height: 1.5;
+}

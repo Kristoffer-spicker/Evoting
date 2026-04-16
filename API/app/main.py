@@ -1,8 +1,8 @@
 from typing import Annotated
 import os
-import psycopg2
-from sqlalchemy import Column
-from sqlalchemy.dialects.postgresql import JSONB
+import psycopg2 
+from sqlalchemy import Column # type: ignore # pylint: disable=import-error
+from sqlalchemy.dialects.postgresql import JSONB # type: ignore # pylint: disable=import-error
 from fastapi import FastAPI, Depends, Query, HTTPException # type: ignore # pylint: disable=import-error
 from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
 

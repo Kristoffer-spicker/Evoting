@@ -1,0 +1,245 @@
+
+.contentWrapper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.5rem;
+  padding-top: 1.5rem;
+  min-height: calc(100vh - 80px);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0px;
+  gap: 1rem;
+  width: 100%;
+  max-width: 80rem;
+  position: relative;
+}
+
+
+.mainCard {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  padding: 3rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 1000px;
+  box-sizing: border-box;
+}
+
+
+.mainTitle {
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: #1a1a1a;
+  text-align: center;
+  margin: 0 0 2rem 0;
+  font-family: 'Arimo', Arial, sans-serif;
+}
+
+
+.instructionBox {
+  background: #e9f0eb;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  margin-bottom: 2.5rem;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.instructionContent {
+  flex: 1;
+}
+
+.instructionTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1rem 0;
+  font-family: 'Arimo', Arial, sans-serif;
+}
+
+.instructionText {
+  font-size: 1rem;
+  color: #4a4a4a;
+  line-height: 1.5;
+  margin: 0 0 0.75rem 0;
+  font-family: 'Arimo', Arial, sans-serif;
+}
+
+.instructionText:last-child {
+  margin-bottom: 0;
+}
+
+.instructionText strong {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+
+.stepsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stepNumber {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #2D5F3F;
+  color: #2D5F3F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.900rem;
+  font-weight: 600;
+  font-family: 'Arimo', Arial, sans-serif;
+  flex-shrink: 0;
+}
+
+.stepText {
+  font-size: 1rem;
+  color: #1a1a1a;
+  line-height: 1.5;
+  margin: 0;
+  font-family: 'Arimo', Arial, sans-serif;
+}
+
+.stepText strong {
+  font-weight: 600;
+}
+
+
+.qrSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.qrCodeContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.25rem;
+  background: white;
+  border: 1px solid #808184;
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+  margin-top: 2rem;
+}
+
+.scanText {
+  font-size: 1rem;
+  color: #4a4a4a;
+  text-align: center;
+  margin: 0;
+  font-family: 'Arimo', Arial, sans-serif;
+}
+
+
+.buttonContainer {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.scannedButton {
+  background: #2D5F3F;
+  color: white;
+  padding: 0.875rem 2rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-top: 50px;
+  margin-bottom: 40px;
+  font-family: 'Arimo', Arial, sans-serif;
+  transition: background-color 0.2s ease;
+}
+
+.scannedButton:hover {
+  background: #243528;
+}
+
+.scannedButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(45, 95, 63, 0.5);
+}
+
+
+@media (max-width: 768px) {
+  .contentWrapper {
+    padding: 1rem;
+  }
+  
+  .mainCard {
+    padding: 2rem;
+  }
+  
+  .mainTitle {
+    font-size: 1.5rem;
+  }
+  
+  .instructionBox {
+    padding: 1.5rem;
+  }
+  
+  .qrCodeContainer {
+    padding: 1.5rem;
+  }
+
+  .stepItem {
+    gap: 0.75rem;
+  }
+
+  .stepNumber {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .mainCard {
+    padding: 1.5rem;
+  }
+  
+  .mainTitle {
+    font-size: 1.25rem;
+  }
+  
+  .instructionBox {
+    padding: 1rem;
+  }
+  
+  .qrCodeContainer {
+    padding: 1rem;
+  }
+  
+  .instructionText,
+  .scanText {
+    font-size: 0.875rem;
+  }
+
+  .stepText {
+    font-size: 0.875rem;
+  }
+}
+

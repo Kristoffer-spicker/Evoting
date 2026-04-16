@@ -1,0 +1,77 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popup {
+  background-color: white;
+  padding: 2rem 2rem 2.5rem;
+  border-radius: 12px;
+  max-width: 400px;
+  width: 90%;
+  margin: 1rem;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.iconContainer {
+  width: 100px;
+  height: 100px;
+  background-color: #E8F4F8;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.successIcon {
+  width: 60px;
+  height: 60px;
+  color: #195A7D;
+  stroke-width: 1.5;
+}
+
+.heading {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0 0 0.75rem;
+}
+
+.subheading {
+  font-size: 18px;
+  color: #195A7D;
+  margin: 0 0 2rem;
+  font-weight: 500;
+}
+
+.proceedButton {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background-color: #195A7D;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.proceedButton:hover {
+  background-color: #001a2b;
+}
+
+.proceedButton:focus {
+  outline: 2px solid #195A7D;
+  outline-offset: 2px;
+}

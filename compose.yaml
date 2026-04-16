@@ -46,6 +46,17 @@ services:
       db:
         condition: service_healthy
 
+  verify_frontend:
+    build:
+      context: ./Verify_app_frontend
+    ports:
+      - "5173:5173"
+
+  cast_frontend:
+    build:
+      context: ./Cast_app_frontend
+    ports:
+      - "5174:5174"
   cast_app:
     command: ["python3", "main.py", "50", "30"]
     build:
@@ -63,7 +74,7 @@ services:
         condition: service_started  
       
        
-        
+
   
   db:
     image: postgres:16
