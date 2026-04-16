@@ -8,6 +8,16 @@ const DEVICE_ID_KEY = 'surtr_device_id';
 const USE_BACK4APP = (import.meta as any).env?.VITE_USE_PARSE === 'true';
 
 
+type CurvePoint = {
+  x: string;
+  y: string;
+  curve_name: string;
+};
+
+type Candidate = {
+  id?: number;
+  curve_p: CurvePoint;
+};
 
 // Master identifiers list for voting system
 const MASTER_IDENTIFIERS = [
@@ -131,10 +141,38 @@ export const saveVoter = async (name: string, voterId: string, password: string)
   }
 };
 
+const candidate: Candidate = {
+    id: 12,
+    curve_p: {
+    x: "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+    y: "36134250956749795798585127919587881956611106672985015071877198253568414405109",
+    curve_name: "NIST P-256",
+  },
+};
+
+async function createCandidate() {
+  const response = await fetch("http://127.0.0.1:8000/addcandidates/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(candidate),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Error: ${response.status} - ${text}`);
+  }
+
+  const data = await response.json();
+  console.log("Created:", data);
+}
+
+
 
 const saveVoterToBack4app = async (name: string, voterId: string, password: string): Promise<Voter> => {
   try {
-    
+    createCandidate();
     
     const existingVoter = await back4appClient.findVoterByVoterID(voterId.trim());
     if (existingVoter) {
