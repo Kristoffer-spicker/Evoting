@@ -34,8 +34,23 @@ class VCaster:
         self.vote = random.randrange(self.vote_min, self.vote_max)
         
     #Function for the vote chosen by the voter  
-    def cast_vote(self): 
-        print("not implemented")
+    def cast_vote(self, teller_public_key):
+        '''
+        cast_vote: Function that takes a given candidates vote and cast it as a ballot
+        '''
+        print(f"id is {self.id} candidate is {self.vote}")
+        self.generate_trapdoor_keypair()
+        self.generate_antitrapdoor_keypair()
+        self.encrypt_vote(teller_public_key)
+        self.encrypt_antivote(teller_public_key)
+        self.encrypt_trapdoor(teller_public_key)
+        self.encrypt_antitrapdoor(teller_public_key)
+        self.generate_pok_trapdoor_keypair(teller_public_key)
+        self.generate_pok_antitrapdoor_keypair(teller_public_key)
+        self.generate_wellformedness_proof(teller_public_key)
+        self.generate_wellformedness_proof_anti(teller_public_key)
+        print("Vote has been cast for", self.id)
+        self.sign_ballot()
 
     def generate_dsa_keys(self):
         dsa = DSA(self.curve)
