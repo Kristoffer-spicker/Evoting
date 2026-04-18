@@ -16,6 +16,7 @@ const CastVote: React.FC<CastVoteProps> = ({
   errorMessage,
   headerComponent
 }) => {
+  // Tracks which candidate the voter has currently selected
   const [selectedCandidate, setSelectedCandidate] = useState<string>('');
 
   const parties = [
@@ -33,11 +34,14 @@ const CastVote: React.FC<CastVoteProps> = ({
     },
   ];
 
+  // Handles that yur not submitting an empty vote 
+  // and that there is a handler provided 
   const handleVote = () => {
     if (selectedCandidate && onVoteSubmit) {
       onVoteSubmit(selectedCandidate);
     }
   };
+  
 
   const handleCancel = () => {
     if (onCancel) {

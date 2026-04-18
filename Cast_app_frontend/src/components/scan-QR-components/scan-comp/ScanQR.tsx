@@ -1,3 +1,5 @@
+// Assembles all the QR Logic
+
 import React from 'react';
 import ProgressBar from './ProgressBar';
 import ScanQRContent from './ScanQRContent';
