@@ -116,8 +116,11 @@ export const validateVoterCredentials = async (name: string, voterID: string, pa
   }
 
   try {
-    const result = await back4appClient.query('Voters', { name, voterID, password });
-    return result.results.length > 0 ? result.results[0] : null;
+    const voter = await back4appClient.loginVoter(voterID, password);
+    if (!voter) return null;
+    // Verify name matches after successful login
+    if (voter.name !== name.trim()) return null;
+    return voter;
   } catch (error) {
     console.error('Error validating voter credentials:', error);
     throw error;

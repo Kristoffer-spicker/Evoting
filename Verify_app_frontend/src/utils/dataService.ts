@@ -7,6 +7,7 @@ const DEVICE_ID_KEY = 'surtr_device_id';
 
 const USE_BACK4APP = (import.meta as any).env?.VITE_USE_PARSE === 'true';
 
+const CURVE = "P-256"; // matches your NIST P-256 backend
 
 type CurvePoint = {
   x: string;
@@ -93,6 +94,7 @@ export const getDeviceId = (): string => {
 };
 
 
+
 export const loadVoters = async (): Promise<Voter[]> => {
   if (USE_BACK4APP) {
     return await loadVotersFromBack4app();
@@ -104,7 +106,7 @@ export const loadVoters = async (): Promise<Voter[]> => {
 
 const loadVotersFromBack4app = async (): Promise<Voter[]> => {
   try {
-    const result = await back4appClient.query('Voters');
+    const result = await back4appClient.getAllUsers();
     
     return result.results.map((voter: any) => ({
       id: voter.objectId || '',
@@ -112,6 +114,7 @@ const loadVotersFromBack4app = async (): Promise<Voter[]> => {
       voterId: voter.voterID || '',
       deviceId: getDeviceId(),
       registeredAt: voter.createdAt || new Date().toISOString(),
+      hasVoted: voter.hasVoted || false,
     }));
   } catch (error) {
     console.error('Error loading voters from Back4app:', error);
@@ -150,6 +153,75 @@ const candidate: Candidate = {
   },
 };
 
+export async function generateVoterKeypair(): Promise<{
+  publicKeyJwk: JsonWebKey;
+  privateKeyJwk: JsonWebKey;
+}> {
+  const keypair = await window.crypto.subtle.generateKey(
+    { name: "ECDH", namedCurve: CURVE },
+    true, // extractable so we can export
+    ["deriveKey"]
+  );
+
+  const publicKeyJwk = await window.crypto.subtle.exportKey("jwk", keypair.publicKey);
+  const privateKeyJwk = await window.crypto.subtle.exportKey("jwk", keypair.privateKey);
+
+  return { publicKeyJwk, privateKeyJwk };
+}
+
+
+// Convert JWK to the {x, y, curve_name} the backend expects
+export function jwkToCurvePoint(jwk: JsonWebKey): { x: string; y: string; curve_name: string } {
+  // JWK x/y are base64url encoded, convert to big integers
+  const base64urlToBigInt = (b64: string): string => {
+    const binary = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+    const hex = Array.from(binary)
+      .map(c => c.charCodeAt(0).toString(16).padStart(2, '0'))
+      .join('');
+    return BigInt('0x' + hex).toString();
+  };
+
+  return {
+    x: base64urlToBigInt(jwk.x!),
+    y: base64urlToBigInt(jwk.y!),
+    curve_name: "NIST P-256"
+  };
+}
+
+// Store private key encrypted in back4app (or localStorage as fallback)
+export async function encryptPrivateKeyForStorage(voterId: string, privateKeyJwk: JsonWebKey, password: string) {
+  const encrypted = await encryptPrivateKey(privateKeyJwk, password);
+  // Save `encrypted` to back4app against the voter — never the raw JWK
+  return encrypted;
+}
+
+// Encrypt the private key with the voter's password before storing
+async function encryptPrivateKey(privateKeyJwk: JsonWebKey, password: string): Promise<string> {
+  const enc = new TextEncoder();
+  const keyMaterial = await window.crypto.subtle.importKey(
+    "raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]
+  );
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const aesKey = await window.crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt"]
+  );
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const encoded = enc.encode(JSON.stringify(privateKeyJwk));
+  const ciphertext = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, encoded);
+
+  // Pack salt + iv + ciphertext into one base64 string
+  const combined = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
+  combined.set(salt, 0);
+  combined.set(iv, 16);
+  combined.set(new Uint8Array(ciphertext), 28);
+  return btoa(String.fromCharCode(...combined));
+}
+
+
 async function createCandidate() {
   const url = (import.meta as any).env?.VITE_API_URL;
   const response = await fetch(url + "/addcandidates/", {
@@ -173,7 +245,6 @@ async function createCandidate() {
 
 const saveVoterToBack4app = async (name: string, voterId: string, password: string): Promise<Voter> => {
   try {
-    await createCandidate();
     
     const existingVoter = await back4appClient.findVoterByVoterID(voterId.trim());
     if (existingVoter) {
@@ -203,10 +274,26 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
       true_identifier: trueIdentifier 
     };
 
+          // 1. Generate keypair entirely in browser
+    const { publicKeyJwk, privateKeyJwk } = await generateVoterKeypair();
+    const curvePoint = jwkToCurvePoint(publicKeyJwk);
+
+    // 2. Send ONLY the public key to your FastAPI
+    const url = (import.meta as any).env?.VITE_API_URL;
+    await fetch(`${url}/voters/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voter_id: voterId, public_key: curvePoint })
+    });
+
+    // 3. Encrypt private key with voter's password, store in back4app
+    const encryptedPrivateKey = await encryptPrivateKeyForStorage(voterId, privateKeyJwk, password);
+    const savedVoter = await back4appClient.createVoter({
+      ...voterData,
+      encrypted_private_key: encryptedPrivateKey
+    } as any);
+
     console.log('Saving voter to Back4app...');
-    const savedVoter = await back4appClient.createVoter(voterData);
-
-
   
     console.log('Saving identifiers list to Back4app...');
     await back4appClient.createIdentifiersList({
@@ -215,11 +302,11 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
     });
    
     const newVoter: Voter = {
-      id: savedVoter.objectId,
+      id: savedVoter.objectId ?? '',
       name: name.trim(),
       voterId: voterId.trim(),
       deviceId: getDeviceId(),
-      registeredAt: savedVoter.createdAt,
+      registeredAt: savedVoter.createdAt ?? new Date().toISOString(),
       hasVoted: false,
     };
 
@@ -283,15 +370,10 @@ export const findVoter = async (voterId: string, name: string, password: string)
 
 const findVoterInBack4app = async (voterId: string, name: string, password: string): Promise<Voter | null> => {
   try {
+    // Parse.User.logIn handles password comparison securely
+    const voter = await back4appClient.loginVoter(voterId.trim(), password.trim());
     
-    const result = await back4appClient.query('Voters', {
-      voterID: voterId.trim(),
-      name: name.trim(),
-      password: password.trim()
-    });
-    
-    if (result.results.length > 0) {
-      const voter = result.results[0];
+    if (voter && voter.name === name.trim()) {
       return {
         id: voter.objectId || '',
         name: voter.name || '',
@@ -301,10 +383,9 @@ const findVoterInBack4app = async (voterId: string, name: string, password: stri
         hasVoted: voter.hasVoted || false,
       };
     }
-    
     return null;
   } catch (error) {
-    console.error('Error finding voter in Back4app:', error);
+    console.error('Error finding voter:', error);
     return null;
   }
 };

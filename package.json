@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "parse": "^8.6.0"
+  },
+  "devDependencies": {
+    "@types/parse": "^6.1.0"
+  }
+}
