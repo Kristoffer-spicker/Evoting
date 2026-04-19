@@ -1,13 +1,10 @@
 import { Voter } from '../types/voter';
 import back4appClient from './back4appClient';
-
+import { ec as EC } from 'elliptic';
 
 const DEVICE_ID_KEY = 'surtr_device_id';
-
-
 const USE_BACK4APP = (import.meta as any).env?.VITE_USE_PARSE === 'true';
-
-const CURVE = "P-256"; // matches your NIST P-256 backend
+const ec = new EC('p256');
 
 type CurvePoint = {
   x: string;
@@ -15,12 +12,6 @@ type CurvePoint = {
   curve_name: string;
 };
 
-type Candidate = {
-  id?: number;
-  curve_p: CurvePoint;
-};
-
-// Master identifiers list for voting system
 const MASTER_IDENTIFIERS = [
   { emoji: "✈️", text: "Airplane" },
   { emoji: "🎒", text: "Backpack" },
@@ -42,12 +33,10 @@ const MASTER_IDENTIFIERS = [
   { emoji: "🌻", text: "Sunflower" }
 ];
 
-
 export const generateUniqueId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Fisher-Yates shuffle algorithm
 const shuffleArray = <T>(array: T[]): T[] => {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -57,11 +46,9 @@ const shuffleArray = <T>(array: T[]): T[] => {
   return shuffled;
 };
 
-
 const generateDeviceFingerprint = (): string => {
   const nav = window.navigator;
   const screen = window.screen;
-  
   const fingerprint = [
     nav.userAgent,
     nav.language,
@@ -70,30 +57,103 @@ const generateDeviceFingerprint = (): string => {
     screen.height,
     new Date().getTimezoneOffset(),
   ].join('|');
-  
-  
   let hash = 0;
   for (let i = 0; i < fingerprint.length; i++) {
     const char = fingerprint.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash;
   }
-  
   return `device_${Math.abs(hash).toString(36)}`;
 };
 
 export const getDeviceId = (): string => {
   let deviceId = localStorage.getItem(DEVICE_ID_KEY);
-  
   if (!deviceId) {
     deviceId = generateDeviceFingerprint();
     localStorage.setItem(DEVICE_ID_KEY, deviceId);
   }
-  
   return deviceId;
 };
 
+/**
+ * Generates a P-256 keypair in the browser using the elliptic library.
+ * 
+ * The private key is a random scalar integer (returned as a hex string) and
+ * the public key is the corresponding point on the P-256 curve (Q = d*G),
+ * where d is the private scalar and G is the curve's generator point.
+ * 
+ * This is mathematically equivalent to the ElGamal/DSA keypair generated
+ * by Python's VCaster, both of these pick a random scalar and compute the same
+ * point multiplication. The resulting public key {x, y} can be used
+ * directly by the Python backend for ElGamal encryption and DSA verification.
+ * 
+ * The private key never leaves the browser unencrypted, as it is immediately
+ * passed to encryptPrivateKeyForStorage() before being saved to Back4app.
+ * 
+ * @returns privateKey - hex encoded scalar, compatible with Python's DSA.sign()
+ * @returns publicKey - {x, y, curve_name} point, compatible with Python's EccPoint
+ */export function generateVoterKeypair(): {
+  privateKey: string;
+  publicKey: CurvePoint;
+} {
+  // Generate a cryptographically random P-256 keypair
+  const keyPair = ec.genKeyPair();
+  return {
+    privateKey: keyPair.getPrivate('hex'),
+    publicKey: {
+      x: keyPair.getPublic().getX().toString(),
+      y: keyPair.getPublic().getY().toString(),
+      curve_name: "NIST P-256"
+    }
+  };
+}
 
+/**
+ * Encrypts the voter's private key hex string, deriving
+ * the encryption key from the voter's password.
+ * 
+ * @param privateKeyHex - the raw P-256 private scalar as a hex string
+ * @param password - the voter's plaintext password used to derive the AES key
+ * @returns base64 encoded string containing salt + IV + ciphertext
+ **/
+ async function encryptPrivateKey(privateKeyHex: string, password: string): Promise<string> {
+  const enc = new TextEncoder();
+
+  // Import the password as raw key material
+  const keyMaterial = await window.crypto.subtle.importKey(
+    "raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]
+  );
+
+  // Random salt — ensures identical passwords produce different AES keys
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const aesKey = await window.crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,          // not extractable — the AES key itself can never be exported
+    ["encrypt"]
+  );
+  
+  // Random IV — must never be reused with the same AES key
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+  // Encrypt the private key hex string
+  const encoded = enc.encode(privateKeyHex);
+  const ciphertext = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, encoded);
+
+  const combined = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
+  combined.set(salt, 0);
+  combined.set(iv, 16);
+  combined.set(new Uint8Array(ciphertext), 28);
+  return btoa(String.fromCharCode(...combined));
+}
+
+export async function encryptPrivateKeyForStorage(
+  privateKeyHex: string,
+  password: string
+): Promise<string> {
+  return await encryptPrivateKey(privateKeyHex, password);
+}
 
 export const loadVoters = async (): Promise<Voter[]> => {
   if (USE_BACK4APP) {
@@ -103,11 +163,9 @@ export const loadVoters = async (): Promise<Voter[]> => {
   }
 };
 
-
 const loadVotersFromBack4app = async (): Promise<Voter[]> => {
   try {
     const result = await back4appClient.getAllUsers();
-    
     return result.results.map((voter: any) => ({
       id: voter.objectId || '',
       name: voter.name || '',
@@ -122,7 +180,6 @@ const loadVotersFromBack4app = async (): Promise<Voter[]> => {
   }
 };
 
-
 const loadVotersFromLocal = async (): Promise<Voter[]> => {
   try {
     const storedVoters = localStorage.getItem('verify_app_voters');
@@ -133,10 +190,7 @@ const loadVotersFromLocal = async (): Promise<Voter[]> => {
   }
 };
 
-
 export const saveVoter = async (name: string, voterId: string, password: string): Promise<Voter> => {
- 
-  
   if (USE_BACK4APP) {
     return await saveVoterToBack4app(name, voterId, password);
   } else {
@@ -144,163 +198,54 @@ export const saveVoter = async (name: string, voterId: string, password: string)
   }
 };
 
-const candidate: Candidate = {
-    id: 12,
-    curve_p: {
-    x: "48439561293906451759052585252797914202762949526041747995844080717082404635286",
-    y: "36134250956749795798585127919587881956611106672985015071877198253568414405109",
-    curve_name: "NIST P-256",
-  },
-};
-
-export async function generateVoterKeypair(): Promise<{
-  publicKeyJwk: JsonWebKey;
-  privateKeyJwk: JsonWebKey;
-}> {
-  const keypair = await window.crypto.subtle.generateKey(
-    { name: "ECDH", namedCurve: CURVE },
-    true, // extractable so we can export
-    ["deriveKey"]
-  );
-
-  const publicKeyJwk = await window.crypto.subtle.exportKey("jwk", keypair.publicKey);
-  const privateKeyJwk = await window.crypto.subtle.exportKey("jwk", keypair.privateKey);
-
-  return { publicKeyJwk, privateKeyJwk };
-}
-
-
-// Convert JWK to the {x, y, curve_name} the backend expects
-export function jwkToCurvePoint(jwk: JsonWebKey): { x: string; y: string; curve_name: string } {
-  // JWK x/y are base64url encoded, convert to big integers
-  const base64urlToBigInt = (b64: string): string => {
-    const binary = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
-    const hex = Array.from(binary)
-      .map(c => c.charCodeAt(0).toString(16).padStart(2, '0'))
-      .join('');
-    return BigInt('0x' + hex).toString();
-  };
-
-  return {
-    x: base64urlToBigInt(jwk.x!),
-    y: base64urlToBigInt(jwk.y!),
-    curve_name: "NIST P-256"
-  };
-}
-
-// Store private key encrypted in back4app (or localStorage as fallback)
-export async function encryptPrivateKeyForStorage(voterId: string, privateKeyJwk: JsonWebKey, password: string) {
-  const encrypted = await encryptPrivateKey(privateKeyJwk, password);
-  // Save `encrypted` to back4app against the voter — never the raw JWK
-  return encrypted;
-}
-
-// Encrypt the private key with the voter's password before storing
-async function encryptPrivateKey(privateKeyJwk: JsonWebKey, password: string): Promise<string> {
-  const enc = new TextEncoder();
-  const keyMaterial = await window.crypto.subtle.importKey(
-    "raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]
-  );
-  const salt = window.crypto.getRandomValues(new Uint8Array(16));
-  const aesKey = await window.crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt"]
-  );
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
-  const encoded = enc.encode(JSON.stringify(privateKeyJwk));
-  const ciphertext = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, encoded);
-
-  // Pack salt + iv + ciphertext into one base64 string
-  const combined = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
-  combined.set(salt, 0);
-  combined.set(iv, 16);
-  combined.set(new Uint8Array(ciphertext), 28);
-  return btoa(String.fromCharCode(...combined));
-}
-
-
-async function createCandidate() {
-  const url = (import.meta as any).env?.VITE_API_URL;
-  const response = await fetch(url + "/addcandidates/", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(candidate),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Error: ${response.status} - ${text}`);
-  }
-
-  const data = await response.json();
-  console.log("Created:", data);
-}
-
-
-
 const saveVoterToBack4app = async (name: string, voterId: string, password: string): Promise<Voter> => {
   try {
-    
     const existingVoter = await back4appClient.findVoterByVoterID(voterId.trim());
     if (existingVoter) {
       throw new Error('A voter with this ID is already registered');
     }
 
-    
     const shuffled = [...MASTER_IDENTIFIERS].sort(() => 0.5 - Math.random());
     const selected12Identifiers = shuffled.slice(0, 12);
-
-    
     const trueIdentifier = selected12Identifiers[Math.floor(Math.random() * selected12Identifiers.length)];
-
-  
     const remainingIdentifiers = selected12Identifiers.filter(
       id => !(id.emoji === trueIdentifier.emoji && id.text === trueIdentifier.text)
     );
     const orderedIdentifiersList = [trueIdentifier, ...remainingIdentifiers];
 
+    // 1. Generate keypair entirely in browser
+    const { privateKey, publicKey } = generateVoterKeypair();
+
+    // 2. Send ONLY the public key to FastAPI
+    const url = (import.meta as any).env?.VITE_API_URL;
+    await fetch(`${url}/voters/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voter_id: voterId, public_key: publicKey })
+    });
+
+    // 3. Encrypt private key with voter's password, store in back4app
+    const encryptedPrivateKey = await encryptPrivateKeyForStorage(privateKey, password);
 
     const voterData = {
       name: name.trim(),
       voterID: voterId.trim(),
       password: password.trim(),
       hasVoted: false,
-      hasSeenTrueIdentifier: false, 
-      true_identifier: trueIdentifier 
+      hasSeenTrueIdentifier: false,
+      true_identifier: trueIdentifier
     };
 
-          // 1. Generate keypair entirely in browser
-    const { publicKeyJwk, privateKeyJwk } = await generateVoterKeypair();
-    const curvePoint = jwkToCurvePoint(publicKeyJwk);
-
-    // 2. Send ONLY the public key to your FastAPI
-    const url = (import.meta as any).env?.VITE_API_URL;
-    await fetch(`${url}/voters/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ voter_id: voterId, public_key: curvePoint })
-    });
-
-    // 3. Encrypt private key with voter's password, store in back4app
-    const encryptedPrivateKey = await encryptPrivateKeyForStorage(voterId, privateKeyJwk, password);
     const savedVoter = await back4appClient.createVoter({
       ...voterData,
       encrypted_private_key: encryptedPrivateKey
     } as any);
 
-    console.log('Saving voter to Back4app...');
-  
-    console.log('Saving identifiers list to Back4app...');
     await back4appClient.createIdentifiersList({
       voterID: voterId.trim(),
       list: orderedIdentifiersList
     });
-   
+
     const newVoter: Voter = {
       id: savedVoter.objectId ?? '',
       name: name.trim(),
@@ -319,15 +264,12 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
   }
 };
 
-
 const saveVoterToLocal = async (name: string, voterId: string, password: string): Promise<Voter> => {
   const voters = await loadVoters();
-  
   const existingVoter = voters.find(v => v.voterId === voterId);
   if (existingVoter) {
     throw new Error('A voter with this ID is already registered');
   }
-  
   const newVoter: Voter = {
     id: generateUniqueId(),
     name: name.trim(),
@@ -336,28 +278,16 @@ const saveVoterToLocal = async (name: string, voterId: string, password: string)
     registeredAt: new Date().toISOString(),
     hasVoted: false,
   };
-  
   try {
-    // Load existing voters from localStorage
     const existingVoters = await loadVoters();
-    
-   
     const updatedVoters = [...existingVoters, newVoter];
-    
-   
     localStorage.setItem('verify_app_voters', JSON.stringify(updatedVoters));
-    
-    
     await new Promise(resolve => setTimeout(resolve, 100));
-    
-    console.log('Voter saved successfully (local mode):', newVoter);
     return newVoter;
   } catch (error) {
-    console.error('Error saving voter:', error);
     throw new Error('Failed to save voter data');
   }
 };
-
 
 export const findVoter = async (voterId: string, name: string, password: string): Promise<Voter | null> => {
   if (USE_BACK4APP) {
@@ -367,72 +297,54 @@ export const findVoter = async (voterId: string, name: string, password: string)
   }
 };
 
-
 const findVoterInBack4app = async (voterId: string, name: string, password: string): Promise<Voter | null> => {
   try {
-    // Parse.User.logIn handles password comparison securely
     const voter = await back4appClient.loginVoter(voterId.trim(), password.trim());
-    
-    if (voter && voter.name === name.trim()) {
-      return {
-        id: voter.objectId || '',
-        name: voter.name || '',
-        voterId: voter.voterID || '',
-        deviceId: getDeviceId(),
-        registeredAt: voter.createdAt || new Date().toISOString(),
-        hasVoted: voter.hasVoted || false,
-      };
-    }
-    return null;
+    if (!voter) return null;
+    if (voter.name !== name.trim()) return null;
+    return {
+      id: voter.objectId || '',
+      name: voter.name || '',
+      voterId: voter.voterID || '',
+      deviceId: getDeviceId(),
+      registeredAt: voter.createdAt || new Date().toISOString(),
+      hasVoted: voter.hasVoted || false,
+    };
   } catch (error) {
     console.error('Error finding voter:', error);
     return null;
   }
 };
 
-
 export const getCurrentAuthenticatedVoter = (): Voter | null => {
   try {
     const voterData = localStorage.getItem('surtr_authenticated_voter');
-    if (voterData) {
-      return JSON.parse(voterData);
-    }
-    return null;
+    return voterData ? JSON.parse(voterData) : null;
   } catch (error) {
-    console.error('Error getting authenticated voter:', error);
     return null;
   }
 };
-
 
 export const checkVoterHasVoted = async (voterId: string): Promise<boolean> => {
   try {
     if (USE_BACK4APP) {
       const voter = await back4appClient.findVoterByVoterID(voterId);
       return voter?.hasVoted || false;
-    } else {
-     
-      return false;
     }
+    return false;
   } catch (error) {
-    console.error('Error checking voter status:', error);
     return false;
   }
 };
 
-
 const findVoterInLocal = async (voterId: string, name: string, password: string): Promise<Voter | null> => {
   const voters = await loadVoters();
-  
-  const voter = voters.find(
-    v => v.voterId.toLowerCase() === voterId.trim().toLowerCase() && 
+  return voters.find(
+    v => v.voterId.toLowerCase() === voterId.trim().toLowerCase() &&
          v.name.toLowerCase() === name.trim().toLowerCase() &&
          (v as any).password === password.trim()
-  );
-  
-  return voter || null;
+  ) || null;
 };
-
 
 export const voterExists = async (voterId: string): Promise<boolean> => {
   if (USE_BACK4APP) {
@@ -440,15 +352,12 @@ export const voterExists = async (voterId: string): Promise<boolean> => {
       const voter = await back4appClient.findVoterByVoterID(voterId);
       return voter !== null;
     } catch (error) {
-      console.error('Error checking voter existence:', error);
       return false;
     }
-  } else {
-    const voters = await loadVoters();
-    return voters.some(v => v.voterId === voterId);
   }
+  const voters = await loadVoters();
+  return voters.some(v => v.voterId === voterId);
 };
-
 
 export const getVoterIdentifiers = async (voterId: string): Promise<Array<{emoji: string, text: string}>> => {
   if (USE_BACK4APP) {
@@ -456,16 +365,12 @@ export const getVoterIdentifiers = async (voterId: string): Promise<Array<{emoji
       const identifiersRecord = await back4appClient.getIdentifiersByVoterID(voterId);
       return identifiersRecord?.list || [];
     } catch (error) {
-      console.error('Error loading voter identifiers:', error);
       return [];
     }
-  } else {
-
-    const shuffled = [...MASTER_IDENTIFIERS].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 12);
   }
+  const shuffled = [...MASTER_IDENTIFIERS].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, 12);
 };
-
 
 export const getVoterTrueIdentifier = async (voterId: string): Promise<{emoji: string, text: string} | null> => {
   if (USE_BACK4APP) {
@@ -473,53 +378,33 @@ export const getVoterTrueIdentifier = async (voterId: string): Promise<{emoji: s
       const trueIdentifier = await back4appClient.getTrueIdentifierByVoterID(voterId);
       return trueIdentifier || null;
     } catch (error) {
-      console.error('Error loading voter true identifier:', error);
       return null;
     }
-  } else {
-    
-    const identifiers = await getVoterIdentifiers(voterId);
-    return identifiers.length > 0 ? identifiers[0] : null;
   }
+  const identifiers = await getVoterIdentifiers(voterId);
+  return identifiers.length > 0 ? identifiers[0] : null;
 };
-
 
 export const markTrueIdentifierSeen = async (voterId: string): Promise<boolean> => {
   if (USE_BACK4APP) {
     try {
-    
       const voter = await back4appClient.findVoterByVoterID(voterId);
-      if (!voter) {
-        console.error('Voter not found:', voterId);
-        return false;
-      }
-
-     
-      await back4appClient.updateVoter(voter.objectId, {
-        hasSeenTrueIdentifier: true
-      });
-
-    
+      if (!voter) return false;
+      await back4appClient.updateVoter(voter.objectId, { hasSeenTrueIdentifier: true });
       const authenticatedVoter = localStorage.getItem('surtr_authenticated_voter');
       if (authenticatedVoter) {
         const voterData = JSON.parse(authenticatedVoter);
         voterData.hasSeenTrueIdentifier = true;
         localStorage.setItem('surtr_authenticated_voter', JSON.stringify(voterData));
       }
-
-  
       return true;
     } catch (error) {
-      console.error('Error marking true identifier as seen:', error);
       return false;
     }
-  } else {
-    
-    localStorage.setItem(`surtr_seen_true_identifier_${voterId}`, 'true');
-    return true;
   }
+  localStorage.setItem(`surtr_seen_true_identifier_${voterId}`, 'true');
+  return true;
 };
-
 
 export const hasVoterSeenTrueIdentifier = async (voterId: string): Promise<boolean> => {
   if (USE_BACK4APP) {
@@ -527,32 +412,22 @@ export const hasVoterSeenTrueIdentifier = async (voterId: string): Promise<boole
       const voter = await back4appClient.findVoterByVoterID(voterId);
       return voter?.hasSeenTrueIdentifier === true;
     } catch (error) {
-      console.error('Error checking if voter has seen true identifier:', error);
       return false;
     }
-  } else {
-   
-    const seen = localStorage.getItem(`surtr_seen_true_identifier_${voterId}`);
-    return seen === 'true';
   }
+  return localStorage.getItem(`surtr_seen_true_identifier_${voterId}`) === 'true';
 };
-
 
 export const areElectionResultsPublished = async (): Promise<boolean> => {
   if (USE_BACK4APP) {
     try {
-      const resultsPublished = await back4appClient.getElectionResultsStatus();
-      return resultsPublished;
+      return await back4appClient.getElectionResultsStatus();
     } catch (error) {
-      console.error('Error checking election results status:', error);
       return false;
     }
-  } else {
-   
-    return localStorage.getItem('surtr_results_published') === 'true';
   }
+  return localStorage.getItem('surtr_results_published') === 'true';
 };
-
 
 export const buildVerificationTable = async (voterId: string): Promise<{
   success: boolean;
@@ -561,117 +436,49 @@ export const buildVerificationTable = async (voterId: string): Promise<{
 }> => {
   if (USE_BACK4APP) {
     try {
-  
       const resultsPublished = await areElectionResultsPublished();
       if (!resultsPublished) {
-        return {
-          success: false,
-          error: 'Results have not been published yet'
-        };
+        return { success: false, error: 'Results have not been published yet' };
       }
-
-     
       const verificationData = await back4appClient.getVerificationMappingData(voterId);
       const { chosenCandidate, trueIdentifier, identifierList, ballotList } = verificationData;
-
       if (!chosenCandidate || !trueIdentifier || !identifierList || !ballotList) {
-        return {
-          success: false,
-          error: 'Missing required verification data'
-        };
+        return { success: false, error: 'Missing required verification data' };
       }
-
-      
-      const remaining = identifierList.filter((id: any) => 
+      const remaining = identifierList.filter((id: any) =>
         !(id.emoji === trueIdentifier.emoji && id.text === trueIdentifier.text)
       );
-
-      
       const mapping: {[key: string]: {emoji: string, text: string}} = {};
-      
-   
       mapping[ballotList[0]] = trueIdentifier;
-
-     
       for (let i = 1; i < ballotList.length; i++) {
-        if (remaining[i - 1]) {
-          mapping[ballotList[i]] = remaining[i - 1];
-        }
+        if (remaining[i - 1]) mapping[ballotList[i]] = remaining[i - 1];
       }
-
-      
-      const tableData: Array<{id: string, candidate: string, emoji: string, word: string}> = ballotList.map((candidate: string, index: number) => ({
+      const tableData = ballotList.map((candidate: string, index: number) => ({
         id: (index + 1).toString(),
-        candidate: candidate,
+        candidate,
         emoji: mapping[candidate]?.emoji || '🎲',
         word: mapping[candidate]?.text || 'Unknown'
       }));
-
-
-      const shuffledTableData = shuffleArray(tableData);
-
-      return {
-        success: true,
-        tableData: shuffledTableData
-      };
-
+      return { success: true, tableData: shuffleArray(tableData) };
     } catch (error) {
-      console.error('Error building verification table:', error);
-      return {
-        success: false,
-        error: 'Failed to build verification table'
-      };
+      return { success: false, error: 'Failed to build verification table' };
     }
-  } else {
-    
-    return {
-      success: true,
-      tableData: [
-        { id: "1", candidate: "Mock Candidate", emoji: "⭐", word: "Star" }
-      ]
-    };
   }
+  return { success: true, tableData: [{ id: "1", candidate: "Mock Candidate", emoji: "⭐", word: "Star" }] };
 };
 
-
 export const getVoterProgressState = async (voterID: string): Promise<number> => {
-  if (!USE_BACK4APP) {
-    return 1; 
-  }
-
+  if (!USE_BACK4APP) return 1;
   try {
     const voter = await back4appClient.findVoterByVoterID(voterID);
-    
-    if (!voter) {
-      return 1; 
-    }
-
+    if (!voter) return 1;
     const resultsPublished = await back4appClient.getElectionResultsStatus();
-
-    
-    if (voter.hasConfirmed && resultsPublished) {
-      return 5;
-    }
-
-      
-    if (voter.hasConfirmed && !resultsPublished) {
-      return 4;
-    }
-
-    
-    if (voter.hasVoted && !voter.hasConfirmed) { 
-      return 3;
-    }
-
-
-    if (voter.scannedQR && !voter.hasVoted) {
-      return 2;
-    }
-
+    if (voter.hasConfirmed && resultsPublished) return 5;
+    if (voter.hasConfirmed && !resultsPublished) return 4;
+    if (voter.hasVoted && !voter.hasConfirmed) return 3;
+    if (voter.scannedQR && !voter.hasVoted) return 2;
     return 1;
-
   } catch (error) {
-    console.error(' DEBUG ERROR in getVoterProgressState:', error);
-    return 1; 
+    return 1;
   }
 };
