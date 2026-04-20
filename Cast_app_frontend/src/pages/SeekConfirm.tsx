@@ -8,11 +8,14 @@ import MinimalErrorPage from '../components/shared/MinimalErrorPage';
 import { castVoterVote, getBallotOrder, saveBallotOrder, hasVoterAlreadyVoted } from '../utils';
 import styles from '../components/seekConfirm-components/seekConfirm-styled-comp/SeekConfirm.module.css';
 
-
+export type Candidate = {
+  id: number;
+  name: string;
+}
 const allCandidates = [
-  "James Bond", "Tony Stark", "Jack Sparrow", "Ellen Ripley",
-  "Mr. Bean", "Homer Simpson", "Charlie Chaplin", "Peter Sellers",
-  "Raymond Reddington", "Daenerys Targaryen", "Rachel Green", "Walter White"
+  { id: 0, name: "James Bond"}, { id: 1, name: "Tony Stark"}, { id: 2, name: "Jack Sparrow"}, { id: 3, name: "Ellen Ripley"},
+  { id: 4, name: "Mr. Bean" }, { id: 5, name: "Homer Simpson" }, {id: 6, name: "Charlie Chaplin"}, {id: 7, name: "Peter Sellers"}, 
+  {id: 8, name: "Raymond Reddington"}, {id: 9, name: "Daenerys Targaryen"}, {id: 10, name: "Rachel Green"}, {id: 11, name: "Walter White"}
 ];
 
 
@@ -29,7 +32,7 @@ const createBallotOrder = (selected: string, candidates: string[]) => {
 interface LocationState {
   userName?: string;
   voterId?: string;
-  selectedCandidate?: string;
+  selectedCandidate?: Candidate;
 }
 
 const SeekConfirm: React.FC = () => {
@@ -46,7 +49,7 @@ const SeekConfirm: React.FC = () => {
     userName: state?.userName || 'Voter',
     voterId: state?.voterId || '0000'
   };
-  const selectedCandidate = state?.selectedCandidate || 'Candidate A';
+  const selectedCandidate = state?.selectedCandidate || {id:100, name: 'Candidate A'};
 
   
   useEffect(() => {
@@ -64,7 +67,7 @@ const SeekConfirm: React.FC = () => {
  
   useEffect(() => {
     const isInvalidVoterId = !state?.voterId || state.voterId === '0000';
-    const isInvalidCandidate = !state?.selectedCandidate || state.selectedCandidate === 'Candidate A';
+    const isInvalidCandidate = !state?.selectedCandidate || state.selectedCandidate.name === 'Candidate A';
     
     if (isInvalidVoterId || isInvalidCandidate) {
       setStateError(true);
@@ -98,7 +101,7 @@ const SeekConfirm: React.FC = () => {
   const handleConfirmVote = async () => {
   
     if (userData.voterId === '0000' || !userData.voterId || 
-        selectedCandidate === 'Candidate A' || !selectedCandidate) {
+        selectedCandidate.name === 'Candidate A' || !selectedCandidate) {
       setVoteError('Invalid session data. Cannot cast vote.');
       return;
     }
@@ -128,7 +131,7 @@ const SeekConfirm: React.FC = () => {
       
       if (!existingBallot || !existingBallot.ballotList || existingBallot.ballotList.length === 0) {
         
-        const newBallot = createBallotOrder(selectedCandidate, allCandidates);
+        const newBallot = createBallotOrder(selectedCandidate.name, allCandidates.map(c => c.name));
         await saveBallotOrder(userData.voterId, newBallot);
         console.log('Ballot created successfully for voter:', userData.voterId);
       } else {
@@ -191,7 +194,7 @@ const SeekConfirm: React.FC = () => {
 
       {!stateError && (
         <SeekConfirmContent
-          candidateName={selectedCandidate}
+          candidateName={selectedCandidate.name}
           onConfirmVote={handleConfirmVote}
           onChangeSelection={handleChangeSelection}
         />

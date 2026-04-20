@@ -147,7 +147,7 @@ if (
 
 
 vote_min = 0
-vote_max = 10
+vote_max = 12
 
 t_voting_single = 0
 t_verification_single = 0

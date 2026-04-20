@@ -56,6 +56,14 @@ app.add_middleware(
     allow_headers=["*"],    
 )
 
+class LogRequest(BaseModel):
+    message: str
+
+@app.post("/log")
+def log_message(log: LogRequest):
+    print(f"[FRONTEND] {log.message}", flush=True)
+    return {"status": "ok"}
+
 @app.on_event("startup")
 async def on_startup():
     create_db_and_tables()

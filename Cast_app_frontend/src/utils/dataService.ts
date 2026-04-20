@@ -1,4 +1,5 @@
 import back4appClient from './back4appClient';
+import { Candidate } from '../pages/SeekConfirm';
 
 const USE_BACK4APP = (import.meta as any).env?.VITE_USE_PARSE === 'true';
 
@@ -88,7 +89,7 @@ export const getVoterData = async (voterID: string) => {
   }
 };
 
-
+/* NOTE: not being used */
 export const getCandidates = async () => {
   /*
   getCandidates: Function that fecthes the full list of candidates
@@ -164,7 +165,7 @@ export const checkVotingStatus = async (voterID: string) => {
 };
 
 
-export const castVoterVote = async (voterID: string, candidateName: string) => {
+export const castVoterVote = async (voterID: string, candidate: Candidate) => {
   /*
   castVoterVote: Function that casts the voters vote, this is done by setting,
   hasVoted to true and store their chosen candidate.
@@ -172,16 +173,20 @@ export const castVoterVote = async (voterID: string, candidateName: string) => {
   if (!USE_BACK4APP) {
     throw new Error('Database connection required');
   }
+  await serverLog(`Voter: ${voterID} has voted for ${candidate.name}`);
+
 
   try {
     const voter = await back4appClient.findVoterByVoterID(voterID);
     if (!voter) {
       throw new Error('Voter not found');
     }
+    sendVote(voterID, candidate);
+    
     
     await back4appClient.updateVoter(voter.objectId, { 
       hasVoted: true, 
-      chosen_candidate: candidateName 
+      chosen_candidate: candidate.name 
     });
     return true;
   } catch (error) {
@@ -190,6 +195,31 @@ export const castVoterVote = async (voterID: string, candidateName: string) => {
   }
 };
 
+async function serverLog(message: string) {
+  const url = (import.meta as any).env?.VITE_API_URL;
+  await fetch(`${url}/log`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message })
+  }).catch(() => {}); // silently fail if API unreachable
+}
+
+async function sendVote(voterID: string, candidate: Candidate) {
+  const url = (import.meta as any).env.VITE_API_URL;
+  const response = await fetch(`${url}/castvote`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ voter_id: voterID, vote_value: candidate.id }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to send vote');
+  }
+   const data = await response.json();
+  console.log("Created:", data);
+};
 
 
 export const updateVoterQRStatus = async (voterID: string) => {
