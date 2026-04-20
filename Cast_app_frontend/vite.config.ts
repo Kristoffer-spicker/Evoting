@@ -7,6 +7,6 @@ export default defineConfig({
   server: {
     host: true,
     port: 5174,
-    allowedHosts: ['untremulent-madaline-symbolically.ngrok-free.dev', 'shrug-anyway-silicon.ngrok-free.dev']
+    allowedHosts: ['unfitted-startle-monthly.ngrok-free.dev']
   }
 })

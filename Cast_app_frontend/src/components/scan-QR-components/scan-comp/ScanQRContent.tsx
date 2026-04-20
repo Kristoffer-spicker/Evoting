@@ -46,12 +46,18 @@ const ScanQRContent: React.FC<ScanQRContentProps> = ({
   onScanResult,
   onCancel
 }) => {
+  // Holds a reference to the scanner object
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  // boolean that prevetns the scanner from starting twice
   const isStartingRef = useRef(false);
+  // Boolean that tells the UI if the camera feed is active or not
   const [isScanning, setIsScanning] = useState(false);
+  // Value that determine the state fo the camera and therefore the UI
   const [cameraStatus, setCameraStatus] = useState<'ready' | 'scanning' | 'error'>('ready');
+  // Normal Eerror messages
   const [errorMessage, setErrorMessage] = useState<string>('');
 
+  // Automatic start up of the QRscanner
   useEffect(() => {
     let isMounted = true;
 
@@ -75,7 +81,10 @@ const ScanQRContent: React.FC<ScanQRContentProps> = ({
       }
     };
   }, []);
+  // The [] means it only runs once after the component first appear on the screen
 
+  // code that handles functionality for when a QRcode is scanned, prossesing
+  // the data and resets the camera state abck to ready.
   const handleScanResult = async (decodedText: string) => {
     setIsScanning(false);
     setCameraStatus('ready');
@@ -99,6 +108,8 @@ const ScanQRContent: React.FC<ScanQRContentProps> = ({
   
   };
 
+  // Does the opposite stops scanner, by stopping the camera, and resetting
+  // the state 
   const handleCancel = async () => {
     setIsScanning(false);
     setCameraStatus('ready');
@@ -118,6 +129,7 @@ const ScanQRContent: React.FC<ScanQRContentProps> = ({
     }
   };
 
+  // Function that sets up the scanning by setting up the camera
   const startScanning = async () => {
     if (isStartingRef.current) return;
     isStartingRef.current = true;
@@ -192,6 +204,7 @@ const ScanQRContent: React.FC<ScanQRContentProps> = ({
     }
   };
 
+  // Decides what is shown inside scanner frame based on its current state
   const renderCameraContent = () => {
     if (isScanning && cameraStatus === 'scanning') {
       return (

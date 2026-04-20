@@ -156,6 +156,10 @@ export async function encryptPrivateKeyForStorage(
 }
 
 export const loadVoters = async (): Promise<Voter[]> => {
+  /*
+  loadVoters: Function that determines how to call the database, so
+  the voters can be laoded
+  */
   if (USE_BACK4APP) {
     return await loadVotersFromBack4app();
   } else {
@@ -164,6 +168,10 @@ export const loadVoters = async (): Promise<Voter[]> => {
 };
 
 const loadVotersFromBack4app = async (): Promise<Voter[]> => {
+  /*
+  loadVotersFromBack4app: Function that loads the voters from
+  an Back4App database
+  */
   try {
     const result = await back4appClient.getAllUsers();
     return result.results.map((voter: any) => ({
@@ -181,6 +189,10 @@ const loadVotersFromBack4app = async (): Promise<Voter[]> => {
 };
 
 const loadVotersFromLocal = async (): Promise<Voter[]> => {
+  /*
+  loadVotersFromLocal: Funktion that loads the voters from a
+  local storage
+  */
   try {
     const storedVoters = localStorage.getItem('verify_app_voters');
     return storedVoters ? JSON.parse(storedVoters) : [];
@@ -191,6 +203,9 @@ const loadVotersFromLocal = async (): Promise<Voter[]> => {
 };
 
 export const saveVoter = async (name: string, voterId: string, password: string): Promise<Voter> => {
+  /*
+  saveVoter: function that determines where we save the voter.
+  */
   if (USE_BACK4APP) {
     return await saveVoterToBack4app(name, voterId, password);
   } else {
@@ -198,7 +213,45 @@ export const saveVoter = async (name: string, voterId: string, password: string)
   }
 };
 
+const candidate: Candidate = {
+    id: 12,
+    curve_p: {
+    x: "48439561293906451759052585252797914202762949526041747995844080717082404635286",
+    y: "36134250956749795798585127919587881956611106672985015071877198253568414405109",
+    curve_name: "NIST P-256",
+  },
+};
+
+async function createCandidate() {
+  /*
+  createCandidate: Function that creates a candidate/voter and sends the information
+  on to an API
+  */
+  const url = (import.meta as any).env?.VITE_API_URL;
+  const response = await fetch(url + "/addcandidates/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(candidate),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Error: ${response.status} - ${text}`);
+  }
+
+  const data = await response.json();
+  console.log("Created:", data);
+}
+
+
+
 const saveVoterToBack4app = async (name: string, voterId: string, password: string): Promise<Voter> => {
+  /*
+  saveVoterToBack4app: Function that saves the voter to the back4app database when
+  they have registered.
+  */
   try {
     const existingVoter = await back4appClient.findVoterByVoterID(voterId.trim());
     if (existingVoter) {
@@ -265,6 +318,10 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
 };
 
 const saveVoterToLocal = async (name: string, voterId: string, password: string): Promise<Voter> => {
+  /*
+  saveVoterToLocal: Function that saves the voter to locla storage when
+  they have registered.
+  */
   const voters = await loadVoters();
   const existingVoter = voters.find(v => v.voterId === voterId);
   if (existingVoter) {
@@ -290,6 +347,9 @@ const saveVoterToLocal = async (name: string, voterId: string, password: string)
 };
 
 export const findVoter = async (voterId: string, name: string, password: string): Promise<Voter | null> => {
+  /*
+  findVoter: function that determines where we have to find the voter.
+  */
   if (USE_BACK4APP) {
     return await findVoterInBack4app(voterId, name, password);
   } else {
@@ -298,6 +358,10 @@ export const findVoter = async (voterId: string, name: string, password: string)
 };
 
 const findVoterInBack4app = async (voterId: string, name: string, password: string): Promise<Voter | null> => {
+  /*
+  findVoterInBack4app: Function that finds a voter based on a id, name and password
+  in the back4app database
+  */
   try {
     const voter = await back4appClient.loginVoter(voterId.trim(), password.trim());
     if (!voter) return null;
@@ -326,6 +390,9 @@ export const getCurrentAuthenticatedVoter = (): Voter | null => {
 };
 
 export const checkVoterHasVoted = async (voterId: string): Promise<boolean> => {
+  /*
+  checkVoterHasVoted: Function that checks by a vote id if a voter has cast their vote
+  */
   try {
     if (USE_BACK4APP) {
       const voter = await back4appClient.findVoterByVoterID(voterId);
@@ -338,6 +405,10 @@ export const checkVoterHasVoted = async (voterId: string): Promise<boolean> => {
 };
 
 const findVoterInLocal = async (voterId: string, name: string, password: string): Promise<Voter | null> => {
+  /*
+  findVoterInLocal: Function that finds a voter based on a id, name and password
+  in local storage
+  */
   const voters = await loadVoters();
   return voters.find(
     v => v.voterId.toLowerCase() === voterId.trim().toLowerCase() &&
@@ -347,6 +418,9 @@ const findVoterInLocal = async (voterId: string, name: string, password: string)
 };
 
 export const voterExists = async (voterId: string): Promise<boolean> => {
+  /*
+  voterExists: Function that checks if a specific voterID exists in the database
+  */
   if (USE_BACK4APP) {
     try {
       const voter = await back4appClient.findVoterByVoterID(voterId);
@@ -360,6 +434,9 @@ export const voterExists = async (voterId: string): Promise<boolean> => {
 };
 
 export const getVoterIdentifiers = async (voterId: string): Promise<Array<{emoji: string, text: string}>> => {
+  /*
+  getVoterIdentifiers: function that gets all the identifiers so the voter can see them
+  */
   if (USE_BACK4APP) {
     try {
       const identifiersRecord = await back4appClient.getIdentifiersByVoterID(voterId);
@@ -373,6 +450,9 @@ export const getVoterIdentifiers = async (voterId: string): Promise<Array<{emoji
 };
 
 export const getVoterTrueIdentifier = async (voterId: string): Promise<{emoji: string, text: string} | null> => {
+  /*
+  getVoterTrueIdentifier: Function that gets the voters specific identifier
+  */
   if (USE_BACK4APP) {
     try {
       const trueIdentifier = await back4appClient.getTrueIdentifierByVoterID(voterId);
@@ -386,6 +466,10 @@ export const getVoterTrueIdentifier = async (voterId: string): Promise<{emoji: s
 };
 
 export const markTrueIdentifierSeen = async (voterId: string): Promise<boolean> => {
+  /*
+  markTrueidentifierSeen: Function that marks a hasSeenTrueIdentifier to true,
+  once they have seen their true identifier
+  */
   if (USE_BACK4APP) {
     try {
       const voter = await back4appClient.findVoterByVoterID(voterId);
@@ -407,6 +491,10 @@ export const markTrueIdentifierSeen = async (voterId: string): Promise<boolean> 
 };
 
 export const hasVoterSeenTrueIdentifier = async (voterId: string): Promise<boolean> => {
+  /*
+  hasVoterSeenTrueIdentifier: Funciton that checks if the user has seen their
+  true identifier
+  */
   if (USE_BACK4APP) {
     try {
       const voter = await back4appClient.findVoterByVoterID(voterId);
@@ -419,6 +507,10 @@ export const hasVoterSeenTrueIdentifier = async (voterId: string): Promise<boole
 };
 
 export const areElectionResultsPublished = async (): Promise<boolean> => {
+  /*
+  areElectionResultsPublished: Function that checks if the election resutls are
+  publsihed
+  */
   if (USE_BACK4APP) {
     try {
       return await back4appClient.getElectionResultsStatus();
@@ -434,6 +526,10 @@ export const buildVerificationTable = async (voterId: string): Promise<{
   tableData?: Array<{id: string, candidate: string, emoji: string, word: string}>;
   error?: string;
 }> => {
+  /*
+  buildVerificationTable: Funciton that build the bulltin Board, where 
+  the true identifier is shown behind the candidate they voted for.
+  */
   if (USE_BACK4APP) {
     try {
       const resultsPublished = await areElectionResultsPublished();

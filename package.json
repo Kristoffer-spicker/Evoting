@@ -1,8 +1,6 @@
 {
-  "dependencies": {
-    "parse": "^8.6.0"
-  },
   "devDependencies": {
-    "@types/parse": "^6.1.0"
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3"
   }
 }

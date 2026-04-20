@@ -33,6 +33,9 @@ class Back4appClient {
   }
 
   async create(className: string, data: Record<string, any>) {
+    /*
+    create: create function used to create/post something to the datbase
+    */
     const response = await fetch(`${this.serverUrl}/classes/${className}`, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -42,6 +45,9 @@ class Back4appClient {
   }
 
   async query(className: string, params: Record<string, any> = {}) {
+    /*
+    query: query function used to get information from the database
+    */
     const queryParams = new URLSearchParams();
     if (Object.keys(params).length > 0) {
       queryParams.append('where', JSON.stringify(params));
@@ -52,6 +58,10 @@ class Back4appClient {
   }
 
   async update(className: string, objectId: string, data: Record<string, any>) {
+
+    /*
+    update: function used to update the database
+    */
     const response = await fetch(`${this.serverUrl}/classes/${className}/${objectId}`, {
       method: 'PUT',
       headers: this.getHeaders(),
@@ -61,6 +71,9 @@ class Back4appClient {
   }
 
   async delete(className: string, objectId: string) {
+    /*
+    delete: function used to delete from the database
+    */
     const response = await fetch(`${this.serverUrl}/classes/${className}/${objectId}`, {
       method: 'DELETE',
       headers: this.getHeaders()
