@@ -1,17 +1,26 @@
 from typing import Annotated
 import os
 import psycopg2 
+import httpx
 from sqlalchemy import Column # type: ignore # pylint: disable=import-error
 from sqlalchemy.dialects.postgresql import JSONB # type: ignore # pylint: disable=import-error
 from fastapi import FastAPI, Depends, Query, HTTPException # type: ignore # pylint: disable=import-error
 from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
 from fastapi.middleware.cors import CORSMiddleware # type: ignore # pylint: disable=import-error
+from pydantic import BaseModel
 app = FastAPI()
 
 class Candidate(SQLModel, table=True):
     __tablename__ = "candidates"
     id: int = Field(primary_key=True)
     curve_p: dict = Field(sa_column=Column(JSONB))
+
+'''
+Class to create the values we need for voting
+'''
+class CastVoteRequest(BaseModel):
+    voter_id: str
+    vote_value: int
 
 connect_args = {"check_same_thread": False}
 DATABASE_URL = (
@@ -67,6 +76,35 @@ def create_candidate(candidate: Candidate, session: SessionDep) -> Candidate:
     session.commit()
     session.refresh(candidate)
     return candidate
+
+
+@app.post("/castvote")
+
+async def cast_vote(request: CastVoteRequest):
+    '''
+    cast_vote: exposes a POST /castvote endpoint that allows casting a vote through the API.
+    Takes a voter_id and vote_value, then forwards them to cast_app on port 8001.
+    Uses a shared SECRET_KEY in the request header to authenticate with cast_app,
+    ensuring only the API can trigger the voting function.
+    '''
+    secret_key = os.getenv("SECRET_KEY")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "http://cast_app:8001/trigger",
+                json={
+                    "id": request.voter_id,
+                    "vote_value": request.vote_value
+                },
+                headers={"x-api-key": secret_key},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return {"status": "vote cast successfully", "voter_id": request.voter_id}
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail="cast_app rejected the rquest")
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Could not reach cast_app")
 
 
 @app.get("/")

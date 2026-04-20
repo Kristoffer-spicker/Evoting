@@ -17,6 +17,8 @@ from VCaster import (
     ECCEncoder
 )
 from dotenv import load_dotenv
+import uvicorn
+from fastapi import Header, HTTPException
 # pylint: disable=no-member
 
 load_dotenv("../.env")
@@ -49,14 +51,6 @@ except Exception as e:
 cur.execute("SELECT current_database()")
 print("Connected to:", cur.fetchone()[0])
 
-# Starts each run by clearing the database
-cur.execute("""
-    SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'encrypted_votes'
-    )
-""")
 
 # Decodes from x, y coordinates to EccPoints
 def decode_point_recursive(obj):
@@ -243,6 +237,29 @@ def get_random_tpk(tpks):
     encoded_pk = random.choice(tpks)
     return encoded_pk
 
+
+@app.post("/trigger")
+async def trigger(data: dict, x_api_key: str = Header(...)):
+    '''
+    trigger: endpoint that receives a vote from the API.
+    Validates the SECRET_KEY in the request header to ensure ONLY the API
+    can call this, rejecting any other caller with a 403.
+    If authenticated, creates a VCaster with the given voter_id, assigns
+    the chosen candidate (vote_value), and runs the full voting flow
+    which encrypts and posts the ballot to the database.
+    '''
+    if x_api_key != os.getenv("SECRET_KEY"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    voter = VCaster(curve, data["id"], vote_min, vote_max, cur, con)
+    voter.generate_dsa_keys()
+    voter.vote = data["vote_value"]
+    voter.cast_vote(get_random_tpk(teller_public_keys))
+
+    return {"status": "ok", "voter_id": data["id"]}
+
 threading.Thread(target=election_timer, args=(election_time,)).start()
+#new thread so that the cast_app can listen for incomming requests on port 8001
+threading.Thread(target=uvicorn.run, kwargs={"app": app, "host": "0.0.0.0", "port": 8001}, daemon=True).start()
 poc_setup()
 voting()
