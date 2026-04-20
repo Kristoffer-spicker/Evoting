@@ -190,14 +190,7 @@ export const castVoterVote = async (voterID: string, candidateName: string) => {
   }
 };
 
-const fetchTellerId = async () => {
-  
-};
 
-
-const encryptChoice = async (candidateName: string) => {
-  
-};
 
 export const updateVoterQRStatus = async (voterID: string) => {
   /*
