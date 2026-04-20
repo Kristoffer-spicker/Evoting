@@ -12,6 +12,7 @@
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.2",
     "clsx": "*",
+    "elliptic": "^6.6.1",
     "lucide-react": "^0.487.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
@@ -20,6 +21,7 @@
     "tailwind-merge": "*"
   },
   "devDependencies": {
+    "@types/elliptic": "^6.4.18",
     "@types/node": "^20.10.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",

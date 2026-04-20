@@ -9,6 +9,7 @@ interface Back4appConfig {
 
 class Back4appClient {
   private config: Back4appConfig;
+  private sessionToken: string | null = null;
 
   constructor() {
     this.config = {
@@ -23,11 +24,15 @@ class Back4appClient {
   }
 
   private getHeaders(): HeadersInit {
-    return {
+    const headers: Record<string, string> = {
       'X-Parse-Application-Id': this.config.appId,
       'X-Parse-JavaScript-Key': this.config.jsKey,
       'Content-Type': 'application/json'
     };
+    if (this.sessionToken) {
+      headers['X-Parse-Session-Token'] = this.sessionToken;
+    }
+    return headers;
   }
 
   private async handleResponse(response: Response) {
@@ -38,7 +43,6 @@ class Back4appClient {
     return response.json();
   }
 
-  
   async create(className: string, data: Record<string, any>) {
     /*
     create: create function used to create/post something to the datbase
@@ -51,23 +55,16 @@ class Back4appClient {
     return this.handleResponse(response);
   }
 
- 
   async query(className: string, params: Record<string, any> = {}) {
     /*
     query: query function used to get information from the database
     */
     const queryParams = new URLSearchParams();
-    
     if (Object.keys(params).length > 0) {
       queryParams.append('where', JSON.stringify(params));
     }
-
     const url = `${this.config.serverUrl}/classes/${className}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: this.getHeaders()
-    });
+    const response = await fetch(url, { method: 'GET', headers: this.getHeaders() });
     return this.handleResponse(response);
   }
 
@@ -97,19 +94,67 @@ class Back4appClient {
   async createVoter(voterData: {
     name: string;
     voterID: string;
+    password: string;
     hasVoted: boolean;
     hasSeenTrueIdentifier?: boolean;
+    true_identifier?: any;
+    encrypted_private_key?: string;
   }) {
-    return this.create('Voters', voterData);
+    const response = await fetch(`${this.config.serverUrl}/users`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        username: voterData.voterID,
+        password: voterData.password,
+        name: voterData.name,
+        voterID: voterData.voterID,
+        hasVoted: voterData.hasVoted,
+        hasSeenTrueIdentifier: voterData.hasSeenTrueIdentifier ?? false,
+        true_identifier: voterData.true_identifier,
+        encrypted_private_key: voterData.encrypted_private_key ?? ''
+      })
+    });
+    return this.handleResponse(response);
+  }
+
+  // GET request with query params — Back4app /login is not a POST
+  async loginVoter(voterID: string, password: string) {
+    try {
+      const response = await fetch(
+        `${this.config.serverUrl}/login?username=${encodeURIComponent(voterID)}&password=${encodeURIComponent(password)}`,
+        { method: 'GET', headers: this.getHeaders() }
+      );
+      if (!response.ok) return null;
+      const data = await response.json();
+      // Store session token so all subsequent requests are authenticated
+      this.sessionToken = data.sessionToken ?? null;
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  // Call this on logout to clear the session
+  logout() {
+    this.sessionToken = null;
+  }
+
+  async getAllUsers() {
+    const response = await fetch(`${this.config.serverUrl}/users`, {
+      method: 'GET',
+      headers: this.getHeaders()
+    });
+    const data = await this.handleResponse(response);
+    return { results: data.results || [] };
   }
 
   async findVoterByVoterID(voterID: string) {
-    const result = await this.query('Voters', { voterID });
+    const result = await this.query('_User', { voterID });
     return result.results.length > 0 ? result.results[0] : null;
   }
 
   async updateVoter(objectId: string, data: Record<string, any>) {
-    return this.update('Voters', objectId, data);
+    return this.update('_User', objectId, data);
   }
 
   async createIdentifiersList(identifiersData: {
@@ -125,14 +170,8 @@ class Back4appClient {
   }
 
   async getTrueIdentifierByVoterID(voterID: string) {
-    const voterResult = await this.query('Voters', { voterID });
-    
-    if (voterResult.results.length > 0) {
-      const voter = voterResult.results[0];
-      return voter.true_identifier;
-    }
-    
-    return null;
+    const result = await this.query('_User', { voterID });
+    return result.results.length > 0 ? result.results[0].true_identifier : null;
   }
 
   async getAllCandidates() {
@@ -170,10 +209,43 @@ class Back4appClient {
     if (ballot) {
       return this.update('ballot', ballot.objectId, { ballotList });
     }
-
     return this.createBallotRecord({ voterID, ballotList });
   }
 
+  async getVoterChosenCandidate(voterID: string) {
+    const result = await this.query('_User', { voterID });
+    return result.results.length > 0 ? result.results[0].chosen_candidate : null;
+  }
+
+  async getVoterTrueIdentifier(voterID: string) {
+    const result = await this.query('_User', { voterID });
+    return result.results.length > 0 ? result.results[0].true_identifier : null;
+  }
+
+  async getVoterIdentifierList(voterID: string) {
+    const result = await this.query('Identifiers', { voterID });
+    return result.results.length > 0 ? result.results[0].list : null;
+  }
+
+  async getVoterBallotOrder(voterID: string) {
+    const result = await this.query('ballot', { voterID });
+    return result.results.length > 0 ? result.results[0].ballotList : null;
+  }
+
+  async getElectionResultsStatus() {
+    const result = await this.query('ElectionStatus');
+    return result.results.length > 0 ? result.results[0].resultsPublished : false;
+  }
+
+  async getVerificationMappingData(voterID: string) {
+    const [chosenCandidate, trueIdentifier, identifierList, ballotList] = await Promise.all([
+      this.getVoterChosenCandidate(voterID),
+      this.getVoterTrueIdentifier(voterID),
+      this.getVoterIdentifierList(voterID),
+      this.getVoterBallotOrder(voterID)
+    ]);
+    return { chosenCandidate, trueIdentifier, identifierList, ballotList };
+  }
 }
 
 export const back4appClient = new Back4appClient();
