@@ -40,6 +40,10 @@ export const getDeviceId = (): string => {
 
 
 export const authenticateVoter = async (voterID: string) => {
+  /* 
+  authenticateVoter: function that authenticates if the voter exists, and if the
+  voter has cast a ballot.
+  */
   if (!USE_BACK4APP) {
     throw new Error('Database connection required for vote-app authentication');
   }
@@ -69,6 +73,9 @@ export const authenticateVoter = async (voterID: string) => {
 
 
 export const getVoterData = async (voterID: string) => {
+  /* 
+  getVoterData: Function that retrieves all data about a specific voter
+  */
   if (!USE_BACK4APP) {
     throw new Error('Database connection required');
   }
@@ -83,6 +90,9 @@ export const getVoterData = async (voterID: string) => {
 
 
 export const getCandidates = async () => {
+  /*
+  getCandidates: Function that fecthes the full list of candidates
+  */
   if (!USE_BACK4APP) {
     throw new Error('Database connection required');
   }
@@ -97,6 +107,10 @@ export const getCandidates = async () => {
 
 
 export const getVoterIdentifiers = async (voterID: string) => {
+  /*
+  getVoterIdentifiers: Function that retrieves the identifier associated
+  to the voter
+  */
   if (!USE_BACK4APP) {
     throw new Error('Database connection required');
   }
@@ -111,6 +125,10 @@ export const getVoterIdentifiers = async (voterID: string) => {
 
 
 export const validateVoterCredentials = async (name: string, voterID: string, password: string) => {
+  /*
+  validateVoterCredentials: Function that maches checks the name, voterID and password,
+  against the database
+  */
   if (!USE_BACK4APP) {
     throw new Error('Database connection required');
   }
@@ -126,6 +144,9 @@ export const validateVoterCredentials = async (name: string, voterID: string, pa
 
 
 export const checkVotingStatus = async (voterID: string) => {
+  /*
+  checkVotingStatus: Function that checks if the voter has already voted
+  */
   if (!USE_BACK4APP) {
     throw new Error('Database connection required');
   }
@@ -141,6 +162,10 @@ export const checkVotingStatus = async (voterID: string) => {
 
 
 export const castVoterVote = async (voterID: string, candidateName: string) => {
+  /*
+  castVoterVote: Function that casts the voters vote, this si done by setting,
+  hasVoted to true and store their chosen candidate.
+  */
   if (!USE_BACK4APP) {
     throw new Error('Database connection required');
   }
@@ -164,6 +189,9 @@ export const castVoterVote = async (voterID: string, candidateName: string) => {
 
 
 export const updateVoterQRStatus = async (voterID: string) => {
+  /*
+  updateVoterQRStatus: Functions that sets scannedQRcode to true
+  */
   if (!USE_BACK4APP) {
     throw new Error('Database connection required');
   }
@@ -187,6 +215,10 @@ export const saveBallotOrder = async (
   voterID: string,
   ballotList: string[]
 ): Promise<boolean> => {
+  /*
+  saveBallotOrder: Function that randomized the ordering fo the candidates you
+  can vote for.
+  */
  
   if (!voterID || !Array.isArray(ballotList)) {
     console.error("Invalid parameters passed to saveBallotOrder");
@@ -227,6 +259,9 @@ export const saveBallotOrder = async (
 
 
 export const getBallotOrder = async (voterID: string) => {
+  /*
+  getBallotOrder: Function that retrieves ballot order
+  */
   if (!USE_BACK4APP) {
     throw new Error('Database connection required');
   }
@@ -241,6 +276,9 @@ export const getBallotOrder = async (voterID: string) => {
 
 
 export const updateVoterConfirmationStatus = async (voterID: string) => {
+  /*
+  updateVoterConfirmationStatus: Function that sets hasConfirmed to true
+  */
   if (!USE_BACK4APP) {
     throw new Error('Database connection required');
   }
@@ -259,7 +297,7 @@ export const updateVoterConfirmationStatus = async (voterID: string) => {
   }
 };
 
-
+//Note: This Does Nothing
 export const updateVoterVotingStatus = async (voterID: string) => {
 
   throw new Error('Voter status update method will be implemented with new database class');
@@ -267,6 +305,9 @@ export const updateVoterVotingStatus = async (voterID: string) => {
 
 
 export const hasVoterAlreadyVoted = async (voterID: string): Promise<boolean> => {
+  /*
+  hasVoterAlreadyVoted: Function that check if the voter has already cast their vote
+  */
   if (!USE_BACK4APP) {
     return false;
   }
@@ -282,6 +323,9 @@ export const hasVoterAlreadyVoted = async (voterID: string): Promise<boolean> =>
 
 
 export const hasVoterConfirmed = async (voterID: string): Promise<boolean> => {
+  /*
+  hasVoterConfirmed: Function that checks if the voter has confirmed their vote.
+  */
   if (!USE_BACK4APP) {
     return false;
   }
