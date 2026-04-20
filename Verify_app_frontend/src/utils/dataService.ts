@@ -213,40 +213,6 @@ export const saveVoter = async (name: string, voterId: string, password: string)
   }
 };
 
-const candidate: Candidate = {
-    id: 12,
-    curve_p: {
-    x: "48439561293906451759052585252797914202762949526041747995844080717082404635286",
-    y: "36134250956749795798585127919587881956611106672985015071877198253568414405109",
-    curve_name: "NIST P-256",
-  },
-};
-
-async function createCandidate() {
-  /*
-  createCandidate: Function that creates a candidate/voter and sends the information
-  on to an API
-  */
-  const url = (import.meta as any).env?.VITE_API_URL;
-  const response = await fetch(url + "/addcandidates/", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(candidate),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Error: ${response.status} - ${text}`);
-  }
-
-  const data = await response.json();
-  console.log("Created:", data);
-}
-
-
-
 const saveVoterToBack4app = async (name: string, voterId: string, password: string): Promise<Voter> => {
   /*
   saveVoterToBack4app: Function that saves the voter to the back4app database when
