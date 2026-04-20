@@ -166,7 +166,7 @@ export const checkVotingStatus = async (voterID: string) => {
 
 export const castVoterVote = async (voterID: string, candidateName: string) => {
   /*
-  castVoterVote: Function that casts the voters vote, this si done by setting,
+  castVoterVote: Function that casts the voters vote, this is done by setting,
   hasVoted to true and store their chosen candidate.
   */
   if (!USE_BACK4APP) {
@@ -190,6 +190,14 @@ export const castVoterVote = async (voterID: string, candidateName: string) => {
   }
 };
 
+const fetchTellerId = async () => {
+  
+};
+
+
+const encryptChoice = async (candidateName: string) => {
+  
+};
 
 export const updateVoterQRStatus = async (voterID: string) => {
   /*

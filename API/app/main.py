@@ -1,3 +1,4 @@
+import random
 from typing import Annotated
 import os
 import psycopg2 
@@ -8,12 +9,17 @@ from fastapi import FastAPI, Depends, Query, HTTPException # type: ignore # pyli
 from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
 from fastapi.middleware.cors import CORSMiddleware # type: ignore # pylint: disable=import-error
 from pydantic import BaseModel
-app = FastAPI()
+app = FastAPI(root_path="/api")
 
 class Candidate(SQLModel, table=True):
     __tablename__ = "candidates"
     id: int = Field(primary_key=True)
     curve_p: dict = Field(sa_column=Column(JSONB))
+
+class Teller(SQLModel, table=True):
+    __tablename__ = "tellers"
+    id: str = Field(primary_key=True)
+    t_pk: str
 
 '''
 Class to create the values we need for voting
@@ -77,6 +83,12 @@ def create_candidate(candidate: Candidate, session: SessionDep) -> Candidate:
     session.refresh(candidate)
     return candidate
 
+@app.get("/getTallyKey")
+def get_tally_key(session: SessionDep):
+    tally = session.exec(select(Teller)).all()
+    random_teller = random.choice(tally)
+    return random_teller.t_pk
+    
 
 @app.post("/castvote")
 

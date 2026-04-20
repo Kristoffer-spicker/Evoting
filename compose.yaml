@@ -1,9 +1,20 @@
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./certs:/etc/nginx/certs
+    depends_on:
+      - api
+
   api:
     build:
       context: ./API
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -17,7 +28,7 @@ services:
 
 
   tally_app:
-    command: ["python3", "main.py", "35", "5", "3"]
+    command: ["python3", "main.py", "65", "5", "3"]
     build:
       context: ./Tally_app
     environment:
@@ -66,7 +77,7 @@ services:
         condition: service_started
   
   cast_app:
-    command: ["python3", "main.py", "50", "30"]
+    command: ["python3", "main.py", "50", "60"]
     build:
       context: ./Cast_app
     environment: 

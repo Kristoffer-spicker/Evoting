@@ -113,6 +113,7 @@ const SeekConfirm: React.FC = () => {
   
     try {
       await castVoterVote(userData.voterId, selectedCandidate);
+      // Send voterid and selectedCandidate to API/backend
       console.log('Vote cast successfully for voter:', userData.voterId);
     } catch (voteError) {
       console.error('Error casting vote:', voteError);

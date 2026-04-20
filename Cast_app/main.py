@@ -250,7 +250,7 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
     '''
     if x_api_key != os.getenv("SECRET_KEY"):
         raise HTTPException(status_code=403, detail="Forbidden")
-    
+
     voter = VCaster(curve, data["id"], vote_min, vote_max, cur, con)
     voter.generate_dsa_keys()
     voter.vote = data["vote_value"]
