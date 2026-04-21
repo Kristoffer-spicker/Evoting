@@ -14,6 +14,7 @@ import threshold_crypto as tc
 from extend_handling import handler
 from triplet_handling import extend_handler
 from extended_triplets import final_triplets
+from Encoding import ECCEncoder
 
 
 
@@ -113,6 +114,12 @@ def setup():
         tellers.append(teller)
         t_pk = json.dumps(teller_public_key, default=custom_serializer)
         cur.execute("INSERT INTO tellers VALUES (%s, %s)", (teller_id,t_pk))
+        con.commit()
+
+    for i in range(0, 12):
+        curve_p = curve.raise_p(i)
+        encoded = json.dumps(curve_p, cls=ECCEncoder)
+        cur.execute ("INSERT INTO candidates VALUES (%s, %s)", (i, encoded))
         con.commit()
     
     

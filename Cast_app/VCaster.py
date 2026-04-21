@@ -50,7 +50,6 @@ class VCaster:
         self.generate_wellformedness_proof(teller_public_key)
         self.generate_wellformedness_proof_anti(teller_public_key)
         print("Vote has been cast for", self.id)
-        self.sign_ballot()
 
     def generate_dsa_keys(self):
         dsa = DSA(self.curve)
