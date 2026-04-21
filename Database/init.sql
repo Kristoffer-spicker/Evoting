@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS final_tally (
 );
 
 CREATE TABLE IF NOT EXISTS registered_voters (
-    id        TEXT PRIMARY KEY
-    pk        TEXT NOT NULL
-)
+    id        TEXT PRIMARY KEY,
+    pk        JSONB NOT NULL
+);
 
 -- This function fires a notification at insertion into encryptedVotes
 CREATE OR REPLACE FUNCTION notify_encrypted_vote()

@@ -34,7 +34,7 @@ class VCaster:
         self.vote = random.randrange(self.vote_min, self.vote_max)
         
     #Function for the vote chosen by the voter  
-    def cast_vote(self, teller_public_key, private_key):
+    def cast_vote(self, teller_public_key):
         '''
         cast_vote: Function that takes a given candidates vote and cast it as a ballot
         '''

@@ -1,3 +1,4 @@
+import { stringify } from 'querystring';
 import { Voter } from '../types/voter';
 import back4appClient from './back4appClient';
 import { ec as EC } from 'elliptic';
@@ -255,10 +256,10 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
 
     // 2. Send ONLY the public key to FastAPI
     const url = (import.meta as any).env?.VITE_API_URL;
-    await fetch(`${url}/newVoter/`, {
+    await fetch(`${url}/newvoter/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ voter_id: voterId, public_key: publicKey })
+      body: JSON.stringify({ voterid: voterId, pk: publicKey})
     });
 
     // 3. Encrypt private key with voter's password, store in back4app
