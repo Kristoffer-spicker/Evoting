@@ -9,7 +9,7 @@ import MinimalErrorPage from '../components/shared/MinimalErrorPage';
 import { hasVoterConfirmed } from '../utils/dataService';
 
 interface LocationState {
-  selectedCandidate: string;
+  selectedCandidate: {id: number, name: string};
   userName?: string;
   voterId?: string;
 }
@@ -100,7 +100,7 @@ const Confirmation: React.FC = () => {
       />
       
       <ConfirmationContent 
-        chosenCandidate={chosenCandidate}
+        chosenCandidate={chosenCandidate.name}
         onFinish={handleFinish}
       />
       

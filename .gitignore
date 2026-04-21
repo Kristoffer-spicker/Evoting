@@ -17,6 +17,12 @@ build/
 .env.*.local
 
 
+certs/
+*.pem
+*.key
+cert.pem
+key.pem
+
 .vscode/
 .idea/
 *.swp
@@ -101,4 +107,3 @@ jspm_packages/
 
 
 .history/
-

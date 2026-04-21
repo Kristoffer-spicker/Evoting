@@ -1,9 +1,21 @@
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./certs:/etc/nginx/certs
+    depends_on:
+      - api
+      - cast_frontend
+
   api:
     build:
       context: ./API
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -17,7 +29,7 @@ services:
 
 
   tally_app:
-    command: ["python3", "main.py", "35", "5", "3"]
+    command: ["python3", "main.py", "255", "5", "3"]
     build:
       context: ./Tally_app
     environment:
@@ -66,7 +78,7 @@ services:
         condition: service_started
   
   cast_app:
-    command: ["python3", "main.py", "50", "30"]
+    command: ["python3", "main.py", "50", "250"]
     build:
       context: ./Cast_app
     environment: 
@@ -85,14 +97,13 @@ services:
   ngrok:
     image: ngrok/ngrok:latest
     restart: unless-stopped
-    command: http --url=unfitted-startle-monthly.ngrok-free.dev cast_frontend:5174
+    command: http --url=unfitted-startle-monthly.ngrok-free.dev nginx:443
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN} 
     ports:
     - "4040:4040"
     depends_on:
-      cast_frontend:
-        condition: service_started   
+      - nginx  
 
   
   db:

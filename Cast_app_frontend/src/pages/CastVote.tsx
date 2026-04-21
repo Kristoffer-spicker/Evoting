@@ -10,6 +10,11 @@ interface LocationState {
   userName: string;
   voterId: string;
 }
+const allCandidates = [
+  { id: 0, name: "James Bond"}, { id: 1, name: "Tony Stark"}, { id: 2, name: "Jack Sparrow"}, { id: 3, name: "Ellen Ripley"},
+  { id: 4, name: "Mr. Bean" }, { id: 5, name: "Homer Simpson" }, {id: 6, name: "Charlie Chaplin"}, {id: 7, name: "Peter Sellers"}, 
+  {id: 8, name: "Raymond Reddington"}, {id: 9, name: "Daenerys Targaryen"}, {id: 10, name: "Rachel Green"}, {id: 11, name: "Walter White"}
+];
 
 const CastVote: React.FC = () => {
   const navigate = useNavigate();
@@ -54,11 +59,12 @@ const CastVote: React.FC = () => {
   };
 
   const handleVoteSubmit = (candidate: string) => {
+    const selectedCandidate = allCandidates.find(c => c.name === candidate);
     navigate('/seekconfirm', { 
       state: { 
         userName: userData.userName,
         voterId: userData.voterId,
-        selectedCandidate: candidate 
+        selectedCandidate
       }
     });
   };

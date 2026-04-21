@@ -21,6 +21,9 @@ class Back4appClient {
     if (!this.config.appId || !this.config.jsKey) {
       throw new Error('Back4app credentials not found in environment variables');
     }
+
+    this.sessionToken = localStorage.getItem('surtr_session_token');
+
   }
 
   private getHeaders(): HeadersInit {
@@ -126,8 +129,11 @@ class Back4appClient {
       );
       if (!response.ok) return null;
       const data = await response.json();
-      // Store session token so all subsequent requests are authenticated
       this.sessionToken = data.sessionToken ?? null;
+      // Store session token so all subsequent requests are authenticated
+      if (this.sessionToken) {
+        localStorage.setItem('surtr_session_token', this.sessionToken);
+      }
       return data;
     } catch {
       return null;
@@ -137,6 +143,7 @@ class Back4appClient {
   // Call this on logout to clear the session
   logout() {
     this.sessionToken = null;
+    localStorage.removeItem('surtr_session_token');
   }
 
   async getAllUsers() {

@@ -1,19 +1,33 @@
+import random
 from typing import Annotated
 import os
-import psycopg2 
-import httpx
+import httpx # pylint: disable=import-error
 from sqlalchemy import Column # type: ignore # pylint: disable=import-error
 from sqlalchemy.dialects.postgresql import JSONB # type: ignore # pylint: disable=import-error
 from fastapi import FastAPI, Depends, Query, HTTPException # type: ignore # pylint: disable=import-error
-from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
 from fastapi.middleware.cors import CORSMiddleware # type: ignore # pylint: disable=import-error
-from pydantic import BaseModel
-app = FastAPI()
+from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
+from pydantic import BaseModel # type: ignore # pylint: disable=import-error
+app = FastAPI(root_path="/api")
 
 class Candidate(SQLModel, table=True):
     __tablename__ = "candidates"
     id: int = Field(primary_key=True)
     curve_p: dict = Field(sa_column=Column(JSONB))
+
+class Teller(SQLModel, table=True):
+    __tablename__ = "tellers"
+    id: str = Field(primary_key=True)
+    t_pk: str
+
+class Voter(SQLModel, table=True):
+    __tablename__ = "registered_voters"
+    id: str = Field(primary_key=True)
+    pk: dict = Field(sa_column=Column(JSONB))
+
+class VoterRequest(BaseModel):
+    voterid: str
+    pk: dict
 
 '''
 Class to create the values we need for voting
@@ -50,6 +64,14 @@ app.add_middleware(
     allow_headers=["*"],    
 )
 
+class LogRequest(BaseModel):
+    message: str
+
+@app.post("/log")
+def log_message(log: LogRequest):
+    print(f"[FRONTEND] {log.message}", flush=True)
+    return {"status": "ok"}
+
 @app.on_event("startup")
 async def on_startup():
     create_db_and_tables()
@@ -77,6 +99,12 @@ def create_candidate(candidate: Candidate, session: SessionDep) -> Candidate:
     session.refresh(candidate)
     return candidate
 
+@app.get("/getTallyKey")
+def get_tally_key(session: SessionDep):
+    tally = session.exec(select(Teller)).all()
+    random_teller = random.choice(tally)
+    return random_teller.t_pk
+    
 
 @app.post("/castvote")
 
@@ -94,7 +122,8 @@ async def cast_vote(request: CastVoteRequest):
                 "http://cast_app:8001/trigger",
                 json={
                     "id": request.voter_id,
-                    "vote_value": request.vote_value
+                    "vote_value": request.vote_value,
+                    
                 },
                 headers={"x-api-key": secret_key},
                 timeout=30.0
@@ -105,6 +134,19 @@ async def cast_vote(request: CastVoteRequest):
             raise HTTPException(status_code=e.response.status_code, detail="cast_app rejected the rquest")
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Could not reach cast_app")
+
+@app.post("/newvoter/")
+def create_voter(voter: VoterRequest, session: SessionDep) -> Voter:
+    
+    existing = session.get(Voter, voter.voterid)
+    if existing:
+        raise HTTPException(status_code=409, detail="Voter already registered")
+    new_voter = Voter(id=voter.voterid, pk=voter.pk)
+    session.add(new_voter)
+    session.commit()
+    session.refresh(new_voter)
+    return new_voter
+    
 
 
 @app.get("/")

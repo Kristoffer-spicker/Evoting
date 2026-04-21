@@ -8,11 +8,14 @@ import MinimalErrorPage from '../components/shared/MinimalErrorPage';
 import { castVoterVote, getBallotOrder, saveBallotOrder, hasVoterAlreadyVoted } from '../utils';
 import styles from '../components/seekConfirm-components/seekConfirm-styled-comp/SeekConfirm.module.css';
 
-
+export type Candidate = {
+  id: number;
+  name: string;
+}
 const allCandidates = [
-  "James Bond", "Tony Stark", "Jack Sparrow", "Ellen Ripley",
-  "Mr. Bean", "Homer Simpson", "Charlie Chaplin", "Peter Sellers",
-  "Raymond Reddington", "Daenerys Targaryen", "Rachel Green", "Walter White"
+  { id: 0, name: "James Bond"}, { id: 1, name: "Tony Stark"}, { id: 2, name: "Jack Sparrow"}, { id: 3, name: "Ellen Ripley"},
+  { id: 4, name: "Mr. Bean" }, { id: 5, name: "Homer Simpson" }, {id: 6, name: "Charlie Chaplin"}, {id: 7, name: "Peter Sellers"}, 
+  {id: 8, name: "Raymond Reddington"}, {id: 9, name: "Daenerys Targaryen"}, {id: 10, name: "Rachel Green"}, {id: 11, name: "Walter White"}
 ];
 
 
@@ -29,7 +32,7 @@ const createBallotOrder = (selected: string, candidates: string[]) => {
 interface LocationState {
   userName?: string;
   voterId?: string;
-  selectedCandidate?: string;
+  selectedCandidate?: Candidate;
 }
 
 const SeekConfirm: React.FC = () => {
@@ -40,13 +43,15 @@ const SeekConfirm: React.FC = () => {
   const [stateError, setStateError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>(''); // ← add this
+
 
   const state = location.state as LocationState;
   const userData = {
     userName: state?.userName || 'Voter',
     voterId: state?.voterId || '0000'
   };
-  const selectedCandidate = state?.selectedCandidate || 'Candidate A';
+  const selectedCandidate = state?.selectedCandidate || {id:100, name: 'Candidate A'};
 
   
   useEffect(() => {
@@ -64,7 +69,7 @@ const SeekConfirm: React.FC = () => {
  
   useEffect(() => {
     const isInvalidVoterId = !state?.voterId || state.voterId === '0000';
-    const isInvalidCandidate = !state?.selectedCandidate || state.selectedCandidate === 'Candidate A';
+    const isInvalidCandidate = !state?.selectedCandidate || state.selectedCandidate.name === 'Candidate A';
     
     if (isInvalidVoterId || isInvalidCandidate) {
       setStateError(true);
@@ -95,60 +100,51 @@ const SeekConfirm: React.FC = () => {
     navigate('/help');
   };
 
-  const handleConfirmVote = async () => {
-  
-    if (userData.voterId === '0000' || !userData.voterId || 
-        selectedCandidate === 'Candidate A' || !selectedCandidate) {
-      setVoteError('Invalid session data. Cannot cast vote.');
-      return;
+ const handleConfirmVote = async () => {
+  if (userData.voterId === '0000' || !userData.voterId ||
+      selectedCandidate.name === 'Candidate A' || !selectedCandidate) {
+    setVoteError('Invalid session data. Cannot cast vote.');
+    return;
+  }
+  if (isSubmitting) return;
+  setIsSubmitting(true);
+  setVoteError(null);
+
+  const url = (import.meta as any).env?.VITE_API_URL;
+  setDebugInfo(`API URL: ${url} | Voter: ${userData.voterId} | Candidate: ${selectedCandidate.name}`);
+
+  try {
+    await castVoterVote(userData.voterId, selectedCandidate);
+    setDebugInfo(prev => prev + ' | Vote cast OK');
+  } catch (voteError) {
+    setDebugInfo(prev => prev + ` | Vote error: ${voteError instanceof Error ? voteError.message : String(voteError)}`);
+    setVoteError('Unable to cast your vote. Please check your connection and try again.');
+    setIsSubmitting(false);
+    return;
+  }
+
+  try {
+    const existingBallot = await getBallotOrder(userData.voterId);
+    if (!existingBallot || !existingBallot.ballotList || existingBallot.ballotList.length === 0) {
+      const newBallot = createBallotOrder(selectedCandidate.name, allCandidates.map(c => c.name));
+      await saveBallotOrder(userData.voterId, newBallot);
+      setDebugInfo(prev => prev + ' | Ballot saved OK');
     }
-    
-   
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    
-  
-    setVoteError(null);
-    
-  
-    try {
-      await castVoterVote(userData.voterId, selectedCandidate);
-      console.log('Vote cast successfully for voter:', userData.voterId);
-    } catch (voteError) {
-      console.error('Error casting vote:', voteError);
-      setVoteError('Unable to cast your vote. Please check your connection and try again.');
-      setIsSubmitting(false);
-      return; 
+  } catch (ballotError) {
+    setDebugInfo(prev => prev + ` | Ballot error: ${ballotError instanceof Error ? ballotError.message : String(ballotError)}`);
+    setVoteError('Unable to create ballot. Please check your connection and try again.');
+    setIsSubmitting(false);
+    return;
+  }
+
+  navigate('/confirmation', {
+    state: {
+      userName: userData.userName,
+      voterId: userData.voterId,
+      selectedCandidate
     }
-    
-   
-    try {
-      const existingBallot = await getBallotOrder(userData.voterId);
-      
-      if (!existingBallot || !existingBallot.ballotList || existingBallot.ballotList.length === 0) {
-        
-        const newBallot = createBallotOrder(selectedCandidate, allCandidates);
-        await saveBallotOrder(userData.voterId, newBallot);
-        console.log('Ballot created successfully for voter:', userData.voterId);
-      } else {
-        console.log('Ballot already exists for voter:', userData.voterId);
-      }
-    } catch (ballotError) {
-      console.error('Error creating ballot:', ballotError);
-      setVoteError('Unable to create ballot. Please check your connection and try again.');
-      setIsSubmitting(false);
-      return; 
-    }
-    
-    
-    navigate('/confirmation', { 
-      state: { 
-        userName: userData.userName,
-        voterId: userData.voterId,
-        selectedCandidate 
-      }
-    });
-  };
+  });
+};
 
   const handleChangeSelection = () => {
     navigate('/castvote', { 
@@ -190,7 +186,7 @@ const SeekConfirm: React.FC = () => {
 
       {!stateError && (
         <SeekConfirmContent
-          candidateName={selectedCandidate}
+          candidateName={selectedCandidate.name}
           onConfirmVote={handleConfirmVote}
           onChangeSelection={handleChangeSelection}
         />
@@ -205,6 +201,18 @@ const SeekConfirm: React.FC = () => {
         onLogout={handleLogout}
         onVotingGuide={handleVotingGuide}
       />
+
+        {/* Debug overlay - visible on phone */}
+        {debugInfo && (
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0,
+            background: 'black', color: 'lime', padding: '10px',
+            fontSize: '11px', zIndex: 9999, wordBreak: 'break-all'
+          }}>
+            {debugInfo}
+          </div>
+        )}
+
     </div>
   );
 };
