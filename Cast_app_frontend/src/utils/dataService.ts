@@ -1,5 +1,6 @@
 import back4appClient from './back4appClient';
 import { Candidate } from '../pages/SeekConfirm';
+import { useState } from 'react';
 
 const USE_BACK4APP = (import.meta as any).env?.VITE_USE_PARSE === 'true';
 
@@ -163,7 +164,6 @@ export const checkVotingStatus = async (voterID: string) => {
     throw error;
   }
 };
-
 
 export const castVoterVote = async (voterID: string, candidate: Candidate) => {
   /*

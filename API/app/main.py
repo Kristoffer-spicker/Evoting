@@ -1,14 +1,13 @@
 import random
 from typing import Annotated
 import os
-import psycopg2 
-import httpx
+import httpx # pylint: disable=import-error
 from sqlalchemy import Column # type: ignore # pylint: disable=import-error
 from sqlalchemy.dialects.postgresql import JSONB # type: ignore # pylint: disable=import-error
 from fastapi import FastAPI, Depends, Query, HTTPException # type: ignore # pylint: disable=import-error
-from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
 from fastapi.middleware.cors import CORSMiddleware # type: ignore # pylint: disable=import-error
-from pydantic import BaseModel
+from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
+from pydantic import BaseModel # type: ignore # pylint: disable=import-error
 app = FastAPI(root_path="/api")
 
 class Candidate(SQLModel, table=True):
@@ -20,6 +19,11 @@ class Teller(SQLModel, table=True):
     __tablename__ = "tellers"
     id: str = Field(primary_key=True)
     t_pk: str
+
+class Voter(SQLModel, table=True):
+    __tablename__ = "voters"
+    id: str = Field(primary_key=True)
+    vote_value: int
 
 '''
 Class to create the values we need for voting
@@ -125,6 +129,15 @@ async def cast_vote(request: CastVoteRequest):
             raise HTTPException(status_code=e.response.status_code, detail="cast_app rejected the rquest")
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Could not reach cast_app")
+
+@app.post("/newVoter")
+def create_voter(voterid: str, t_pk: str, session: SessionDep) -> Voter:
+    new_voter = Voter(id=voterid, t_pk=t_pk)
+    session.add(new_voter)
+    session.commit()
+    session.refresh(new_voter)
+    return new_voter
+    
 
 
 @app.get("/")

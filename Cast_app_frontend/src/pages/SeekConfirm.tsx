@@ -43,6 +43,8 @@ const SeekConfirm: React.FC = () => {
   const [stateError, setStateError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>(''); // ← add this
+
 
   const state = location.state as LocationState;
   const userData = {
@@ -98,61 +100,51 @@ const SeekConfirm: React.FC = () => {
     navigate('/help');
   };
 
-  const handleConfirmVote = async () => {
-  
-    if (userData.voterId === '0000' || !userData.voterId || 
-        selectedCandidate.name === 'Candidate A' || !selectedCandidate) {
-      setVoteError('Invalid session data. Cannot cast vote.');
-      return;
+ const handleConfirmVote = async () => {
+  if (userData.voterId === '0000' || !userData.voterId ||
+      selectedCandidate.name === 'Candidate A' || !selectedCandidate) {
+    setVoteError('Invalid session data. Cannot cast vote.');
+    return;
+  }
+  if (isSubmitting) return;
+  setIsSubmitting(true);
+  setVoteError(null);
+
+  const url = (import.meta as any).env?.VITE_API_URL;
+  setDebugInfo(`API URL: ${url} | Voter: ${userData.voterId} | Candidate: ${selectedCandidate.name}`);
+
+  try {
+    await castVoterVote(userData.voterId, selectedCandidate);
+    setDebugInfo(prev => prev + ' | Vote cast OK');
+  } catch (voteError) {
+    setDebugInfo(prev => prev + ` | Vote error: ${voteError instanceof Error ? voteError.message : String(voteError)}`);
+    setVoteError('Unable to cast your vote. Please check your connection and try again.');
+    setIsSubmitting(false);
+    return;
+  }
+
+  try {
+    const existingBallot = await getBallotOrder(userData.voterId);
+    if (!existingBallot || !existingBallot.ballotList || existingBallot.ballotList.length === 0) {
+      const newBallot = createBallotOrder(selectedCandidate.name, allCandidates.map(c => c.name));
+      await saveBallotOrder(userData.voterId, newBallot);
+      setDebugInfo(prev => prev + ' | Ballot saved OK');
     }
-    
-   
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    
-  
-    setVoteError(null);
-    
-  
-    try {
-      await castVoterVote(userData.voterId, selectedCandidate);
-      // Send voterid and selectedCandidate to API/backend
-      console.log('Vote cast successfully for voter:', userData.voterId);
-    } catch (voteError) {
-      console.error('Error casting vote:', voteError);
-      setVoteError('Unable to cast your vote. Please check your connection and try again.');
-      setIsSubmitting(false);
-      return; 
+  } catch (ballotError) {
+    setDebugInfo(prev => prev + ` | Ballot error: ${ballotError instanceof Error ? ballotError.message : String(ballotError)}`);
+    setVoteError('Unable to create ballot. Please check your connection and try again.');
+    setIsSubmitting(false);
+    return;
+  }
+
+  navigate('/confirmation', {
+    state: {
+      userName: userData.userName,
+      voterId: userData.voterId,
+      selectedCandidate
     }
-    
-   
-    try {
-      const existingBallot = await getBallotOrder(userData.voterId);
-      
-      if (!existingBallot || !existingBallot.ballotList || existingBallot.ballotList.length === 0) {
-        
-        const newBallot = createBallotOrder(selectedCandidate.name, allCandidates.map(c => c.name));
-        await saveBallotOrder(userData.voterId, newBallot);
-        console.log('Ballot created successfully for voter:', userData.voterId);
-      } else {
-        console.log('Ballot already exists for voter:', userData.voterId);
-      }
-    } catch (ballotError) {
-      console.error('Error creating ballot:', ballotError);
-      setVoteError('Unable to create ballot. Please check your connection and try again.');
-      setIsSubmitting(false);
-      return; 
-    }
-    
-    
-    navigate('/confirmation', { 
-      state: { 
-        userName: userData.userName,
-        voterId: userData.voterId,
-        selectedCandidate 
-      }
-    });
-  };
+  });
+};
 
   const handleChangeSelection = () => {
     navigate('/castvote', { 
@@ -209,6 +201,18 @@ const SeekConfirm: React.FC = () => {
         onLogout={handleLogout}
         onVotingGuide={handleVotingGuide}
       />
+
+        {/* Debug overlay - visible on phone */}
+        {debugInfo && (
+          <div style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0,
+            background: 'black', color: 'lime', padding: '10px',
+            fontSize: '11px', zIndex: 9999, wordBreak: 'break-all'
+          }}>
+            {debugInfo}
+          </div>
+        )}
+
     </div>
   );
 };

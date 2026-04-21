@@ -43,6 +43,11 @@ CREATE TABLE IF NOT EXISTS final_tally (
     vote_count    INT
 );
 
+CREATE TABLE IF NOT EXISTS registered_voters (
+    id        TEXT PRIMARY KEY
+    pk        TEXT NOT NULL
+)
+
 -- This function fires a notification at insertion into encryptedVotes
 CREATE OR REPLACE FUNCTION notify_encrypted_vote()
 RETURNS trigger AS $$

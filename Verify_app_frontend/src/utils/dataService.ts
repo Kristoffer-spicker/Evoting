@@ -255,7 +255,7 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
 
     // 2. Send ONLY the public key to FastAPI
     const url = (import.meta as any).env?.VITE_API_URL;
-    await fetch(`${url}/voters/`, {
+    await fetch(`${url}/newVoter/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ voter_id: voterId, public_key: publicKey })
