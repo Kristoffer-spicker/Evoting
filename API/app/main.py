@@ -122,7 +122,8 @@ async def cast_vote(request: CastVoteRequest):
                 "http://cast_app:8001/trigger",
                 json={
                     "id": request.voter_id,
-                    "vote_value": request.vote_value
+                    "vote_value": request.vote_value,
+                    
                 },
                 headers={"x-api-key": secret_key},
                 timeout=30.0
