@@ -8,8 +8,9 @@ import base64
 import io
 import threading
 import psycopg2
-import segno # pyright: ignore[reportMissingImports] #type: ignore
+import segno #type: ignore # pylint: disable=import-error
 from Crypto.PublicKey import ECC
+from pydantic import BaseModel # pyright: ignore[reportMissingImports] # pylint: disable=import-error
 import gmpy2
 import threshold_crypto as tc
 from fastapi import FastAPI  # type: ignore # pylint: disable=import-error
@@ -17,7 +18,7 @@ from fastapi import Header, HTTPException # type: ignore # pylint: disable=impor
 from threshold_crypto import CurveParameters
 from curve import Curve
 from VCaster import (
-    VCaster
+    VCaster,
 )
 from dotenv import load_dotenv
 import uvicorn # pyright: ignore[reportMissingImports] # pylint: disable=import-error
@@ -264,25 +265,50 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
     return {"status": "ok", "voter_id": data["id"]}
 
 
-def QR_content (id):
+class QRRequest(BaseModel):
+    id: str
+    secretkey: str | None = None
+
+def _encode_point(point) -> bytes:
+    x = int(point.x)
+    y = int(point.y)
+    prefix = 0x02 if y % 2 == 0 else 0x03
+    return bytes([prefix]) + x.to_bytes(32, 'big')
+
+def _encode_scalar(scalar) -> bytes:
+    return int(scalar).to_bytes(32, 'big')
+
+def _encode_ciphertext(ct) -> bytes:
+    return _encode_point(ct[0]) + _encode_point(ct[1]) + _encode_scalar(ct[2])
+
+def _encode_proof(proof) -> bytes:
+    return _encode_scalar(proof[0]) + _encode_scalar(proof[1]) + _encode_point(proof[2])
+
+def QR_content(id) -> bytes:
     voter = VCaster(curve, id, vote_min, vote_max, cur, con)
     voter.generate_trapdoor_keypair()
     voter.generate_antitrapdoor_keypair()
-    
-    voter.encrypt_trapdoor(get_random_tpk(teller_public_keys))
-    voter.encrypt_antitrapdoor(get_random_tpk(teller_public_keys))
-    voter.generate_pok_trapdoor_keypair(get_random_tpk(teller_public_keys))
-    voter.generate_pok_antitrapdoor_keypair(get_random_tpk(teller_public_keys))
-    ctr = []
-    ctr.append(voter.encrypted_trapdoor)
-    ctr.append(voter.encrypted_antitrapdoor)
-    ctr.append(voter.pok_trapdoor_key)
-    ctr.append(voter.pok_antitrapdoor_key)
-    return ctr
+
+    tpk = get_random_tpk(teller_public_keys)
+    voter.encrypt_trapdoor(tpk)
+    voter.encrypt_antitrapdoor(tpk)
+    voter.generate_pok_trapdoor_keypair(tpk)
+    voter.generate_pok_antitrapdoor_keypair(tpk)
+
+    buf = bytearray()
+    buf.append(vote_max)
+    buf += _encode_ciphertext(voter.encrypted_trapdoor)
+    for ct in voter.encrypted_antitrapdoor:
+        buf += _encode_ciphertext(ct)
+    buf += _encode_proof(voter.pok_trapdoor_key)
+    for proof in voter.pok_antitrapdoor_key:
+        buf += _encode_proof(proof)
+
+    return bytes(buf)
 
 @app.post("/qrcodegen")
-def make_QR_code(id):
-    qr = segno.make_qr(QR_content(id))
+def make_QR_code(request: QRRequest):
+    qr = segno.make_qr(QR_content(request.id))
 
     buffer = io.BytesIO()
     qr.save(buffer, kind="png", scale=5)

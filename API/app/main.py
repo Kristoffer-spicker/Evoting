@@ -54,9 +54,9 @@ SessionDep = Annotated[Session, Depends(get_session)]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
-    allow_headers=["*"],    
+    allow_headers=["*"],
 )
 
 class LogRequest(BaseModel):
@@ -110,7 +110,6 @@ async def qrcode(request: qrCodeRequest):
                 "http://cast_app:8001/qrcodegen",
                 json={
                     "id": request.voter_id,
-                    "secretkey": secret_key,
                 },
                 timeout=30.0
             )
