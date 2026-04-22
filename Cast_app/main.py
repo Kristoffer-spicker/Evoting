@@ -184,11 +184,6 @@ def poc_setup():
     ('vote_min':'vote_max').
     Adds all 'voter' objects to the 'voters' list.
     """
-    for i in range(0, vote_max):
-        curve_p = curve.raise_p(i)
-        encoded = json.dumps(curve_p, cls=ECCEncoder)
-        cur.execute ("INSERT INTO candidates VALUES (%s, %s)", (i, encoded))
-        con.commit()
 
     for i in range(0, num_voters):
         id = "VT" + str(i)
@@ -198,7 +193,7 @@ def poc_setup():
         voters.append(voter)
 
 
-def voting():
+'''def voting():
     """The voting phase of the protocol.
     For each 'voter' in the 'voters' list:
         a trapdoor keypair is generated,
@@ -230,8 +225,8 @@ def voting():
         # Loop for beviser for alle andre kandidater
         voter.generate_wellformedness_proof_anti(teller_public_key) # proof other vote
         print("Vote has been cast for", voter.id)
-        voter.sign_ballot()
-        time.sleep(10)
+        voter.sign_ballot(voter.secret_key)
+        time.sleep(10)'''
 
 def get_random_tpk(tpks):
     encoded_pk = random.choice(tpks)
@@ -255,6 +250,7 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
     voter.generate_dsa_keys()
     voter.vote = data["vote_value"]
     voter.cast_vote(get_random_tpk(teller_public_keys))
+    voter.sign_ballot()
 
     return {"status": "ok", "voter_id": data["id"]}
 
@@ -262,4 +258,4 @@ threading.Thread(target=election_timer, args=(election_time,)).start()
 #new thread so that the cast_app can listen for incomming requests on port 8001
 threading.Thread(target=uvicorn.run, kwargs={"app": app, "host": "0.0.0.0", "port": 8001}, daemon=True).start()
 poc_setup()
-voting()
+#voting()

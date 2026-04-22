@@ -10,6 +10,8 @@ services:
     depends_on:
       - api
       - cast_frontend
+    networks:
+      - evoting
 
   api:
     build:
@@ -23,50 +25,22 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       SECRET_KEY: ${SECRET_KEY}
-    depends_on:
-      db:
-        condition: service_healthy
+    networks:
+      - evoting
 
-
-  tally_app:
-    command: ["python3", "main.py", "255", "5", "3"]
+  cast_app:
+    command: ["python3", "main.py", "50", "250"]
     build:
-      context: ./Tally_app
-    environment:
-      PYTHONBUFFERED: 1
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    
-
-  
-  verify_app:
-    build:
-      context: ./Verify_app
+      context: ./Cast_app
     environment:
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-    depends_on:
-      db:
-        condition: service_healthy
-
-  verify_frontend:
-    build:
-      context: ./Verify_app_frontend
-    ports:
-      - "5173:5173"
-    depends_on:
-      api:
-        condition: service_started
+      SECRET_KEY: ${SECRET_KEY}
+    networks:
+      - evoting
 
   cast_frontend:
     build:
@@ -76,54 +50,45 @@ services:
     depends_on:
       api:
         condition: service_started
-  
-  cast_app:
-    command: ["python3", "main.py", "50", "250"]
+    networks:
+      - evoting
+
+  verify_app:
     build:
-      context: ./Cast_app
-    environment: 
+      context: ./Verify_app
+    environment:
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-      SECRET_KEY: ${SECRET_KEY}
+    networks:
+      - evoting
+
+  verify_frontend:
+    build:
+      context: ./Verify_app_frontend
+    ports:
+      - "5173:5173"
     depends_on:
-      db:
-        condition: service_healthy
-      tally_app:
-        condition: service_started  
-      
+      api:
+        condition: service_started
+    networks:
+      - evoting
+
   ngrok:
     image: ngrok/ngrok:latest
     restart: unless-stopped
     command: http --url=unfitted-startle-monthly.ngrok-free.dev nginx:443
     environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN} 
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
     ports:
-    - "4040:4040"
+      - "4040:4040"
     depends_on:
-      - nginx  
+      - nginx
+    networks:
+      - evoting
 
-  
-  db:
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - ./Database/init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5433:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 3s
-      retries: 5
-      start_period: 30s
-      timeout: 10s      
-
-  
-volumes:
-  db-data:
+networks:
+  evoting:
+    external: true
