@@ -20,6 +20,9 @@ class Teller(SQLModel, table=True):
     id: str = Field(primary_key=True)
     t_pk: str
 
+class qrCodeRequest(BaseModel):
+    voter_id: str
+
 '''
 Class to create the values we need for voting
 '''
@@ -68,6 +71,7 @@ def log_message(log: LogRequest):
 async def on_startup():
     create_db_and_tables()
 
+
 @app.get("/candidates")
 def read_candidates(
     session: SessionDep,
@@ -96,6 +100,27 @@ def get_tally_key(session: SessionDep):
     tally = session.exec(select(Teller)).all()
     random_teller = random.choice(tally)
     return random_teller.t_pk
+
+@app.post("/qrcode")
+async def qrcode(request: qrCodeRequest):
+    secret_key = os.getenv("SECRET_KEY")
+    async with httpx.AsyncClient() as client:
+        try:
+            qrdata = await client.post(
+                "http://cast_app:8001/qrcodegen",
+                json={
+                    "id": request.voter_id,
+                    "secretkey": secret_key,
+                },
+                timeout=30.0
+            )
+            return qrdata.json()
+            
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail="cast_app rejected the rquest")
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Could not reach cast_app")
+
     
 
 @app.post("/castvote")

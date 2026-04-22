@@ -16,13 +16,13 @@ def deserialize_pd(curve, pd):
 
 def deserialize_ep(d):
     """Handles both 'curve' and 'curve_name' key formats"""
-    curve = d.get('curve') or d.get('curve_name', 'P-128')
+    curve = d.get('curve') or d.get('curve_name', 'P-256')
     return ECC.EccPoint(int(d['x']), int(d['y']), curve)
 
 
 def _ecc_key_to_serializable(p: ECC.EccKey) -> Dict[str, Any]:
     x, y = p.pointQ.xy
-    return {"curve_name": "P-128" ,"x": int(x), "y": int(y)}
+    return {"curve_name": "P-256" ,"x": int(x), "y": int(y)}
 
 
 def serialize_pd(pd):
@@ -103,7 +103,7 @@ def to_tc_point(d):
     """Deserialize a point dict and make it compatible with threshold_crypto."""
     # Add curve field if missing (older serialized data may lack it)
     if 'curve' not in d:
-        d = {**d, 'curve': 'P-128'}
+        d = {**d, 'curve': 'P-256'}
     point = deserialize_ep(d)
-    point._curve_name = 'P-128'  # only needed here, once, not scattered everywhere
+    point._curve_name = 'P-256'  # only needed here, once, not scattered everywhere
     return point

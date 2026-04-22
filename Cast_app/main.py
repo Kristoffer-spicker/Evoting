@@ -4,8 +4,11 @@ import multiprocessing
 import argparse
 import time
 import random
+import base64
+import io
 import threading
 import psycopg2
+import segno # pyright: ignore[reportMissingImports] #type: ignore
 from Crypto.PublicKey import ECC
 import gmpy2
 import threshold_crypto as tc
@@ -55,7 +58,7 @@ print("Connected to:", cur.fetchone()[0])
 def decode_point_recursive(obj):
     """Recursively convert any {x, y} dicts back to EccPoints in nested structures"""
     if isinstance(obj, dict) and 'x' in obj and 'y' in obj:
-        return ECC.EccPoint(int(obj['x']), int(obj['y']), 'P-128')
+        return ECC.EccPoint(int(obj['x']), int(obj['y']), 'P-256')
     elif isinstance(obj, dict):
         return {k: decode_point_recursive(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -97,7 +100,7 @@ def decode_bb_data(row):
     
     # Converts x,y coordinates back to EccPoints
     def to_point(d):
-        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-128')
+        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
     
     # for the vote, antivote, encrypted trapdoor key, and encrypted antitrapdoor key we convert the votes back to EccPoints and the keys to mpz formatting
     for key in ['ev', 'enc_ptk']:
@@ -161,7 +164,7 @@ raw_keys = cur.fetchall()
 teller_public_keys = [decode_public_key(row) for row in raw_keys]
 
 
-curve = Curve("P-128")
+curve = Curve("P-256")
 
 election_time = int(args.vote_timer)
 
@@ -244,19 +247,52 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
     '''
     if x_api_key != os.getenv("SECRET_KEY"):
         raise HTTPException(status_code=403, detail="Forbidden")
-
-    voter = VCaster(curve, data["id"], vote_min, vote_max, cur, con)
+    
+    voter = VCaster.findVoter(data["id"], curve, vote_min, vote_max, cur, con)
+    
     voter.generate_dsa_keys()
     pk = voter.public_key
     cur.execute(
-        "INSER INTO registered_voters (id, pk) VALUES (%s, %s)", (data["id"], pk)
+        "INSER INTO registered_voters (id, pk) VALUES (%s, %s)", (id, pk)
     )
+
     cur.commit()
     voter.vote = data["vote_value"]
     voter.cast_vote(get_random_tpk(teller_public_keys))
     voter.sign_ballot()
 
     return {"status": "ok", "voter_id": data["id"]}
+
+
+def QR_content (id):
+    voter = VCaster(curve, id, vote_min, vote_max, cur, con)
+    voter.generate_trapdoor_keypair()
+    voter.generate_antitrapdoor_keypair()
+    
+    voter.encrypt_trapdoor(get_random_tpk(teller_public_keys))
+    voter.encrypt_antitrapdoor(get_random_tpk(teller_public_keys))
+    voter.generate_pok_trapdoor_keypair(get_random_tpk(teller_public_keys))
+    voter.generate_pok_antitrapdoor_keypair(get_random_tpk(teller_public_keys))
+    ctr = []
+    ctr.append(voter.encrypted_trapdoor)
+    ctr.append(voter.encrypted_antitrapdoor)
+    ctr.append(voter.pok_trapdoor_key)
+    ctr.append(voter.pok_antitrapdoor_key)
+    return ctr
+
+@app.post("/qrcodegen")
+def make_QR_code(id):
+    qr = segno.make_qr(QR_content(id))
+
+    buffer = io.BytesIO()
+    qr.save(buffer, kind="png", scale=5)
+    png_bytes = buffer.getvalue()
+
+    encoded = base64.b64encode(png_bytes).decode("utf-8")
+
+    return {"status": "ok", "qr_code": encoded}
+    
+
 
 threading.Thread(target=election_timer, args=(election_time,)).start()
 #new thread so that the cast_app can listen for incomming requests on port 8001

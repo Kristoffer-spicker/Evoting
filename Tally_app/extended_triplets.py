@@ -8,7 +8,7 @@ from Encoding import ECCEncoder
 
 def finaltripletdecoder (single_triplet):
     def to_point(d):
-        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-128')
+        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
 
     def decode_ciphertext_list(c):
         # Normalizes both dict and list formats into [point, point, mpz]

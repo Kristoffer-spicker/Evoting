@@ -1,16 +1,52 @@
-import { useNavigate } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+//import { QRCodeSVG } from 'qrcode.react';
 import { ProgressSteps } from '@/components/preparation-components/preparation-comp';
 import styles from '../qr-code-styled-comp/qrCodeContent.module.css';
+import { send } from 'process';
+
+interface LocationState {
+  voterId?: string;
+}
+interface QRResponse {
+  qr_code: string;
+}
+
+async function genQR(voterID: string): Promise<QRResponse> {
+    const url = (import.meta as any).env.VITE_API_URL;
+    
+    const response = await fetch(`${url}/qrcode`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ voter_id: voterID }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate QR: ${response.status}`);
+    }
+
+    const data: QRResponse = await response.json();
+    return data;
+  }
 
 const QRCodeContent = () => {
+  const location = useLocation();
   const navigate = useNavigate();
   const steps = ["Voting QR Code", "After Vote casting", "True Identifier", "Identifiers for All Candidates", "Complete"];
   
+  const state = location.state as LocationState;
+  const voterId = state?.voterId || '0000';
 
-  const authenticatedVoter = localStorage.getItem('surtr_authenticated_voter');
-  const userData = authenticatedVoter ? JSON.parse(authenticatedVoter) : null;
-  const qrValue = userData ? `SURTR-${userData.voterId}` : "SURTR Verify";
+  const [qrCode, setQrCode] = useState<string>("");
+
+  useEffect(() => {
+    genQR(voterId)                                 
+      .then(data => setQrCode(data.qr_code))
+      .catch(err => console.error(err));
+  }, []);
+;
 
   const handleScannedQRCode = () => {
     navigate('/main-menu');
@@ -55,11 +91,9 @@ const QRCodeContent = () => {
             </div>
             <div className={styles.qrSection}>
               <div className={styles.qrCodeContainer}>
-                <QRCodeSVG 
-                  value={qrValue}
-                  size={120}
-                  level="H"
-                />
+                {qrCode && (
+                  <img src={`data:image/png;base64,${qrCode}`} alt="QR Code" />
+                )}
               </div>
               <p className={styles.scanText}>Scan this QR code</p>
             </div>

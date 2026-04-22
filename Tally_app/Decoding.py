@@ -20,8 +20,8 @@ def decode_value(key, value):
        return bytes.fromhex(value)
     elif key in ECC_points:
         return [
-            ECC.EccPoint(int(value[0]['x']), int(value[0]['y']), 'P-128'),
-            ECC.EccPoint(int(value[1]['x']), int(value[1]['y']), 'P-128'),
+            ECC.EccPoint(int(value[0]['x']), int(value[0]['y']), 'P-256'),
+            ECC.EccPoint(int(value[1]['x']), int(value[1]['y']), 'P-256'),
             gmpy2.mpz(value[2])
         ]
     elif key in proofs:
@@ -37,7 +37,7 @@ def decode_value(key, value):
 def decode_point_recursive(obj):
     """Recursively convert any {x, y} dicts back to EccPoints in nested structures"""
     if isinstance(obj, dict) and 'x' in obj and 'y' in obj:
-        return ECC.EccPoint(int(obj['x']), int(obj['y']), 'P-128')
+        return ECC.EccPoint(int(obj['x']), int(obj['y']), 'P-256')
     elif isinstance(obj, dict):
         return {k: decode_point_recursive(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -53,15 +53,15 @@ def decode_ciphertext(c):
         # Dict format: {'c1': {...}, 'c2': {...}, 'r_anti': ...}
         r_key = next(k for k in c if k not in ('c1', 'c2'))
         return [
-            ECC.EccPoint(int(c['c1']['x']), int(c['c1']['y']), 'P-128'),
-            ECC.EccPoint(int(c['c2']['x']), int(c['c2']['y']), 'P-128'),
+            ECC.EccPoint(int(c['c1']['x']), int(c['c1']['y']), 'P-256'),
+            ECC.EccPoint(int(c['c2']['x']), int(c['c2']['y']), 'P-256'),
             gmpy2.mpz(c['r_anti'])
         ]
     elif isinstance(c, list):
         # List format: [{x,y}, {x,y}, int]
         return [
-            ECC.EccPoint(int(c[0]['x']), int(c[0]['y']), 'P-128'),
-            ECC.EccPoint(int(c[1]['x']), int(c[1]['y']), 'P-128'),
+            ECC.EccPoint(int(c[0]['x']), int(c[0]['y']), 'P-256'),
+            ECC.EccPoint(int(c[1]['x']), int(c[1]['y']), 'P-256'),
             gmpy2.mpz(c[2])
         ]
     else:
@@ -106,7 +106,7 @@ def decode_bb_data(row):
 
 def decode_extended_ballot(single_ballot):
     def to_point(d):
-        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-128')
+        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
 
     def decode_ciphertext_list(c):
         # Normalizes both dict and list formats into [point, point, mpz]

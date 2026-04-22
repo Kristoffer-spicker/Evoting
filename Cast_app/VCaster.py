@@ -30,6 +30,7 @@ class VCaster:
         self.cur = cur
         self.con = con
 
+
     def choose_vote_value(self):
         self.vote = random.randrange(self.vote_min, self.vote_max)
         
@@ -39,14 +40,14 @@ class VCaster:
         cast_vote: Function that takes a given candidates vote and cast it as a ballot
         '''
         print(f"id is {self.id} candidate is {self.vote}")
-        self.generate_trapdoor_keypair()
-        self.generate_antitrapdoor_keypair()
+        #self.generate_trapdoor_keypair()
+        #self.generate_antitrapdoor_keypair()
         self.encrypt_vote(teller_public_key)
         self.encrypt_antivote(teller_public_key)
-        self.encrypt_trapdoor(teller_public_key)
-        self.encrypt_antitrapdoor(teller_public_key)
-        self.generate_pok_trapdoor_keypair(teller_public_key)
-        self.generate_pok_antitrapdoor_keypair(teller_public_key)
+        #self.encrypt_trapdoor(teller_public_key)
+        #self.encrypt_antitrapdoor(teller_public_key)
+        #self.generate_pok_trapdoor_keypair(teller_public_key)
+        #self.generate_pok_antitrapdoor_keypair(teller_public_key)
         self.generate_wellformedness_proof(teller_public_key)
         self.generate_wellformedness_proof_anti(teller_public_key)
         print("Vote has been cast for", self.id)
@@ -201,5 +202,7 @@ class VCaster:
         }
         self.cur.execute("INSERT INTO encrypted_votes VALUES (%s, %s)", (self.id, json.dumps(bb_data, cls=ECCEncoder),)) # adds the final ballot to the BB
         self.con.commit()
-
+    @classmethod
+    def findVoter(cls, id, curve, vote_min, vote_max, cur, con):
+        return cls(curve, id, vote_min, vote_max, cur, con)
     
