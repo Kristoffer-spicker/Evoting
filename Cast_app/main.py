@@ -247,6 +247,11 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
 
     voter = VCaster(curve, data["id"], vote_min, vote_max, cur, con)
     voter.generate_dsa_keys()
+    pk = voter.public_key
+    cur.execute(
+        "INSER INTO registered_voters (id, pk) VALUES (%s, %s)", (data["id"], pk)
+    )
+    cur.commit()
     voter.vote = data["vote_value"]
     voter.cast_vote(get_random_tpk(teller_public_keys))
     voter.sign_ballot()

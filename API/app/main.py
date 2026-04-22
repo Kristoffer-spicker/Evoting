@@ -20,15 +20,6 @@ class Teller(SQLModel, table=True):
     id: str = Field(primary_key=True)
     t_pk: str
 
-class Voter(SQLModel, table=True):
-    __tablename__ = "registered_voters"
-    id: str = Field(primary_key=True)
-    pk: dict = Field(sa_column=Column(JSONB))
-
-class VoterRequest(BaseModel):
-    voterid: str
-    pk: dict
-
 '''
 Class to create the values we need for voting
 '''
@@ -135,19 +126,6 @@ async def cast_vote(request: CastVoteRequest):
             raise HTTPException(status_code=e.response.status_code, detail="cast_app rejected the rquest")
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Could not reach cast_app")
-
-@app.post("/newvoter/")
-def create_voter(voter: VoterRequest, session: SessionDep) -> Voter:
-    
-    existing = session.get(Voter, voter.voterid)
-    if existing:
-        raise HTTPException(status_code=409, detail="Voter already registered")
-    new_voter = Voter(id=voter.voterid, pk=voter.pk)
-    session.add(new_voter)
-    session.commit()
-    session.refresh(new_voter)
-    return new_voter
-    
 
 
 @app.get("/")

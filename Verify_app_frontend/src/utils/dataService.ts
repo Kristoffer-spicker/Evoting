@@ -251,20 +251,6 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
     );
     const orderedIdentifiersList = [trueIdentifier, ...remainingIdentifiers];
 
-    // 1. Generate keypair entirely in browser
-    const { privateKey, publicKey } = generateVoterKeypair();
-
-    // 2. Send ONLY the public key to FastAPI
-    const url = (import.meta as any).env?.VITE_API_URL;
-    await fetch(`${url}/newvoter/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ voterid: voterId, pk: publicKey})
-    });
-
-    // 3. Encrypt private key with voter's password, store in back4app
-    const encryptedPrivateKey = await encryptPrivateKeyForStorage(privateKey, password);
-
     const voterData = {
       name: name.trim(),
       voterID: voterId.trim(),
@@ -274,9 +260,8 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
       true_identifier: trueIdentifier
     };
 
-    const savedVoter = await back4appClient.createVoter({
-      ...voterData,
-      encrypted_private_key: encryptedPrivateKey
+    const savedVoter = await back4appClient.createVoter({ 
+      ...voterData
     } as any);
 
     await back4appClient.createIdentifiersList({
