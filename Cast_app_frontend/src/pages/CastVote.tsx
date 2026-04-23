@@ -9,6 +9,7 @@ import { hasVoterAlreadyVoted } from '../utils';
 interface LocationState {
   userName: string;
   voterId: string;
+  token: string;
 }
 const allCandidates = [
   { id: 0, name: "James Bond"}, { id: 1, name: "Tony Stark"}, { id: 2, name: "Jack Sparrow"}, { id: 3, name: "Ellen Ripley"},
@@ -25,7 +26,8 @@ const CastVote: React.FC = () => {
   const state = location.state as LocationState;
   const userData = {
     userName: state?.userName || 'Voter',
-    voterId: state?.voterId || '0000'
+    voterId: state?.voterId || '0000',
+    token: state?.token || ''
   };
 
   useEffect(() => {
@@ -64,7 +66,8 @@ const CastVote: React.FC = () => {
       state: { 
         userName: userData.userName,
         voterId: userData.voterId,
-        selectedCandidate
+        selectedCandidate,
+        token: userData.token
       }
     });
   };

@@ -13,12 +13,14 @@ from Crypto.PublicKey import ECC
 from pydantic import BaseModel # pyright: ignore[reportMissingImports] # pylint: disable=import-error
 import gmpy2
 import threshold_crypto as tc
+from uuid import uuid4
 from fastapi import FastAPI  # type: ignore # pylint: disable=import-error
 from fastapi import Header, HTTPException # type: ignore # pylint: disable=import-error
 from threshold_crypto import CurveParameters
 from curve import Curve
 from VCaster import (
     VCaster,
+    ECCEncoder,
 )
 from dotenv import load_dotenv
 import uvicorn # pyright: ignore[reportMissingImports] # pylint: disable=import-error
@@ -37,6 +39,7 @@ def get_connection():
     return con
 
 app = FastAPI()
+
 
 
 
@@ -254,12 +257,12 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
     voter.generate_dsa_keys()
     pk = voter.public_key
     cur.execute(
-        "INSER INTO registered_voters (id, pk) VALUES (%s, %s)", (id, pk)
+        "INSERT INTO registered_voters (id, pk) VALUES (%s, %s)", (data["id"], json.dumps(pk, cls=ECCEncoder))
     )
 
-    cur.commit()
+    con.commit()
     voter.vote = data["vote_value"]
-    voter.cast_vote(get_random_tpk(teller_public_keys))
+    voter.cast_vote(get_random_tpk(teller_public_keys), data["token"], cur)
     voter.sign_ballot()
 
     return {"status": "ok", "voter_id": data["id"]}
@@ -267,22 +270,6 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
 
 class QRRequest(BaseModel):
     id: str
-    secretkey: str | None = None
-
-def _encode_point(point) -> bytes:
-    x = int(point.x)
-    y = int(point.y)
-    prefix = 0x02 if y % 2 == 0 else 0x03
-    return bytes([prefix]) + x.to_bytes(32, 'big')
-
-def _encode_scalar(scalar) -> bytes:
-    return int(scalar).to_bytes(32, 'big')
-
-def _encode_ciphertext(ct) -> bytes:
-    return _encode_point(ct[0]) + _encode_point(ct[1]) + _encode_scalar(ct[2])
-
-def _encode_proof(proof) -> bytes:
-    return _encode_scalar(proof[0]) + _encode_scalar(proof[1]) + _encode_point(proof[2])
 
 def QR_content(id) -> bytes:
     voter = VCaster(curve, id, vote_min, vote_max, cur, con)
@@ -294,17 +281,20 @@ def QR_content(id) -> bytes:
     voter.encrypt_antitrapdoor(tpk)
     voter.generate_pok_trapdoor_keypair(tpk)
     voter.generate_pok_antitrapdoor_keypair(tpk)
+    
+    data = []
+    data.append(voter.encrypted_trapdoor)
+    data.append(voter.encrypted_antitrapdoor)
+    data.append(voter.pok_trapdoor_key)
+    data.append(voter.pok_antitrapdoor_key)
+    data.append(voter.secret_antitrapdoor_key)
+    data.append(voter.secret_trapdoor_key)
+    token = str(uuid4())
+    cur.execute("INSERT INTO ctr (token, ctr_content) VALUES (%s, %s)", (token, json.dumps(data, cls=ECCEncoder)))
+    con.commit()
+    return token
+    
 
-    buf = bytearray()
-    buf.append(vote_max)
-    buf += _encode_ciphertext(voter.encrypted_trapdoor)
-    for ct in voter.encrypted_antitrapdoor:
-        buf += _encode_ciphertext(ct)
-    buf += _encode_proof(voter.pok_trapdoor_key)
-    for proof in voter.pok_antitrapdoor_key:
-        buf += _encode_proof(proof)
-
-    return bytes(buf)
 
 @app.post("/qrcodegen")
 def make_QR_code(request: QRRequest):

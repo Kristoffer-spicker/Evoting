@@ -18,6 +18,7 @@ const ScanQR: React.FC = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [scannedToken, setScannedToken] = useState<string>('');
   const [accessDenied, setAccessDenied] = useState(false);
   
   const state = location.state as LocationState;
@@ -65,10 +66,10 @@ const ScanQR: React.FC = () => {
     navigate('/help');
   };
 
-  const handleScanResult = async (_result: string) => {
+  const handleScanResult = async (token: string) => {
     try {
       await updateVoterQRStatus(userData.voterId);
-      
+      setScannedToken(token);
       setShowSuccessPopup(true);
     } catch (error) {
       console.error('Error updating QR status:', error);
@@ -91,7 +92,7 @@ const ScanQR: React.FC = () => {
 
   const handlePopupContinue = () => {
     setShowSuccessPopup(false);
-    navigate('/castvote', { state: userData, replace: true });
+    navigate('/castvote', { state: { ...userData, token: scannedToken }, replace: true });
   };
 
   const handlePopupCancel = () => {

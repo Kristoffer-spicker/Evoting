@@ -29,7 +29,7 @@ Class to create the values we need for voting
 class CastVoteRequest(BaseModel):
     voter_id: str
     vote_value: int
-    secretkey: str
+    token: str
 
 connect_args = {"check_same_thread": False}
 DATABASE_URL = (
@@ -139,7 +139,7 @@ async def cast_vote(request: CastVoteRequest):
                 json={
                     "id": request.voter_id,
                     "vote_value": request.vote_value,
-                    "secretkey": request.secretkey,
+                    "token": request.token
                 },
                 headers={"x-api-key": secret_key},
                 timeout=30.0

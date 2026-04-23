@@ -48,6 +48,12 @@ CREATE TABLE IF NOT EXISTS registered_voters (
     pk        JSONB NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS ctr (
+    token        TEXT PRIMARY KEY,
+    ctr_content  JSONB NOT NULL
+
+);
+
 -- This function fires a notification at insertion into encryptedVotes
 CREATE OR REPLACE FUNCTION notify_encrypted_vote()
 RETURNS trigger AS $$
