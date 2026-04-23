@@ -235,8 +235,8 @@ class Teller:
         ciphertexts,
         partial_decryptions,
     ): 
-        prod_alpha = ECC.EccPoint(0, 0, "P-128")
-        prod_partial_decryptions = ECC.EccPoint(0, 0, "P-128")
+        prod_alpha = ECC.EccPoint(0, 0, "P-192")
+        prod_partial_decryptions = ECC.EccPoint(0, 0, "P-192")
         alpha_terms = []
         for ciphertext in ciphertexts:
             index = ciphertext[0]
@@ -300,9 +300,9 @@ class Teller:
         output2 = []
         output3 = []
         proof = []
-        prod_alpha_1 = ECC.EccPoint(0, 0, "P-128")
-        prod_alpha_2 = ECC.EccPoint(0, 0, "P-128")
-        prod_alpha_3 = ECC.EccPoint(0, 0, "P-128")
+        prod_alpha_1 = ECC.EccPoint(0, 0, "P-192")
+        prod_alpha_2 = ECC.EccPoint(0, 0, "P-192")
+        prod_alpha_3 = ECC.EccPoint(0, 0, "P-192")
         alpha_terms_1 = []
         alpha_terms_2 = []
         alpha_terms_3 = []

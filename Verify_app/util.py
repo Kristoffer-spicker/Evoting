@@ -11,7 +11,7 @@ def deserialize_pd(curve, pd):
 
 def deserialize_ep(dict_str):
     if (isinstance(dict_str, int)) and (dict_str == 0):
-        return ECC.EccPoint(0, 0, "P-128")
+        return ECC.EccPoint(0, 0, "P-192")
     return ECC.EccPoint(dict_str["x"], dict_str["y"], dict_str["curve"])
 
 

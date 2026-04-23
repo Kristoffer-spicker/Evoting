@@ -601,7 +601,7 @@ class DSA:
             r          (mpz): A signing key
             g^r     (mpz[3]): A verification key
         """
-        key = ECC.generate(curve="P-128")
+        key = ECC.generate(curve="P-192")
         return key, key.public_key()
 
     def sign(self, signing_key, message):

@@ -30,23 +30,39 @@ class VCaster:
         self.cur = cur
         self.con = con
 
+
     def choose_vote_value(self):
         self.vote = random.randrange(self.vote_min, self.vote_max)
         
     #Function for the vote chosen by the voter  
-    def cast_vote(self, teller_public_key):
+    @staticmethod
+    def _decode_ctr(obj):
+        if isinstance(obj, dict) and 'x' in obj and 'y' in obj:
+            return ECC.EccPoint(int(obj['x']), int(obj['y']), obj.get('curve_name', 'P-192'))
+        elif isinstance(obj, dict):
+            return {k: VCaster._decode_ctr(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [VCaster._decode_ctr(item) for item in obj]
+        elif isinstance(obj, (int, float)) and not isinstance(obj, bool):
+            return gmpy2.mpz(obj)
+        return obj
+
+    def cast_vote(self, teller_public_key, token, cur):
         '''
         cast_vote: Function that takes a given candidates vote and cast it as a ballot
         '''
         print(f"id is {self.id} candidate is {self.vote}")
-        self.generate_trapdoor_keypair()
-        self.generate_antitrapdoor_keypair()
+        cur.execute("SELECT ctr_content FROM ctr WHERE token = %s", (token,))
+        ctr = cur.fetchone()
+        ctr_content = ctr[0]  
+        self.encrypted_trapdoor = VCaster._decode_ctr(ctr_content[0])
+        self.encrypted_antitrapdoor = VCaster._decode_ctr(ctr_content[1])
+        self.pok_trapdoor_key = VCaster._decode_ctr(ctr_content[2])
+        self.pok_antitrapdoor_key = VCaster._decode_ctr(ctr_content[3])
+        self.secret_antitrapdoor_key = VCaster._decode_ctr(ctr_content[4])
+        self.secret_trapdoor_key = VCaster._decode_ctr(ctr_content[5])
         self.encrypt_vote(teller_public_key)
         self.encrypt_antivote(teller_public_key)
-        self.encrypt_trapdoor(teller_public_key)
-        self.encrypt_antitrapdoor(teller_public_key)
-        self.generate_pok_trapdoor_keypair(teller_public_key)
-        self.generate_pok_antitrapdoor_keypair(teller_public_key)
         self.generate_wellformedness_proof(teller_public_key)
         self.generate_wellformedness_proof_anti(teller_public_key)
         print("Vote has been cast for", self.id)
@@ -56,13 +72,13 @@ class VCaster:
         self.secret_key, self.public_key = dsa.keygen()
     
     def encrypt_vote(self, teller_public_key):
+        self.ege = ElGamalEncryption(self.curve)
         self.g_vote = self.curve.raise_p(int(self.vote))
         self.encrypted_vote = self.ege.encrypt(
             teller_public_key.Q, self.g_vote
         )
 
     def encrypt_antivote(self, teller_public_key): 
-        self.ege = ElGamalEncryption(self.curve)
         self.encrypted_antivote = []
         # add for loop between 0 and vote_max that makes antivote and skips the candidate id actually voted on
         for i in range(self.vote_min, self.vote_max):
@@ -116,7 +132,7 @@ class VCaster:
     def generate_antitrapdoor_keypair(self):#generate x2 and g^x2
         self.secret_antitrapdoor_key = []
         self.public_antitrapdoor_key = []
-        for i in range (self.vote_max):
+        for i in range (self.vote_max - 1):
             temp_secret_antitrapdoor_key, temp_public_antitrapdoor_key = self.ege.keygen()
             self.secret_antitrapdoor_key.append(temp_secret_antitrapdoor_key)
             self.public_antitrapdoor_key.append(temp_public_antitrapdoor_key)
@@ -128,7 +144,7 @@ class VCaster:
 
     def encrypt_antitrapdoor(self, teller_public_key):#encrypt g^x2
         self.encrypted_antitrapdoor = []
-        for i in range (self.vote_max):
+        for i in range (self.vote_max - 1):
             self.encrypted_antitrapdoor.append(self.ege.encrypt(
                 teller_public_key.Q, self.public_antitrapdoor_key[i]
             ))
@@ -201,5 +217,7 @@ class VCaster:
         }
         self.cur.execute("INSERT INTO encrypted_votes VALUES (%s, %s)", (self.id, json.dumps(bb_data, cls=ECCEncoder),)) # adds the final ballot to the BB
         self.con.commit()
-
+    @classmethod
+    def findVoter(cls, id, curve, vote_min, vote_max, cur, con):
+        return cls(curve, id, vote_min, vote_max, cur, con)
     
