@@ -80,7 +80,7 @@ teller_sk = []
 teller_public_key = ""
 teller_registry = []
 
-curve = Curve("P-256")
+curve = Curve("P-192")
 
 # Converts a public key to dict formatting
 def custom_serializer(obj):

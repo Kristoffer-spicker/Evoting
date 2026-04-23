@@ -568,11 +568,11 @@ class Mixnet:
             return 0
 
         t3_prime_1 = c_ver_tilde * (self.curve.get_pars().order - c_ver_hash)
-        t3_prime_prod = ECC.EccPoint(0, 0, "P-256")
-        t41v1 = ECC.EccPoint(0, 0, "P-256")
-        t41v2 = ECC.EccPoint(0, 0, "P-256")
-        t43v1 = ECC.EccPoint(0, 0, "P-256")
-        t43v2 = ECC.EccPoint(0, 0, "P-256")
+        t3_prime_prod = ECC.EccPoint(0, 0, "P-192")
+        t41v1 = ECC.EccPoint(0, 0, "P-192")
+        t41v2 = ECC.EccPoint(0, 0, "P-192")
+        t43v1 = ECC.EccPoint(0, 0, "P-192")
+        t43v2 = ECC.EccPoint(0, 0, "P-192")
         for i in range(count):
             t3_prime_prod = t3_prime_prod + (
                 permutation_commitment["h"][i] * s_prime[i]
@@ -606,10 +606,10 @@ class Mixnet:
         if t_4_3 != t43v:
             return 0
 
-        t42v1 = ECC.EccPoint(0, 0, "P-256")
-        t42v2 = ECC.EccPoint(0, 0, "P-256")
-        t44v1 = ECC.EccPoint(0, 0, "P-256")
-        t44v2 = ECC.EccPoint(0, 0, "P-256")
+        t42v1 = ECC.EccPoint(0, 0, "P-192")
+        t42v2 = ECC.EccPoint(0, 0, "P-192")
+        t44v1 = ECC.EccPoint(0, 0, "P-192")
+        t44v2 = ECC.EccPoint(0, 0, "P-192")
 
         for i in range(count):
             t42v1 = t42v1 + (deserialize_ep(list_1[i][0][1]) * s_prime[i])

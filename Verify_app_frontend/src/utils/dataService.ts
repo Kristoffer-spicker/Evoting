@@ -77,10 +77,10 @@ export const getDeviceId = (): string => {
 };
 
 /**
- * Generates a P-256 keypair in the browser using the elliptic library.
+ * Generates a P-192 keypair in the browser using the elliptic library.
  * 
  * The private key is a random scalar integer (returned as a hex string) and
- * the public key is the corresponding point on the P-256 curve (Q = d*G),
+ * the public key is the corresponding point on the P-192 curve (Q = d*G),
  * where d is the private scalar and G is the curve's generator point.
  * 
  * This is mathematically equivalent to the ElGamal/DSA keypair generated
@@ -97,14 +97,14 @@ export const getDeviceId = (): string => {
   privateKey: string;
   publicKey: CurvePoint;
 } {
-  // Generate a cryptographically random P-256 keypair
+  // Generate a cryptographically random P-192 keypair
   const keyPair = ec.genKeyPair();
   return {
     privateKey: keyPair.getPrivate('hex'),
     publicKey: {
       x: keyPair.getPublic().getX().toString(),
       y: keyPair.getPublic().getY().toString(),
-      curve_name: "NIST P-256"
+      curve_name: "NIST P-192"
     }
   };
 }
@@ -113,7 +113,7 @@ export const getDeviceId = (): string => {
  * Encrypts the voter's private key hex string, deriving
  * the encryption key from the voter's password.
  * 
- * @param privateKeyHex - the raw P-256 private scalar as a hex string
+ * @param privateKeyHex - the raw P-192 private scalar as a hex string
  * @param password - the voter's plaintext password used to derive the AES key
  * @returns base64 encoded string containing salt + IV + ciphertext
  **/

@@ -61,7 +61,7 @@ if cur.fetchone()[0]:
 def decode_point_recursive(obj):
     """Recursively convert any {x, y} dicts back to EccPoints in nested structures"""
     if isinstance(obj, dict) and 'x' in obj and 'y' in obj:
-        return ECC.EccPoint(int(obj['x']), int(obj['y']), 'P-256')
+        return ECC.EccPoint(int(obj['x']), int(obj['y']), 'P-192')
     elif isinstance(obj, dict):
         return {k: decode_point_recursive(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -87,7 +87,7 @@ def decode_bb_data(row):
     
     # Converts x,y coordinates back to EccPoints
     def to_point(d):
-        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-256')
+        return ECC.EccPoint(int(d['x']), int(d['y']), 'P-192')
     
     # for the vote, antivote, encrypted trapdoor key, and encrypted antitrapdoor key we convert the votes back to EccPoints and the keys to mpz formatting
     for key in ['ev', 'ev_anti', 'enc_ptk', 'enc_ptk_anti']:
@@ -181,7 +181,7 @@ teller_sk = []
 teller_public_key = ""
 teller_registry = []
 
-curve = Curve("P-256")
+curve = Curve("P-192")
 
 
 def poc_setup():
