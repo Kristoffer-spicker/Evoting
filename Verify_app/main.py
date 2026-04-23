@@ -2,8 +2,7 @@ import base64
 import io
 import os
 import random
-import threading
-import uvicorn
+import uvicorn # type: ignore # pylint: disable=import-error
 from dotenv import load_dotenv
 from fastapi import FastAPI # type: ignore # pylint: disable=import-error
 import psycopg2
@@ -71,10 +70,25 @@ raw_keys = cur.fetchall()
 teller_public_keys = [decode_public_key(row) for row in raw_keys]
 
 curve = Curve("P-192")
-vote_max = 12
+vote_max = 4
 
 class QRRequest(BaseModel):
     id: str
+
+def _encode_point(point) -> bytes:
+    x = int(point.x)
+    y = int(point.y)
+    prefix = 0x02 if y % 2 == 0 else 0x03
+    return bytes([prefix]) + x.to_bytes(24, 'big')
+
+def _encode_scalar(scalar) -> bytes:
+    return int(scalar).to_bytes(24, 'big')
+
+def _encode_ciphertext(ct) -> bytes:
+    return _encode_point(ct[0]) + _encode_point(ct[1]) + _encode_scalar(ct[2])
+
+def _encode_proof(proof) -> bytes:
+    return _encode_scalar(proof[0]) + _encode_scalar(proof[1]) + _encode_point(proof[2])
 
 def get_random_tpk(tpks):
     encoded_pk = random.choice(tpks)
@@ -91,23 +105,21 @@ def QR_content(id) -> bytes:
     voter.generate_pok_trapdoor_keypair(tpk)
     voter.generate_pok_antitrapdoor_keypair(tpk)
     
-    data = []
-    data.append(voter.encrypted_trapdoor)
-    data.append(voter.encrypted_antitrapdoor)
-    data.append(voter.pok_trapdoor_key)
-    data.append(voter.pok_antitrapdoor_key)
-    data.append(voter.secret_antitrapdoor_key)
-    data.append(voter.secret_trapdoor_key)
-    token = str(uuid4())
-    cur.execute("INSERT INTO ctr (token, ctr_content) VALUES (%s, %s)", (token, json.dumps(data, cls=ECCEncoder)))
-    con.commit()
-    return token
-    
+    buf = bytearray()
+    buf += _encode_ciphertext(voter.encrypted_trapdoor)
+    for ct in voter.encrypted_antitrapdoor:
+        buf += _encode_ciphertext(ct)
+    buf += _encode_proof(voter.pok_trapdoor_key)
+    for proof in voter.pok_antitrapdoor_key:
+        buf += _encode_proof(proof)
+
+    return bytes(buf)   
 
 
 @app.post("/qrcodegen")
 def make_QR_code(request: QRRequest):
-    qr = segno.make_qr(QR_content(request.id))
+    content = base64.b64encode(QR_content(request.id)).decode('ascii')
+    qr = segno.make_qr(content)
 
     buffer = io.BytesIO()
     qr.save(buffer, kind="png", scale=5)

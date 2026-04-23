@@ -52,15 +52,6 @@ class VCaster:
         cast_vote: Function that takes a given candidates vote and cast it as a ballot
         '''
         print(f"id is {self.id} candidate is {self.vote}")
-        cur.execute("SELECT ctr_content FROM ctr WHERE token = %s", (token,))
-        ctr = cur.fetchone()
-        ctr_content = ctr[0]  
-        self.encrypted_trapdoor = VCaster._decode_ctr(ctr_content[0])
-        self.encrypted_antitrapdoor = VCaster._decode_ctr(ctr_content[1])
-        self.pok_trapdoor_key = VCaster._decode_ctr(ctr_content[2])
-        self.pok_antitrapdoor_key = VCaster._decode_ctr(ctr_content[3])
-        self.secret_antitrapdoor_key = VCaster._decode_ctr(ctr_content[4])
-        self.secret_trapdoor_key = VCaster._decode_ctr(ctr_content[5])
         self.encrypt_vote(teller_public_key)
         self.encrypt_antivote(teller_public_key)
         self.generate_wellformedness_proof(teller_public_key)
@@ -148,8 +139,8 @@ class VCaster:
             "spk": self.public_key,
             "sig": self.signature,
             # only for poc
-            "stk": self.secret_trapdoor_key,
-            "stk_anti": self.secret_antitrapdoor_key,
+            #"stk": self.secret_trapdoor_key,
+            #"stk_anti": self.secret_antitrapdoor_key,
             "ev": self.encrypted_vote,
             "ev_anti": self.encrypted_antivote,
             "enc_ptk": self.encrypted_trapdoor,

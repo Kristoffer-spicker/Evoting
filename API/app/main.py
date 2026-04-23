@@ -5,10 +5,17 @@ import httpx # pylint: disable=import-error
 from sqlalchemy import Column # type: ignore # pylint: disable=import-error
 from sqlalchemy.dialects.postgresql import JSONB # type: ignore # pylint: disable=import-error
 from fastapi import FastAPI, Depends, Query, HTTPException # type: ignore # pylint: disable=import-error
+from fastapi.exceptions import RequestValidationError # type: ignore # pylint: disable=import-error
+from fastapi.responses import JSONResponse # type: ignore # pylint: disable=import-error
 from fastapi.middleware.cors import CORSMiddleware # type: ignore # pylint: disable=import-error
 from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
 from pydantic import BaseModel # type: ignore # pylint: disable=import-error
 app = FastAPI(root_path="/api")
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(_request, exc):
+    print(f"[VALIDATION ERROR] {exc.errors()}", flush=True)
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 class Candidate(SQLModel, table=True):
     __tablename__ = "candidates"
@@ -29,7 +36,7 @@ Class to create the values we need for voting
 class CastVoteRequest(BaseModel):
     voter_id: str
     vote_value: int
-    token: str
+    qr_data: str
 
 connect_args = {"check_same_thread": False}
 DATABASE_URL = (
@@ -131,6 +138,7 @@ async def cast_vote(request: CastVoteRequest):
     Uses a shared SECRET_KEY in the request header to authenticate with cast_app,
     ensuring only the API can trigger the voting function.
     '''
+    print(f"Received: {request}", flush=True)
     secret_key = os.getenv("SECRET_KEY")
     async with httpx.AsyncClient() as client:
         try:
@@ -139,7 +147,7 @@ async def cast_vote(request: CastVoteRequest):
                 json={
                     "id": request.voter_id,
                     "vote_value": request.vote_value,
-                    "token": request.token
+                    "qr_data": request.qr_data
                 },
                 headers={"x-api-key": secret_key},
                 timeout=30.0
