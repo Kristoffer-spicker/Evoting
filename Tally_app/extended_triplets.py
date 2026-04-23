@@ -5,6 +5,7 @@ import multiprocessing
 from Crypto.PublicKey import ECC
 from Encoding import ECCEncoder
 
+# pylint: disable=no-member
 
 def finaltripletdecoder (single_triplet):
     def to_point(d):

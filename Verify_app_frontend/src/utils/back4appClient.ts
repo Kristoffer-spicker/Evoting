@@ -16,12 +16,16 @@ class Back4appClient {
     }
   }
 
-  private getHeaders(): HeadersInit {
-    return {
+  private getHeaders(sessionToken?: string): HeadersInit {
+    const headers: Record<string, string> = {
       'X-Parse-Application-Id': this.appId,
       'X-Parse-JavaScript-Key': this.jsKey,
       'Content-Type': 'application/json'
     };
+    if (sessionToken) {
+      headers['X-Parse-Session-Token'] = sessionToken;
+    }
+    return headers;
   }
 
   private async handleResponse(response: Response) {
@@ -44,7 +48,7 @@ class Back4appClient {
     return this.handleResponse(response);
   }
 
-  async query(className: string, params: Record<string, any> = {}) {
+  async query(className: string, params: Record<string, any> = {}, sessionToken?: string) {
     /*
     query: query function used to get information from the database
     */
@@ -53,7 +57,8 @@ class Back4appClient {
       queryParams.append('where', JSON.stringify(params));
     }
     const url = `${this.serverUrl}/classes/${className}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    const response = await fetch(url, { method: 'GET', headers: this.getHeaders() });
+    const response = await fetch(url, { method: 'GET', headers: this.getHeaders(sessionToken) });
+    console.log("Response:", url);
     return this.handleResponse(response);
   }
 
@@ -154,7 +159,9 @@ class Back4appClient {
   }
 
   async getTrueIdentifierByVoterID(voterID: string) {
-    const result = await this.query('_User', { voterID });
+    const sessionToken = localStorage.getItem('surtr_session_token') || undefined;
+    const result = await this.query('_User', { voterID }, sessionToken);
+    console.log(result.results[0].true_identifier);
     return result.results.length > 0 ? result.results[0].true_identifier : null;
   }
 
@@ -177,13 +184,25 @@ class Back4appClient {
   }
 
   async getVoterChosenCandidate(voterID: string) {
-    const result = await this.query('_User', { voterID });
+    const sessionToken = localStorage.getItem('surtr_session_token') || undefined;
+    const result = await this.query('_User', { voterID }, sessionToken);
     return result.results.length > 0 ? result.results[0].chosen_candidate : null;
   }
 
   async getVoterTrueIdentifier(voterID: string) {
-    const result = await this.query('_User', { voterID });
+    const sessionToken = localStorage.getItem('surtr_session_token') || undefined;
+    const result = await this.query('_User', { voterID }, sessionToken);
     return result.results.length > 0 ? result.results[0].true_identifier : null;
+   /*const queryParams = new URLSearchParams()
+    queryParams.append('where', JSON.stringify({ voterID }));
+    const url = `${this.serverUrl}/classes/users${queryParams.toString()}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: this.getHeaders(sessionToken)
+    })
+    const result = await this.handleResponse(response);
+    console.log(result.results[0].true_identifier);*
+    return result.results.length > 0 ? result.results[0].true_identifier : null;*/
   }
 
   async getVoterIdentifierList(voterID: string) {

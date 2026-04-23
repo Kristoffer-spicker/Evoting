@@ -336,6 +336,9 @@ const findVoterInBack4app = async (voterId: string, name: string, password: stri
     const voter = await back4appClient.loginVoter(voterId.trim(), password.trim());
     if (!voter) return null;
     if (voter.name !== name.trim()) return null;
+        if (voter.sessionToken) {
+      localStorage.setItem('surtr_session_token', voter.sessionToken);
+    }
     return {
       id: voter.objectId || '',
       name: voter.name || '',

@@ -3,4 +3,7 @@ pycryptodome
 python-dotenv
 gmpy2
 git+https://github.com/tompetersen/threshold-crypto.git
-
+fastapi
+uvicorn
+segno
+uuid

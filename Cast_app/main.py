@@ -268,48 +268,6 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
     return {"status": "ok", "voter_id": data["id"]}
 
 
-class QRRequest(BaseModel):
-    id: str
-
-def QR_content(id) -> bytes:
-    voter = VCaster(curve, id, vote_min, vote_max, cur, con)
-    voter.generate_trapdoor_keypair()
-    voter.generate_antitrapdoor_keypair()
-
-    tpk = get_random_tpk(teller_public_keys)
-    voter.encrypt_trapdoor(tpk)
-    voter.encrypt_antitrapdoor(tpk)
-    voter.generate_pok_trapdoor_keypair(tpk)
-    voter.generate_pok_antitrapdoor_keypair(tpk)
-    
-    data = []
-    data.append(voter.encrypted_trapdoor)
-    data.append(voter.encrypted_antitrapdoor)
-    data.append(voter.pok_trapdoor_key)
-    data.append(voter.pok_antitrapdoor_key)
-    data.append(voter.secret_antitrapdoor_key)
-    data.append(voter.secret_trapdoor_key)
-    token = str(uuid4())
-    cur.execute("INSERT INTO ctr (token, ctr_content) VALUES (%s, %s)", (token, json.dumps(data, cls=ECCEncoder)))
-    con.commit()
-    return token
-    
-
-
-@app.post("/qrcodegen")
-def make_QR_code(request: QRRequest):
-    qr = segno.make_qr(QR_content(request.id))
-
-    buffer = io.BytesIO()
-    qr.save(buffer, kind="png", scale=5)
-    png_bytes = buffer.getvalue()
-
-    encoded = base64.b64encode(png_bytes).decode("utf-8")
-
-    return {"status": "ok", "qr_code": encoded}
-    
-
-
 threading.Thread(target=election_timer, args=(election_time,)).start()
 #new thread so that the cast_app can listen for incomming requests on port 8001
 threading.Thread(target=uvicorn.run, kwargs={"app": app, "host": "0.0.0.0", "port": 8001}, daemon=True).start()

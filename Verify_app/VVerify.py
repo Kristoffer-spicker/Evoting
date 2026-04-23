@@ -1,4 +1,3 @@
-import psycopg2
 from util import find_entry_by_comm
 from Crypto.PublicKey import ECC
 from Cast_app.VCaster import VCaster
@@ -24,7 +23,7 @@ class VVerify:
         g_ri_x = self.g_ri * voter.secret_trapdoor_key
         return g_ri_x
     
-    def verifyVote(self, voter): 
+    def verifyVote(self, voter, cur): 
         verification_comm = voter.generate_verification_comm()
         a = 1 # Placeholder for accessing the database with the table of tallied votes
         entry = find_entry_by_comm(verification_comm, a)

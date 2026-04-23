@@ -54,6 +54,7 @@ services:
       - evoting
 
   verify_app:
+    command: ["python3", "main.py"]
     build:
       context: ./Verify_app
     environment:

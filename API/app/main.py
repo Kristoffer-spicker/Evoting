@@ -107,7 +107,7 @@ async def qrcode(request: qrCodeRequest):
     async with httpx.AsyncClient() as client:
         try:
             qrdata = await client.post(
-                "http://cast_app:8001/qrcodegen",
+                "http://verify_app:8002/qrcodegen",
                 json={
                     "id": request.voter_id,
                 },
