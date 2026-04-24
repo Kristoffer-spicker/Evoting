@@ -3,6 +3,7 @@ from Crypto.PublicKey import ECC
 from Cast_app.VCaster import VCaster
 
 
+
 class VVerify:
     def __init__(self, curve, id, vote_min, vote_max, cur,con):
         self.id = id

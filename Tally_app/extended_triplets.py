@@ -35,7 +35,7 @@ def finaltripletdecoder (single_triplet):
 
 
 def final_triplets(cur, con, tellers):
-    # Retrieving the 3 elements from the newly generated tripelt witht he actual vote
+    # Retrieving the 3 elements from the newly generated tripelt with the actual vote
     # -> 0 -> 1 is to get inside all of the outer arrays.
     cur.execute("""
         SELECT 

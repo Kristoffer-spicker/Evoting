@@ -264,6 +264,11 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
       ...voterData
     } as any);
 
+    
+    if (savedVoter.sessionToken) {
+    localStorage.setItem('surtr_session_token', savedVoter.sessionToken);
+    }
+
     await back4appClient.createIdentifiersList({
       voterID: voterId.trim(),
       list: orderedIdentifiersList
