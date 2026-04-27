@@ -30,7 +30,7 @@ class VVerify:
         g_ri_x = self.g_ri * self.secret_trapdoor_key
         return g_ri_x
     
-    def verifyVote(self, voter, cur, g_vote): 
+    def verifyVote(self, cur, g_vote): 
         verification_comm = self.generate_verification_comm()
         
         cur.execute("SELECT triplet FROM reencrypted_extend_triplets")
@@ -44,7 +44,7 @@ class VVerify:
         ):
             pass
         else:
-            print("Error: Verification failed for voter" + str(voter.id))
+            print("Error: Verification failed for this triplet" + str(self.id))
             exit()
 
     def getBB(self):

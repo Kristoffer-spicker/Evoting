@@ -67,6 +67,13 @@ def decode_public_key(datas):
 
     return tc.data.PublicKey(Q, curve_params)
 
+def decode_curve_point(point):
+    return[
+        ECC.EccPoint(int(point[0]['x']), int(point[0]['y']), 'P-192'),
+        ECC.EccPoint(int(point[1]['x']), int(point[1]['y']), 'P-192'),
+        gmpy2.mpz(point[2])
+    ]
+
 app = FastAPI()
 
 cur.execute("SELECT t_pk FROM tellers")
@@ -77,7 +84,7 @@ curve = Curve("P-192")
 vote_max = 4
 
 g_vote_store = {}  # in-memory store
-g_ri_store = {}
+#g_ri_store = {}
 
 class GVoteRequest(BaseModel):
     voter_id: str
@@ -87,6 +94,10 @@ class GVoteRequest(BaseModel):
 
 class QRRequest(BaseModel):
     id: str
+
+class verifyrequest(BaseModel):
+    id: int
+    v_id: str
 
 def _encode_point(point) -> bytes:
     x = int(point.x)
@@ -142,9 +153,42 @@ def make_QR_code(request: QRRequest):
 
     return {"status": "ok", "qr_code": encoded}
 
+@app.post("/verify_vote")
+def verify(request: verifyrequest):
+    c_id = request.id
+    cur.execute("SELECT curve_p FROM candidates WHERE id = %s", (c_id,))
+    c_curve = cur.fetchone()
+    c_curve_decoded = decode_curve_point(c_curve)
+    voterid = request.voterid
+    cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (voterid,))
+    v_id = cur.fetchone()
+    v_id = v_id[0]
+
+    verifier = VVerify(
+                curve=curve,
+                id=voterid,
+                vote_min=0,
+                vote_max=vote_max,
+                cur=cur,
+                con=con
+            )
+
+    for i in range(0, 5):
+        temp_id = i + v_id
+        cur.execute("SELECT dkey FROM decrypted_triplets WHERE id = %s", (temp_id),)
+        dkey = cur.fetchone
+        if (dkey is None):
+            print("Tallying is not done yet", flush=True)
+            return False
+        if (verifier.verifyVote(cur, c_curve)):
+            return True  
+    
+    return False
+        
 
 
-def reencrypted_extend_triplets_listen():
+
+'''def decrypted_triplet_listen():
     """
     Listen to the extended_votes table 
     Starts by connecting to the server
@@ -153,8 +197,8 @@ def reencrypted_extend_triplets_listen():
     conn = get_connection()
     conn.autocommit = True 
     cur = conn.cursor()
-    cur.execute("LISTEN reencrypted_extend_triplets;")
-    print("Listening on reencrypted_extend_triplets", flush=True)
+    cur.execute("LISTEN decrypted_triplets;")
+    print("Listening on decrypted_triplets", flush=True)
     while True:
         if select.select([conn], [], [], 5) == ([], [], []):
             continue
@@ -162,17 +206,18 @@ def reencrypted_extend_triplets_listen():
             conn.poll()
             while conn.notifies:
                 notify = conn.notifies.pop(0)
-                reencrypted_extend_triplets_handler(notify.payload, conn)
+                decrypted_triplets_handler(notify.payload, conn)
 
 
-def reencrypted_extend_triplets_handler(notify, con):
+def decrypted_triplets_handler(notify, con):
+
     try:
         cur = con.cursor()
         for voter_id, g_vote in g_vote_store.items():
             if voter_id not in g_ri_store:
                 print(f"No g_ri for voter {voter_id}, skipping", flush=True)
                 continue
-            
+
             verifier = VVerify(
                 curve=curve,
                 id=voter_id,
@@ -187,13 +232,13 @@ def reencrypted_extend_triplets_handler(notify, con):
             print(f"Vote verified for voter {voter_id}", flush=True)
     except Exception as e:
         print("Error in handler: " + str(e), flush=True)
-        traceback.print_exc()
+        traceback.print_exc()'''
 
     
 
 
-listener_thread = threading.Thread(target=reencrypted_extend_triplets_listen, daemon=True)
-listener_thread.start()
+#listener_thread = threading.Thread(target=decrypted_triplet_listen, daemon=True)
+#listener_thread.start()
 
 @app.post("/receive_g_vote")
 def receive_g_vote(request: GVoteRequest):

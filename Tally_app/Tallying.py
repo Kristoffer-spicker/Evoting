@@ -592,13 +592,13 @@ class Teller:
         except Exception as e:
             print(e)
 
-## NOTE:should we look at the r_i value it should probably nto be the same randomness value for every voter
+
     def raise_h(self, teller_public_key, ballot):
         r_i = self.curve.get_random()
         enc_voter_public_key = ballot["enc_ptk"]
         enc_voter_public_key_anti = ballot["enc_ptk_anti"]
 
-        re_rand = [enc_voter_public_key[0] * r_i, enc_voter_public_key[1] * r_i, r_i]
+        re_rand = [enc_voter_public_key[0] * r_i, enc_voter_public_key[1] * r_i, r_i] ## This is gonna be our commitment
         ciphertext_t = self.ege.re_encrypt(self.public_key.Q, re_rand)
         ciphertext = {"c1": ciphertext_t[0], "c2": ciphertext_t[1], "r": ciphertext_t[3]}
 

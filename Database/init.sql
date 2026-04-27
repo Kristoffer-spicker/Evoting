@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS final_tally (
 );
 
 CREATE TABLE IF NOT EXISTS registered_voters (
-    id        TEXT PRIMARY KEY,
+    id        INT PRIMARY KEY,
+    voterid   TEXT NOT NULL,
     pk        JSONB NOT NULL
 );
 
@@ -72,11 +73,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function for reencrypted_extend_triplets notifications
-CREATE OR REPLACE FUNCTION notify_reencrypted_extend_triplets_vote()
+-- Function for decrypted_triplets notifications
+CREATE OR REPLACE FUNCTION notify_decrypted_triplets_vote()
 RETURNS trigger AS $$
 BEGIN
-    PERFORM pg_notify('reencrypted_extend_triplets',  NEW.id::TEXT);
+    PERFORM pg_notify('decrypted_triplets',  NEW.id::TEXT);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -93,6 +94,6 @@ AFTER INSERT ON extended_votes
 FOR EACH ROW EXECUTE FUNCTION notify_extended_vote();
 
 -- Trigger for reencrypted_extend_triplets_votes
-CREATE OR REPLACE TRIGGER reencrypted_extend_triplets_vote_inserted
-AFTER INSERT ON reencrypted_extend_triplets
-FOR EACH ROW EXECUTE FUNCTION notify_reencrypted_extend_triplets_vote();
+CREATE OR REPLACE TRIGGER decrypted_extend_triplets_vote_inserted
+AFTER INSERT ON decrypted_extend_triplets
+FOR EACH ROW EXECUTE FUNCTION notify_decrypted_extend_triplets_vote();

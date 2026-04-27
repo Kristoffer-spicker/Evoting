@@ -1,12 +1,11 @@
 import json
 import multiprocessing
 import traceback
-import requests
 from Decoding import decode_bb_data
 from Encoding import ECCEncoder
-from util import deserialize_ep, calculate_voter_term
+from util import deserialize_ep
 
-def handler(notify, con, tellers, curve):
+def handler(notify, con, tellers):
     """
     The function called when a new vote is found in the table
     Takes a encrypted vote decodes, extends and encodes it
@@ -18,7 +17,7 @@ def handler(notify, con, tellers, curve):
     cur.execute("SELECT ballot FROM encrypted_votes WHERE id = %s", (notify,))
     ballot = cur.fetchone()[0]
 
-    extended_ballot = extend_and_encode_vote(ballot, tellers, curve)
+    extended_ballot = extend_and_encode_vote(ballot, tellers)
     parsed = json.loads(extended_ballot)
 
     cur.execute(
@@ -30,7 +29,7 @@ def handler(notify, con, tellers, curve):
     con.close()
 
     
-def extend_and_encode_vote(row, tellers, curve):
+def extend_and_encode_vote(row, tellers):
     """
     Takes an encoded vote 
     The vote is then decoded
@@ -67,22 +66,7 @@ def extend_and_encode_vote(row, tellers, curve):
                 
             
             p.join()
-                # Compute g_ri for this voter and send to VVerify
-            voter_id = decoded["id"]
-            g_ri = calculate_voter_term(curve, voter_id, teller_registry)
-
-            if isinstance(g_ri, int):
-                 print(f"No g_ri found for voter {voter_id}, teller_registry ids: {[item['id'] for item in teller_registry]}", flush=True)
-            else:
-                requests.post("http://verify_app:8002/receive_g_ri", json={
-                "voter_id": voter_id,
-                "g_ri": {
-                    "x": str(g_ri.x),
-                    "y": str(g_ri.y),
-                    "curve": g_ri.curve
-                }
-            })
-            print(f"Sent g_ri for voter {voter_id}", flush=True)  
+               
 
        
         raised = []

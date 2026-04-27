@@ -30,6 +30,10 @@ class Teller(SQLModel, table=True):
 class qrCodeRequest(BaseModel):
     voter_id: str
 
+class verifyrequest(BaseModel):
+    candidate_id: int
+    voter_id: str
+
 '''
 Class to create the values we need for voting
 '''
@@ -125,11 +129,33 @@ async def qrcode(request: qrCodeRequest):
             return qrdata.json()
             
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail="cast_app rejected the rquest")
+            raise HTTPException(status_code=e.response.status_code, detail="verify_app rejected the rquest")
         except httpx.RequestError:
-            raise HTTPException(status_code=503, detail="Could not reach cast_app")
+            raise HTTPException(status_code=503, detail="Could not reach verify_app")
 
     
+
+@app.post("/verify_vote")
+async def verify_vote(request: verifyrequest):
+    secret_key = os.getenv("SECRET_KEY")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "http://verify_app:8002/verify_vote",
+                json={
+                    "id": request.candidate_id,
+                    "v_id": request.voter_id
+                },
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json()
+        
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail="verify_app rejected the rquest")
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Could not reach verify_app")
+
 
 @app.post("/castvote")
 

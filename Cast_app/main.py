@@ -309,8 +309,17 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
     
     voter.generate_dsa_keys()
     pk = voter.public_key
+
+
+    cur.execute("SELECT max(id) FROM registered_voters")
+    temp_id = cur.fetchone
+    if (temp_id is None):
+        r_id = 0
+    else:
+        r_id = temp_id + 1
+        
     cur.execute(
-        "INSERT INTO registered_voters (id, pk) VALUES (%s, %s)", (data["id"], json.dumps(pk, cls=ECCEncoder))
+        "INSERT INTO registered_voters (id, voterid, pk) VALUES (%s, %s, %s)", (r_id, data["id"], json.dumps(pk, cls=ECCEncoder))
     )
 
     con.commit()
