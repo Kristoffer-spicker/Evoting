@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 //import { QRCodeSVG } from 'qrcode.react';
 import { ProgressSteps } from '@/components/preparation-components/preparation-comp';
@@ -40,9 +40,12 @@ const QRCodeContent = () => {
   const voterId = state?.voterId || '0000';
 
   const [qrCode, setQrCode] = useState<string>("");
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    genQR(voterId)                                 
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    genQR(voterId)
       .then(data => setQrCode(data.qr_code))
       .catch(err => console.error(err));
   }, []);

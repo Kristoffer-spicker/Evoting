@@ -14,11 +14,11 @@ class qr_data:
             self.ege = ElGamalEncryption(self.curve)
             self.secret_trapdoor_key, self.public_trapdoor_key = self.ege.keygen()
 
-            qr_data._secret_trapdoor_key = self.secret_trapdoor_key
+            qr_data.secret_trapdoor_key = self.secret_trapdoor_key
 
     @classmethod
     def get_trapdoor_key(cls):
-        return cls._secret_trapdoor_key        
+        return cls.secret_trapdoor_key        
 
     def generate_antitrapdoor_keypair(self):#generate x2 and g^x2
         self.secret_antitrapdoor_key = []

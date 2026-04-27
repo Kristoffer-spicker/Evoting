@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse # type: ignore # pylint: disable=impo
 from fastapi.middleware.cors import CORSMiddleware # type: ignore # pylint: disable=import-error
 from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
 from pydantic import BaseModel # type: ignore # pylint: disable=import-error
-app = FastAPI(root_path="/api", docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(root_path="/api")
 
 @app.exception_handler(RequestValidationError)
 async def validation_error_handler(_request, exc):
@@ -144,7 +144,7 @@ async def verify_vote(request: verifyrequest):
                 "http://verify_app:8002/verify_vote",
                 json={
                     "id": request.candidate_id,
-                    "v_id": request.voter_id
+                    "voterid": request.voter_id
                 },
                 timeout=30.0
             )

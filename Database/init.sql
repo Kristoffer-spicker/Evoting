@@ -46,13 +46,18 @@ CREATE TABLE IF NOT EXISTS final_tally (
 CREATE TABLE IF NOT EXISTS registered_voters (
     id        INT PRIMARY KEY,
     voterid   TEXT NOT NULL,
-    pk        JSONB NOT NULL
+    pk        JSONB NOT NULL,
+    trapdoor_key TEXT
 );
 
 CREATE TABLE IF NOT EXISTS ctr (
     token        TEXT PRIMARY KEY,
     ctr_content  JSONB NOT NULL
+);
 
+CREATE TABLE IF NOT EXISTS voter_trapdoor_keys (
+    voterid      TEXT PRIMARY KEY,
+    trapdoor_key TEXT NOT NULL
 );
 
 -- This function fires a notification at insertion into encryptedVotes

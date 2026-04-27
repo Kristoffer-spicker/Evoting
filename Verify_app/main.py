@@ -2,9 +2,7 @@ import base64
 import io
 import os
 import random
-import select
-import traceback
-import threading
+import json
 import uvicorn # type: ignore # pylint: disable=import-error
 from dotenv import load_dotenv
 from fastapi import FastAPI # type: ignore # pylint: disable=import-error
@@ -12,7 +10,6 @@ import psycopg2
 import threshold_crypto as tc
 from threshold_crypto import CurveParameters
 from pydantic import BaseModel # pyright: ignore[reportMissingImports] # pylint: disable=import-error
-import json
 from Crypto.PublicKey import ECC
 from qr_backend import qr_data
 from curve import Curve
@@ -49,6 +46,7 @@ def get_connection():
     return con
 try:
     con = get_connection()
+    con.autocommit = True
     cur = con.cursor()
 except Exception as e:
     print("FAILED to retrieve from tally", e, flush=True)
@@ -68,11 +66,11 @@ def decode_public_key(datas):
     return tc.data.PublicKey(Q, curve_params)
 
 def decode_curve_point(point):
-    return[
-        ECC.EccPoint(int(point[0]['x']), int(point[0]['y']), 'P-192'),
-        ECC.EccPoint(int(point[1]['x']), int(point[1]['y']), 'P-192'),
-        gmpy2.mpz(point[2])
-    ]
+    x = int(point["x"])
+    y = int(point["y"])
+    curve_name = point.get("curve_name") or point.get("curve")
+    return ECC.EccPoint(x, y, curve_name)
+
 
 app = FastAPI()
 
@@ -97,7 +95,7 @@ class QRRequest(BaseModel):
 
 class verifyrequest(BaseModel):
     id: int
-    v_id: str
+    voterid: str
 
 def _encode_point(point) -> bytes:
     x = int(point.x)
@@ -136,6 +134,10 @@ def QR_content(id) -> bytes:
     buf += _encode_proof(voter.pok_trapdoor_key)
     for proof in voter.pok_antitrapdoor_key:
         buf += _encode_proof(proof)
+    cur.execute(
+        "INSERT INTO voter_trapdoor_keys (voterid, trapdoor_key) VALUES (%s, %s) ON CONFLICT (voterid) DO NOTHING",
+        (id, str(voter.secret_trapdoor_key))
+    )
 
     return bytes(buf)   
 
@@ -158,11 +160,13 @@ def verify(request: verifyrequest):
     c_id = request.id
     cur.execute("SELECT curve_p FROM candidates WHERE id = %s", (c_id,))
     c_curve = cur.fetchone()
-    c_curve_decoded = decode_curve_point(c_curve)
+    print(c_curve, flush=True)
+    c_curve_decoded = decode_curve_point(c_curve[0])
     voterid = request.voterid
     cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (voterid,))
     v_id = cur.fetchone()
     v_id = v_id[0]
+    print("step one down", flush=True)
 
     verifier = VVerify(
                 curve=curve,
@@ -172,17 +176,25 @@ def verify(request: verifyrequest):
                 cur=cur,
                 con=con
             )
-
-    for i in range(0, 5):
-        temp_id = i + v_id
-        cur.execute("SELECT dkey FROM decrypted_triplets WHERE id = %s", (temp_id),)
-        dkey = cur.fetchone
-        if (dkey is None):
-            print("Tallying is not done yet", flush=True)
-            return False
-        if (verifier.verifyVote(cur, c_curve)):
-            return True  
     
+    print("step two down", flush=True)
+
+    cur.execute("SELECT min(id), max(id), count(*) FROM decrypted_triplets")
+    stats = cur.fetchone()
+    print(f"decrypted_triplets: min_id={stats[0]}, max_id={stats[1]}, count={stats[2]}", flush=True)
+    print(f"v_id={v_id}, will query triplet IDs {v_id} to {v_id + vote_max - 1}", flush=True)
+
+    for i in range(0, vote_max):
+        temp_id = i + v_id
+        cur.execute("SELECT triplet->'dkey' FROM decrypted_triplets WHERE id = %s", (temp_id,))
+        raw = cur.fetchone()
+        if raw is None:
+            print(f"Triplet id={temp_id} not found — tallying not done yet", flush=True)
+            return False
+        dkey = decode_curve_point(raw[0])
+        if verifier.verifyVote(cur, c_curve_decoded, dkey):
+            return True
+
     return False
         
 
