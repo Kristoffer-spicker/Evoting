@@ -3,6 +3,8 @@ from Crypto.PublicKey import ECC
 
 class qr_data:
     
+    secret_trapdoor_key = None
+    
     def __init__(self, curve, id, vote_max):
         self.id = id
         self.curve = curve
@@ -11,6 +13,12 @@ class qr_data:
     def generate_trapdoor_keypair(self): #generate x1 and g^x1
             self.ege = ElGamalEncryption(self.curve)
             self.secret_trapdoor_key, self.public_trapdoor_key = self.ege.keygen()
+
+            qr_data._secret_trapdoor_key = self.secret_trapdoor_key
+
+    @classmethod
+    def get_trapdoor_key(cls):
+        return cls._secret_trapdoor_key        
 
     def generate_antitrapdoor_keypair(self):#generate x2 and g^x2
         self.secret_antitrapdoor_key = []

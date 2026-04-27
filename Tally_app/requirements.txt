@@ -3,3 +3,4 @@ git+https://github.com/tompetersen/threshold-crypto.git
 gmpy2
 python-dotenv
 psycopg2-binary
+requests

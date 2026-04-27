@@ -72,6 +72,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function for reencrypted_extend_triplets notifications
+CREATE OR REPLACE FUNCTION notify_reencrypted_extend_triplets_vote()
+RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify('reencrypted_extend_triplets',  NEW.id::TEXT);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 
 -- The trigger that calls the function on every INSERT
 CREATE OR REPLACE TRIGGER encrypted_vote_inserted
@@ -82,3 +91,8 @@ FOR EACH ROW EXECUTE FUNCTION notify_encrypted_vote();
 CREATE OR REPLACE TRIGGER extended_vote_inserted
 AFTER INSERT ON extended_votes
 FOR EACH ROW EXECUTE FUNCTION notify_extended_vote();
+
+-- Trigger for reencrypted_extend_triplets_votes
+CREATE OR REPLACE TRIGGER reencrypted_extend_triplets_vote_inserted
+AFTER INSERT ON reencrypted_extend_triplets
+FOR EACH ROW EXECUTE FUNCTION notify_reencrypted_extend_triplets_vote();

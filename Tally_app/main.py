@@ -144,7 +144,7 @@ def encrypted_listen():
             conn.poll()
             while conn.notifies:
                 notify = conn.notifies.pop(0)
-                handler(notify.payload, get_listener_connection(), tellers)
+                handler(notify.payload, get_listener_connection(), tellers, curve)
 
 
 def extended_listen():

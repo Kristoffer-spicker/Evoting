@@ -2,6 +2,9 @@ import base64
 import io
 import os
 import random
+import select
+import traceback
+import threading
 import uvicorn # type: ignore # pylint: disable=import-error
 from dotenv import load_dotenv
 from fastapi import FastAPI # type: ignore # pylint: disable=import-error
@@ -16,6 +19,7 @@ from curve import Curve
 from uuid import uuid4
 import segno #type: ignore # pylint: disable=import-error
 import gmpy2
+from VVerify import VVerify
 
 
 # pylint: disable=no-member
@@ -71,6 +75,15 @@ teller_public_keys = [decode_public_key(row) for row in raw_keys]
 
 curve = Curve("P-192")
 vote_max = 4
+
+g_vote_store = {}  # in-memory store
+g_ri_store = {}
+
+class GVoteRequest(BaseModel):
+    voter_id: str
+    g_vote_x: str
+    g_vote_y: str
+    curve: str
 
 class QRRequest(BaseModel):
     id: str
@@ -128,5 +141,65 @@ def make_QR_code(request: QRRequest):
     encoded = base64.b64encode(png_bytes).decode("utf-8")
 
     return {"status": "ok", "qr_code": encoded}
+
+
+
+def reencrypted_extend_triplets_listen():
+    """
+    Listen to the extended_votes table 
+    Starts by connecting to the server
+    Then runs a while true loop that checks the table continuously
+    """
+    conn = get_connection()
+    conn.autocommit = True 
+    cur = conn.cursor()
+    cur.execute("LISTEN reencrypted_extend_triplets;")
+    print("Listening on reencrypted_extend_triplets", flush=True)
+    while True:
+        if select.select([conn], [], [], 5) == ([], [], []):
+            continue
+        else:
+            conn.poll()
+            while conn.notifies:
+                notify = conn.notifies.pop(0)
+                reencrypted_extend_triplets_handler(notify.payload, conn)
+
+
+def reencrypted_extend_triplets_handler(notify, con):
+    try:
+        cur = con.cursor()
+        for voter_id, g_vote in g_vote_store.items():
+            if voter_id not in g_ri_store:
+                print(f"No g_ri for voter {voter_id}, skipping", flush=True)
+                continue
+            
+            verifier = VVerify(
+                curve=curve,
+                id=voter_id,
+                vote_min=0,
+                vote_max=vote_max,
+                cur=cur,
+                con=con
+            )
+            verifier.g_ri = g_ri_store[voter_id]
+            verifier.g_vote = g_vote
+            verifier.verifyVote(verifier, cur, g_vote)
+            print(f"Vote verified for voter {voter_id}", flush=True)
+    except Exception as e:
+        print("Error in handler: " + str(e), flush=True)
+        traceback.print_exc()
+
+    
+
+
+listener_thread = threading.Thread(target=reencrypted_extend_triplets_listen, daemon=True)
+listener_thread.start()
+
+@app.post("/receive_g_vote")
+def receive_g_vote(request: GVoteRequest):
+    g_vote_store[request.voter_id] = ECC.EccPoint(
+        int(request.g_vote_x), int(request.g_vote_y), request.curve
+    )
+    return {"status": "ok"}
 
 uvicorn.run(app, host="0.0.0.0", port=8002)

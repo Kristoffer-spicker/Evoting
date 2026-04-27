@@ -1,6 +1,8 @@
 from util import find_entry_by_comm
 from Crypto.PublicKey import ECC
-from Cast_app.VCaster import VCaster
+from qr_backend import qr_data
+
+
 
 
 
@@ -15,22 +17,30 @@ class VVerify:
     
     def getVoter(self, id):
         global voter 
-        voter = VCaster(self.curve, id, self.vote_min, self.vote_max)
+        self.cur.execute("SELECT pk FROM registered_voters WHERE id = %s", (id,))
+        row = self.cur.fetchone()
+        voter = row[0]
+        ##voter = VCaster(self.curve, id, self.vote_min, self.vote_max)
         
     def notify(self, encrypted_term):
         self.g_ri = encrypted_term
 
     def generate_verification_comm(self):
-        g_ri_x = self.g_ri * voter.secret_trapdoor_key
+        self.secret_trapdoor_key = qr_data.get_trapdoor_key()
+        g_ri_x = self.g_ri * self.secret_trapdoor_key
         return g_ri_x
     
-    def verifyVote(self, voter, cur): 
-        verification_comm = voter.generate_verification_comm()
-        a = 1 # Placeholder for accessing the database with the table of tallied votes
-        entry = find_entry_by_comm(verification_comm, a)
+    def verifyVote(self, voter, cur, g_vote): 
+        verification_comm = self.generate_verification_comm()
+        
+        cur.execute("SELECT triplet FROM reencrypted_extend_triplets")
+        rows = cur.fetchall()
+        verification_bb = [row[0] for row in rows]
+        
+        entry = find_entry_by_comm(verification_comm, verification_bb)
         if (
             ECC.EccPoint(entry["v"]["x"], entry["v"]["y"], entry["v"]["curve"])
-            == voter.g_vote
+            == g_vote
         ):
             pass
         else:
