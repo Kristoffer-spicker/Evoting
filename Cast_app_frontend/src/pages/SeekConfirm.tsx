@@ -33,7 +33,7 @@ interface LocationState {
   userName?: string;
   voterId?: string;
   selectedCandidate?: Candidate;
-  token?: string
+  qr_data?: string
 }
 
 const SeekConfirm: React.FC = () => {
@@ -51,7 +51,7 @@ const SeekConfirm: React.FC = () => {
   const userData = {
     userName: state?.userName || 'Voter',
     voterId: state?.voterId || '0000',
-    token: state?.token || ''
+    qr_data: state?.qr_data || ''
   };
   const selectedCandidate = state?.selectedCandidate || {id:100, name: 'Candidate A'};
 
@@ -116,7 +116,7 @@ const SeekConfirm: React.FC = () => {
   setDebugInfo(`API URL: ${url} | Voter: ${userData.voterId} | Candidate: ${selectedCandidate.name}`);
 
   try {
-    await castVoterVote(userData.voterId, selectedCandidate, userData.token);
+    await castVoterVote(userData.voterId, selectedCandidate, userData.qr_data);
     setDebugInfo(prev => prev + ' | Vote cast OK');
   } catch (voteError) {
     setDebugInfo(prev => prev + ` | Vote error: ${voteError instanceof Error ? voteError.message : String(voteError)}`);

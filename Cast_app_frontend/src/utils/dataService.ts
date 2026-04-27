@@ -165,7 +165,7 @@ export const checkVotingStatus = async (voterID: string) => {
   }
 };
 
-export const castVoterVote = async (voterID: string, candidate: Candidate, token: string) => {
+export const castVoterVote = async (voterID: string, candidate: Candidate, qrdata: string) => {
   /*
   castVoterVote: Function that casts the voters vote, this is done by setting,
   hasVoted to true and store their chosen candidate.
@@ -181,7 +181,7 @@ export const castVoterVote = async (voterID: string, candidate: Candidate, token
     if (!voter) {
       throw new Error('Voter not found');
     }
-    await sendVote(voterID, candidate, token);
+    await sendVote(voterID, candidate, qrdata);
     
     
     await back4appClient.updateVoter(voter.objectId, { 
@@ -204,14 +204,14 @@ async function serverLog(message: string) {
   }).catch(() => {}); // silently fail if API unreachable
 }
 
-async function sendVote(voterID: string, candidate: Candidate, token: string) {
+async function sendVote(voterID: string, candidate: Candidate, qrdata: string) {
   const url = (import.meta as any).env.VITE_API_URL;
   const response = await fetch(`${url}/castvote`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ voter_id: voterID, vote_value: candidate.id, token: token }),
+    body: JSON.stringify({ voter_id: voterID, vote_value: candidate.id, qr_data: qrdata }),
   });
 
   if (!response.ok) {

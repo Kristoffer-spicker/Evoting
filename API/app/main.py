@@ -5,10 +5,17 @@ import httpx # pylint: disable=import-error
 from sqlalchemy import Column # type: ignore # pylint: disable=import-error
 from sqlalchemy.dialects.postgresql import JSONB # type: ignore # pylint: disable=import-error
 from fastapi import FastAPI, Depends, Query, HTTPException # type: ignore # pylint: disable=import-error
+from fastapi.exceptions import RequestValidationError # type: ignore # pylint: disable=import-error
+from fastapi.responses import JSONResponse # type: ignore # pylint: disable=import-error
 from fastapi.middleware.cors import CORSMiddleware # type: ignore # pylint: disable=import-error
 from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
 from pydantic import BaseModel # type: ignore # pylint: disable=import-error
-app = FastAPI(root_path="/api")
+app = FastAPI(root_path="/api", docs_url=None, redoc_url=None, openapi_url=None)
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(_request, exc):
+    print(f"[VALIDATION ERROR] {exc.errors()}", flush=True)
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 class Candidate(SQLModel, table=True):
     __tablename__ = "candidates"
@@ -29,7 +36,7 @@ Class to create the values we need for voting
 class CastVoteRequest(BaseModel):
     voter_id: str
     vote_value: int
-    token: str
+    qr_data: str
 
 connect_args = {"check_same_thread": False}
 DATABASE_URL = (
@@ -51,12 +58,14 @@ def get_session():
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
+ALLOWED_ORIGINS = [o for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 class LogRequest(BaseModel):
@@ -88,12 +97,12 @@ def read_candidate(candidate_id: int, session: SessionDep) -> Candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
     return candidate    
 
-@app.post("/addcandidates/")
+'''@app.post("/addcandidates/")
 def create_candidate(candidate: Candidate, session: SessionDep) -> Candidate:
     session.add(candidate)
     session.commit()
     session.refresh(candidate)
-    return candidate
+    return candidate'''
 
 @app.get("/getTallyKey")
 def get_tally_key(session: SessionDep):
@@ -107,7 +116,7 @@ async def qrcode(request: qrCodeRequest):
     async with httpx.AsyncClient() as client:
         try:
             qrdata = await client.post(
-                "http://cast_app:8001/qrcodegen",
+                "http://verify_app:8002/qrcodegen",
                 json={
                     "id": request.voter_id,
                 },
@@ -131,6 +140,7 @@ async def cast_vote(request: CastVoteRequest):
     Uses a shared SECRET_KEY in the request header to authenticate with cast_app,
     ensuring only the API can trigger the voting function.
     '''
+    print(f"Received: {request}", flush=True)
     secret_key = os.getenv("SECRET_KEY")
     async with httpx.AsyncClient() as client:
         try:
@@ -139,7 +149,7 @@ async def cast_vote(request: CastVoteRequest):
                 json={
                     "id": request.voter_id,
                     "vote_value": request.vote_value,
-                    "token": request.token
+                    "qr_data": request.qr_data
                 },
                 headers={"x-api-key": secret_key},
                 timeout=30.0

@@ -82,8 +82,6 @@ def decode_bb_data(row):
         bb_data['spk'] = ECC.import_key(spk_data)
 
     # --- Trapdoor keys ---
-    bb_data['stk'] = gmpy2.mpz(bb_data['stk'])
-    bb_data['stk_anti'] = [gmpy2.mpz(x) for x in bb_data['stk_anti']]
     bb_data['sum_r'] = gmpy2.mpz(bb_data['sum_r'])
 
     # --- Signature ---

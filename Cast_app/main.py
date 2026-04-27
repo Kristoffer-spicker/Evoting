@@ -153,7 +153,7 @@ if (
 
 
 vote_min = 0
-vote_max = 12
+vote_max = 4
 
 t_voting_single = 0
 t_verification_single = 0
@@ -239,6 +239,41 @@ def get_random_tpk(tpks):
     return encoded_pk
 
 
+_P192_P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFF
+_P192_B = 0x64210519E59C80E70FA7E9AB72243049FEB8DEECC146B9B1
+
+def _decompress_point(x: int, prefix: int) -> int:
+    p = _P192_P
+    a = p - 3  # -3 mod p
+    y_sq = (pow(x, 3, p) + a * x + _P192_B) % p
+    y = pow(y_sq, (p + 1) // 4, p)  # works because p ≡ 3 (mod 4)
+    if (y % 2 == 0) != (prefix == 0x02):
+        y = p - y
+    return y
+
+def _decode_scalar(data: bytes, offset: int):
+    val = int.from_bytes(data[offset:offset+24], 'big')
+    return gmpy2.mpz(val), offset + 24
+
+def _decode_ciphertext(data: bytes, offset: int):
+    p0, offset = _decode_point(data, offset)
+    p1, offset = _decode_point(data, offset)
+    s,  offset = _decode_scalar(data, offset)
+    return (p0, p1, s), offset
+
+def _decode_proof(data: bytes, offset: int):
+    s0, offset = _decode_scalar(data, offset)
+    s1, offset = _decode_scalar(data, offset)
+    p,  offset = _decode_point(data, offset)
+    return (s0, s1, p), offset
+
+def _decode_point(data: bytes, offset: int):
+    prefix = data[offset]
+    x = int.from_bytes(data[offset+1:offset+25], 'big')
+    y = _decompress_point(x, prefix)
+    return ECC.EccPoint(x, y, 'P-192'), offset + 25
+
+
 @app.post("/trigger")
 async def trigger(data: dict, x_api_key: str = Header(...)):
     '''
@@ -252,7 +287,25 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
     if x_api_key != os.getenv("SECRET_KEY"):
         raise HTTPException(status_code=403, detail="Forbidden")
     
+    qr_bytes = base64.b64decode(data["qr_data"])
+    offset = 0
+    encrypted_trapdoor, offset = _decode_ciphertext(qr_bytes, offset)
+    encrypted_antitrapdoor = []
+    for i in range(vote_max - 1):
+        ct, offset = _decode_ciphertext(qr_bytes, offset)
+        encrypted_antitrapdoor.append(ct)
+    
+    pok_trapdoor_key, offset = _decode_proof(qr_bytes, offset)
+    pok_antitrapdoor_key = []
+    for _ in range(vote_max - 1):
+        proof, offset = _decode_proof(qr_bytes, offset)
+        pok_antitrapdoor_key.append(proof)
+    
     voter = VCaster.findVoter(data["id"], curve, vote_min, vote_max, cur, con)
+    voter.encrypted_trapdoor = encrypted_trapdoor
+    voter.encrypted_antitrapdoor = encrypted_antitrapdoor
+    voter.pok_trapdoor_key = pok_trapdoor_key
+    voter.pok_antitrapdoor_key = pok_antitrapdoor_key
     
     voter.generate_dsa_keys()
     pk = voter.public_key
@@ -262,52 +315,10 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
 
     con.commit()
     voter.vote = data["vote_value"]
-    voter.cast_vote(get_random_tpk(teller_public_keys), data["token"], cur)
+    voter.cast_vote(get_random_tpk(teller_public_keys), data["qr_data"], cur)
     voter.sign_ballot()
 
     return {"status": "ok", "voter_id": data["id"]}
-
-
-class QRRequest(BaseModel):
-    id: str
-
-def QR_content(id) -> bytes:
-    voter = VCaster(curve, id, vote_min, vote_max, cur, con)
-    voter.generate_trapdoor_keypair()
-    voter.generate_antitrapdoor_keypair()
-
-    tpk = get_random_tpk(teller_public_keys)
-    voter.encrypt_trapdoor(tpk)
-    voter.encrypt_antitrapdoor(tpk)
-    voter.generate_pok_trapdoor_keypair(tpk)
-    voter.generate_pok_antitrapdoor_keypair(tpk)
-    
-    data = []
-    data.append(voter.encrypted_trapdoor)
-    data.append(voter.encrypted_antitrapdoor)
-    data.append(voter.pok_trapdoor_key)
-    data.append(voter.pok_antitrapdoor_key)
-    data.append(voter.secret_antitrapdoor_key)
-    data.append(voter.secret_trapdoor_key)
-    token = str(uuid4())
-    cur.execute("INSERT INTO ctr (token, ctr_content) VALUES (%s, %s)", (token, json.dumps(data, cls=ECCEncoder)))
-    con.commit()
-    return token
-    
-
-
-@app.post("/qrcodegen")
-def make_QR_code(request: QRRequest):
-    qr = segno.make_qr(QR_content(request.id))
-
-    buffer = io.BytesIO()
-    qr.save(buffer, kind="png", scale=5)
-    png_bytes = buffer.getvalue()
-
-    encoded = base64.b64encode(png_bytes).decode("utf-8")
-
-    return {"status": "ok", "qr_code": encoded}
-    
 
 
 threading.Thread(target=election_timer, args=(election_time,)).start()
