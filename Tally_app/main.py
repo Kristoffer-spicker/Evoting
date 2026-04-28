@@ -116,7 +116,7 @@ def setup():
         cur.execute("INSERT INTO tellers VALUES (%s, %s)", (teller_id,t_pk))
         con.commit()
 
-    for i in range(0, 12):
+    for i in range(0, 4):
         curve_p = curve.raise_p(i)
         encoded = json.dumps(curve_p, cls=ECCEncoder)
         cur.execute ("INSERT INTO candidates VALUES (%s, %s)", (i, encoded))

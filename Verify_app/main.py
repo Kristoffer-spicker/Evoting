@@ -2,6 +2,7 @@ import base64
 import io
 import os
 import random
+import json
 import uvicorn # type: ignore # pylint: disable=import-error
 from dotenv import load_dotenv
 from fastapi import FastAPI # type: ignore # pylint: disable=import-error
@@ -9,13 +10,13 @@ import psycopg2
 import threshold_crypto as tc
 from threshold_crypto import CurveParameters
 from pydantic import BaseModel # pyright: ignore[reportMissingImports] # pylint: disable=import-error
-import json
 from Crypto.PublicKey import ECC
 from qr_backend import qr_data
 from curve import Curve
 from uuid import uuid4
 import segno #type: ignore # pylint: disable=import-error
 import gmpy2
+from VVerify import VVerify
 
 
 # pylint: disable=no-member
@@ -45,6 +46,7 @@ def get_connection():
     return con
 try:
     con = get_connection()
+    con.autocommit = True
     cur = con.cursor()
 except Exception as e:
     print("FAILED to retrieve from tally", e, flush=True)
@@ -63,6 +65,13 @@ def decode_public_key(datas):
 
     return tc.data.PublicKey(Q, curve_params)
 
+def decode_curve_point(point):
+    x = int(point["x"])
+    y = int(point["y"])
+    curve_name = point.get("curve_name") or point.get("curve")
+    return ECC.EccPoint(x, y, curve_name)
+
+
 app = FastAPI()
 
 cur.execute("SELECT t_pk FROM tellers")
@@ -72,8 +81,20 @@ teller_public_keys = [decode_public_key(row) for row in raw_keys]
 curve = Curve("P-192")
 vote_max = 4
 
+g_vote_store = {}  # in-memory store
+#g_ri_store = {}
+
+class GVoteRequest(BaseModel):
+    voter_id: str
+    g_vote_x: str
+    g_vote_y: str
+    curve: str
+
 class QRRequest(BaseModel):
     id: str
+
+class verifyrequest(BaseModel):
+    voterid: str
 
 def _encode_point(point) -> bytes:
     x = int(point.x)
@@ -99,6 +120,11 @@ def QR_content(id) -> bytes:
     voter.generate_trapdoor_keypair()
     voter.generate_antitrapdoor_keypair()
 
+    secret = voter.get_trapdoor_key()
+
+    encoded = json.dumps(secret, cls=ECCEncoder)
+    cur.execute("INSERT INTO voter_keys (id, sk) VALUES (%s, %s)", (id, encoded,))
+
     tpk = get_random_tpk(teller_public_keys)
     voter.encrypt_trapdoor(tpk)
     voter.encrypt_antitrapdoor(tpk)
@@ -112,7 +138,6 @@ def QR_content(id) -> bytes:
     buf += _encode_proof(voter.pok_trapdoor_key)
     for proof in voter.pok_antitrapdoor_key:
         buf += _encode_proof(proof)
-
     return bytes(buf)   
 
 
@@ -128,5 +153,97 @@ def make_QR_code(request: QRRequest):
     encoded = base64.b64encode(png_bytes).decode("utf-8")
 
     return {"status": "ok", "qr_code": encoded}
+
+@app.post("/verify_vote")
+def verify(request: verifyrequest):
+    voterid = request.voterid
+    cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (voterid,))
+    v_id = cur.fetchone()
+    v_id = v_id[0]
+    print("step one down", flush=True)
+
+    verifier = VVerify(
+                curve=curve,
+                id=voterid,
+                vote_min=0,
+                vote_max=vote_max,
+                cur=cur,
+                con=con
+            )
+    
+    print("step two down", flush=True)
+
+    triplet_start = v_id * vote_max
+    print(f"v_id={v_id}, querying triplet IDs {triplet_start} to {triplet_start + vote_max - 1}", flush=True)
+
+    cur.execute("SELECT triplet->'dkey' FROM decrypted_triplets WHERE id = %s", (triplet_start,))
+    raw = cur.fetchone()
+    if raw is None:
+        print("Tallying not done yet — triplets not found", flush=True)
+        return False
+    dkey = decode_curve_point(raw[0])
+    return verifier.verifyVote(cur, triplet_start, dkey)
+        
+
+
+
+'''def decrypted_triplet_listen():
+    """
+    Listen to the extended_votes table 
+    Starts by connecting to the server
+    Then runs a while true loop that checks the table continuously
+    """
+    conn = get_connection()
+    conn.autocommit = True 
+    cur = conn.cursor()
+    cur.execute("LISTEN decrypted_triplets;")
+    print("Listening on decrypted_triplets", flush=True)
+    while True:
+        if select.select([conn], [], [], 5) == ([], [], []):
+            continue
+        else:
+            conn.poll()
+            while conn.notifies:
+                notify = conn.notifies.pop(0)
+                decrypted_triplets_handler(notify.payload, conn)
+
+
+def decrypted_triplets_handler(notify, con):
+
+    try:
+        cur = con.cursor()
+        for voter_id, g_vote in g_vote_store.items():
+            if voter_id not in g_ri_store:
+                print(f"No g_ri for voter {voter_id}, skipping", flush=True)
+                continue
+
+            verifier = VVerify(
+                curve=curve,
+                id=voter_id,
+                vote_min=0,
+                vote_max=vote_max,
+                cur=cur,
+                con=con
+            )
+            verifier.g_ri = g_ri_store[voter_id]
+            verifier.g_vote = g_vote
+            verifier.verifyVote(verifier, cur, g_vote)
+            print(f"Vote verified for voter {voter_id}", flush=True)
+    except Exception as e:
+        print("Error in handler: " + str(e), flush=True)
+        traceback.print_exc()'''
+
+    
+
+
+#listener_thread = threading.Thread(target=decrypted_triplet_listen, daemon=True)
+#listener_thread.start()
+
+@app.post("/receive_g_vote")
+def receive_g_vote(request: GVoteRequest):
+    g_vote_store[request.voter_id] = ECC.EccPoint(
+        int(request.g_vote_x), int(request.g_vote_y), request.curve
+    )
+    return {"status": "ok"}
 
 uvicorn.run(app, host="0.0.0.0", port=8002)

@@ -30,7 +30,7 @@ services:
       - evoting
 
   cast_app:
-    command: ["python3", "main.py", "50", "250"]
+    command: ["python3", "main.py", "50", "150"]
     build:
       context: ./Cast_app
     environment:

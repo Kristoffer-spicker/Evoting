@@ -44,14 +44,20 @@ CREATE TABLE IF NOT EXISTS final_tally (
 );
 
 CREATE TABLE IF NOT EXISTS registered_voters (
-    id        TEXT PRIMARY KEY,
+    id        INT PRIMARY KEY,
+    voterid   TEXT NOT NULL,
     pk        JSONB NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS ctr (
-    token        TEXT PRIMARY KEY,
-    ctr_content  JSONB NOT NULL
+CREATE TABLE IF NOT EXISTS voter_keys (
+    id        TEXT PRIMARY KEY, 
+    sk        JSONB NOT NULL
+);
 
+CREATE TABLE IF NOT EXISTS triplets_with_identifiers (
+    id         INT PRIMARY KEY,
+    triplet    JSONB NOT NULL,
+    identifier TEXT
 );
 
 -- This function fires a notification at insertion into encryptedVotes
@@ -72,6 +78,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function for decrypted_triplets notifications
+CREATE OR REPLACE FUNCTION notify_decrypted_triplets_vote()
+RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify('decrypted_triplets',  NEW.id::TEXT);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 
 -- The trigger that calls the function on every INSERT
 CREATE OR REPLACE TRIGGER encrypted_vote_inserted
@@ -82,3 +97,4 @@ FOR EACH ROW EXECUTE FUNCTION notify_encrypted_vote();
 CREATE OR REPLACE TRIGGER extended_vote_inserted
 AFTER INSERT ON extended_votes
 FOR EACH ROW EXECUTE FUNCTION notify_extended_vote();
+

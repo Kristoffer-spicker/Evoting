@@ -1,6 +1,7 @@
 import random
 import json
 import gmpy2
+import requests
 # pylint: disable=no-member
 
 from primitives import DSA, ChaumPedersenProof, ElGamalEncryption
@@ -47,7 +48,7 @@ class VCaster:
             return gmpy2.mpz(obj)
         return obj
 
-    def cast_vote(self, teller_public_key, token, cur):
+    def cast_vote(self, teller_public_key):
         '''
         cast_vote: Function that takes a given candidates vote and cast it as a ballot
         '''
@@ -68,6 +69,13 @@ class VCaster:
         self.encrypted_vote = self.ege.encrypt(
             teller_public_key.Q, self.g_vote
         )
+            # Send g_vote directly to VVerify
+        requests.post("http://verify_app:8002/receive_g_vote", json={
+        "voter_id": self.id,
+        "g_vote_x": str(self.g_vote.x),
+        "g_vote_y": str(self.g_vote.y),
+        "curve": self.g_vote.curve
+    })
 
     def encrypt_antivote(self, teller_public_key): 
         self.encrypted_antivote = []
@@ -138,9 +146,6 @@ class VCaster:
             "id": self.id,
             "spk": self.public_key,
             "sig": self.signature,
-            # only for poc
-            #"stk": self.secret_trapdoor_key,
-            #"stk_anti": self.secret_antitrapdoor_key,
             "ev": self.encrypted_vote,
             "ev_anti": self.encrypted_antivote,
             "enc_ptk": self.encrypted_trapdoor,

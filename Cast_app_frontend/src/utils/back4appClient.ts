@@ -123,9 +123,18 @@ class Back4appClient {
   // GET request with query params — Back4app /login is not a POST
   async loginVoter(voterID: string, password: string) {
     try {
+      // Don't include any existing session token — an expired token causes Parse
+      // Server to return 400 (error 209) before it even checks the credentials.
+      const freshHeaders: Record<string, string> = {
+        'X-Parse-Application-Id': this.config.appId,
+        'X-Parse-JavaScript-Key': this.config.jsKey,
+      };
+      // Clear any stale token before issuing the login request
+      this.sessionToken = null;
+      localStorage.removeItem('surtr_session_token');
       const response = await fetch(
         `${this.config.serverUrl}/login?username=${encodeURIComponent(voterID)}&password=${encodeURIComponent(password)}`,
-        { method: 'GET', headers: this.getHeaders() }
+        { method: 'GET', headers: freshHeaders }
       );
       if (!response.ok) return null;
       const data = await response.json();

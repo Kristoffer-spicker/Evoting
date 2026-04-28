@@ -72,9 +72,15 @@ def final_triplets(cur, con, tellers):
         else: 
             id = int(id) + 1
             print("id is good :))", flush=True)
+
+        structured_trip = {
+        "comm": trip[1],  # new_com / enc_gy
+        "v": trip[0],     # re_enc
+        "key": trip[2]    # new_key / enc_gs
+    }    
         
         cur.execute(
-            "INSERT INTO reencrypted_extend_triplets (id, triplet) VALUES (%s, %s)", (id, json.dumps(trip),)
+            "INSERT INTO reencrypted_extend_triplets (id, triplet) VALUES (%s, %s)", (id, json.dumps(structured_trip),)
             )
 
         con.commit()
