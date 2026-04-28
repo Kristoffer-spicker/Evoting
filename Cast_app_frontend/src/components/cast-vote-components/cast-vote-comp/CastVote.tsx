@@ -24,14 +24,6 @@ const CastVote: React.FC<CastVoteProps> = ({
       name: 'Party 1 "Movie Stars"',
       candidates: ["James Bond", "Tony Stark", "Jack Sparrow", "Ellen Ripley"],
     },
-    {
-      name: 'Party 2 "Comedy Stars"',
-      candidates: ["Mr. Bean", "Homer Simpson", "Charlie Chaplin", "Peter Sellers"],
-    },
-    {
-      name: 'Party 3 "Drama Stars"',
-      candidates: ["Raymond Reddington", "Daenerys Targaryen", "Rachel Green", "Walter White"],
-    },
   ];
 
   // Handles that yur not submitting an empty vote 

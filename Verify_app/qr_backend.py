@@ -1,9 +1,8 @@
-from primitives import DSA, ChaumPedersenProof, ElGamalEncryption
-from Crypto.PublicKey import ECC
+from primitives import ChaumPedersenProof, ElGamalEncryption
 
 class qr_data:
     
-    secret_trapdoor_key = None
+    secret_trapdoor_keys = []
     
     def __init__(self, curve, id, vote_max):
         self.id = id
@@ -14,20 +13,26 @@ class qr_data:
             self.ege = ElGamalEncryption(self.curve)
             self.secret_trapdoor_key, self.public_trapdoor_key = self.ege.keygen()
 
-            if qr_data.secret_trapdoor_key is None:
-                qr_data.secret_trapdoor_key = self.secret_trapdoor_key
+            if not qr_data.secret_trapdoor_keys:
+                qr_data.secret_trapdoor_keys.append(self.secret_trapdoor_key)
 
     @classmethod
     def get_trapdoor_key(cls):
-        return cls.secret_trapdoor_key        
+        return cls.secret_trapdoor_keys      
 
-    def generate_antitrapdoor_keypair(self):#generate x2 and g^x2
+    def generate_antitrapdoor_keypair(self):#generate x2 .. xn and g^x2 .. g^xn
         self.secret_antitrapdoor_key = []
+        
         self.public_antitrapdoor_key = []
         for i in range (self.vote_max - 1):
             temp_secret_antitrapdoor_key, temp_public_antitrapdoor_key = self.ege.keygen()
             self.secret_antitrapdoor_key.append(temp_secret_antitrapdoor_key)
             self.public_antitrapdoor_key.append(temp_public_antitrapdoor_key)
+        
+        if len(qr_data.secret_trapdoor_keys) == 1:
+            for i in range (self.vote_max - 1):
+                qr_data.secret_trapdoor_keys.append(self.secret_antitrapdoor_key[i])
+                
 
     def encrypt_trapdoor(self, teller_public_key): #encrypt g^x1
         self.encrypted_trapdoor = self.ege.encrypt(

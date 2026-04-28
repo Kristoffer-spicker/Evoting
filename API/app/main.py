@@ -31,7 +31,6 @@ class qrCodeRequest(BaseModel):
     voter_id: str
 
 class verifyrequest(BaseModel):
-    candidate_id: int
     voter_id: str
 
 '''
@@ -143,7 +142,6 @@ async def verify_vote(request: verifyrequest):
             response = await client.post(
                 "http://verify_app:8002/verify_vote",
                 json={
-                    "id": request.candidate_id,
                     "voterid": request.voter_id
                 },
                 timeout=30.0

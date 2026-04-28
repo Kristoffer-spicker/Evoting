@@ -48,7 +48,7 @@ class VCaster:
             return gmpy2.mpz(obj)
         return obj
 
-    def cast_vote(self, teller_public_key, token, cur):
+    def cast_vote(self, teller_public_key):
         '''
         cast_vote: Function that takes a given candidates vote and cast it as a ballot
         '''
@@ -146,9 +146,6 @@ class VCaster:
             "id": self.id,
             "spk": self.public_key,
             "sig": self.signature,
-            # only for poc
-            #"stk": self.secret_trapdoor_key,
-            #"stk_anti": self.secret_antitrapdoor_key,
             "ev": self.encrypted_vote,
             "ev_anti": self.encrypted_antivote,
             "enc_ptk": self.encrypted_trapdoor,

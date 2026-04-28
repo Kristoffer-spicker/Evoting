@@ -49,9 +49,15 @@ CREATE TABLE IF NOT EXISTS registered_voters (
     pk        JSONB NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS ctr (
-    token        TEXT PRIMARY KEY,
-    ctr_content  JSONB NOT NULL
+CREATE TABLE IF NOT EXISTS voter_keys (
+    id        TEXT PRIMARY KEY, 
+    sk        JSONB NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS triplets_with_identifiers (
+    id         INT PRIMARY KEY,
+    triplet    JSONB NOT NULL,
+    identifier TEXT
 );
 
 -- This function fires a notification at insertion into encryptedVotes
@@ -92,7 +98,3 @@ CREATE OR REPLACE TRIGGER extended_vote_inserted
 AFTER INSERT ON extended_votes
 FOR EACH ROW EXECUTE FUNCTION notify_extended_vote();
 
--- Trigger for reencrypted_extend_triplets_votes
-CREATE OR REPLACE TRIGGER decrypted_extend_triplets_vote_inserted
-AFTER INSERT ON decrypted_extend_triplets
-FOR EACH ROW EXECUTE FUNCTION notify_decrypted_extend_triplets_vote();

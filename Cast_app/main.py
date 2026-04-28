@@ -324,7 +324,7 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
 
     con.commit()
     voter.vote = data["vote_value"]
-    voter.cast_vote(get_random_tpk(teller_public_keys), data["qr_data"], cur)
+    voter.cast_vote(get_random_tpk(teller_public_keys))
     voter.sign_ballot()
 
     return {"status": "ok", "voter_id": data["id"]}

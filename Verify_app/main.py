@@ -94,7 +94,6 @@ class QRRequest(BaseModel):
     id: str
 
 class verifyrequest(BaseModel):
-    id: int
     voterid: str
 
 def _encode_point(point) -> bytes:
@@ -120,6 +119,11 @@ def QR_content(id) -> bytes:
     voter = qr_data(curve, id, vote_max)
     voter.generate_trapdoor_keypair()
     voter.generate_antitrapdoor_keypair()
+
+    secret = voter.get_trapdoor_key()
+
+    encoded = json.dumps(secret, cls=ECCEncoder)
+    cur.execute("INSERT INTO voter_keys (id, sk) VALUES (%s, %s)", (id, encoded,))
 
     tpk = get_random_tpk(teller_public_keys)
     voter.encrypt_trapdoor(tpk)
@@ -152,11 +156,6 @@ def make_QR_code(request: QRRequest):
 
 @app.post("/verify_vote")
 def verify(request: verifyrequest):
-    c_id = request.id
-    cur.execute("SELECT curve_p FROM candidates WHERE id = %s", (c_id,))
-    c_curve = cur.fetchone()
-    print(c_curve, flush=True)
-    c_curve_decoded = decode_curve_point(c_curve[0])
     voterid = request.voterid
     cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (voterid,))
     v_id = cur.fetchone()
@@ -183,7 +182,7 @@ def verify(request: verifyrequest):
         print("Tallying not done yet — triplets not found", flush=True)
         return False
     dkey = decode_curve_point(raw[0])
-    return verifier.verifyVote(cur, c_curve_decoded, dkey, triplet_start)
+    return verifier.verifyVote(cur, triplet_start, dkey)
         
 
 
