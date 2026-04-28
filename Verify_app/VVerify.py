@@ -1,5 +1,6 @@
 from util import find_entry_by_comm
 from Crypto.PublicKey import ECC
+from qr_backend import qr_data
 
 
 
@@ -25,30 +26,21 @@ class VVerify:
         self.g_ri = encrypted_term
 
     def generate_verification_comm(self, dkey):
-        self.cur.execute(
-            "SELECT trapdoor_key FROM voter_trapdoor_keys WHERE voterid = %s",
-            (self.id,)
-        )
-        row = self.cur.fetchone()
-        if row is None or row[0] is None:
-            raise ValueError(f"No trapdoor key found for voter {self.id} — QR code must be generated before verifying")
-        self.secret_trapdoor_key = int(row[0])
+        self.secret_trapdoor_key = qr_data.get_trapdoor_key()
         print("secret trapdoor key", self.secret_trapdoor_key, flush=True)
         print("dkey", dkey, flush=True)
         g_ri_x = dkey * self.secret_trapdoor_key
         return g_ri_x
     
-    def verifyVote(self, cur, g_vote, dkey):
+    def verifyVote(self, cur, g_vote, dkey, triplet_start):
         verification_comm = self.generate_verification_comm(dkey)
-        print(f"verification_comm x={int(verification_comm.x)} y={int(verification_comm.y)}", flush=True)
 
-        cur.execute("SELECT triplet FROM decrypted_triplets")
+        cur.execute(
+            "SELECT triplet FROM decrypted_triplets WHERE id >= %s AND id < %s",
+            (triplet_start, triplet_start + self.vote_max)
+        )
         rows = cur.fetchall()
         verification_bb = [row[0] for row in rows]
-        print(f"bulletin board size: {len(verification_bb)}", flush=True)
-        for entry in verification_bb:
-            c = entry.get('comm')
-            print(f"  bb comm x={c['x']} y={c['y']}", flush=True)
 
         entry = find_entry_by_comm(verification_comm, verification_bb)
         if entry is None:

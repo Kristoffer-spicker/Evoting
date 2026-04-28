@@ -134,11 +134,6 @@ def QR_content(id) -> bytes:
     buf += _encode_proof(voter.pok_trapdoor_key)
     for proof in voter.pok_antitrapdoor_key:
         buf += _encode_proof(proof)
-    cur.execute(
-        "INSERT INTO voter_trapdoor_keys (voterid, trapdoor_key) VALUES (%s, %s) ON CONFLICT (voterid) DO NOTHING",
-        (id, str(voter.secret_trapdoor_key))
-    )
-
     return bytes(buf)   
 
 
@@ -179,23 +174,16 @@ def verify(request: verifyrequest):
     
     print("step two down", flush=True)
 
-    cur.execute("SELECT min(id), max(id), count(*) FROM decrypted_triplets")
-    stats = cur.fetchone()
-    print(f"decrypted_triplets: min_id={stats[0]}, max_id={stats[1]}, count={stats[2]}", flush=True)
-    print(f"v_id={v_id}, will query triplet IDs {v_id} to {v_id + vote_max - 1}", flush=True)
+    triplet_start = v_id * vote_max
+    print(f"v_id={v_id}, querying triplet IDs {triplet_start} to {triplet_start + vote_max - 1}", flush=True)
 
-    for i in range(0, vote_max):
-        temp_id = i + v_id
-        cur.execute("SELECT triplet->'dkey' FROM decrypted_triplets WHERE id = %s", (temp_id,))
-        raw = cur.fetchone()
-        if raw is None:
-            print(f"Triplet id={temp_id} not found — tallying not done yet", flush=True)
-            return False
-        dkey = decode_curve_point(raw[0])
-        if verifier.verifyVote(cur, c_curve_decoded, dkey):
-            return True
-
-    return False
+    cur.execute("SELECT triplet->'dkey' FROM decrypted_triplets WHERE id = %s", (triplet_start,))
+    raw = cur.fetchone()
+    if raw is None:
+        print("Tallying not done yet — triplets not found", flush=True)
+        return False
+    dkey = decode_curve_point(raw[0])
+    return verifier.verifyVote(cur, c_curve_decoded, dkey, triplet_start)
         
 
 

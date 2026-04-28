@@ -80,10 +80,14 @@ def extend_and_encode_vote(row, tellers):
                 prod_a_anti.append(deserialize_ep(ballot["h_r_anti"][k]["c1"]))
                 prod_b_anti.append(deserialize_ep(ballot["h_r_anti"][k]["c2"]))
             sum_r = ballot["h_r"]["r"]
-            
+
             sum_r_anti = []
             for l in range(len(ballot["h_r_anti"])):
                 sum_r_anti.append(ballot["h_r_anti"][l]["r_anti"])
+
+            enc_gr_c1 = deserialize_ep(ballot["enc_gr"][0])
+            enc_gr_c2 = deserialize_ep(ballot["enc_gr"][1])
+            enc_gr_r = ballot["enc_gr"][2]
 
             for j in range(1, len(combined_outputs)):
                 b = combined_outputs[j][i][1]
@@ -95,11 +99,19 @@ def extend_and_encode_vote(row, tellers):
                     prod_b_anti[m] = prod_b_anti[m] + deserialize_ep(b["h_r_anti"][m]["c2"])
                 for n in range (len(b["h_r_anti"])):
                     sum_r_anti[n] = sum_r_anti[n] + b["h_r_anti"][n]["r_anti"]
+                enc_gr_c1 = enc_gr_c1 + deserialize_ep(b["enc_gr"][0])
+                enc_gr_c2 = enc_gr_c2 + deserialize_ep(b["enc_gr"][1])
+                enc_gr_r = enc_gr_r + b["enc_gr"][2]
 
             ballot["h_r"] = {"c1": prod_a, "c2": prod_b, "r": sum_r}
             ballot["h_r_anti"] = [
                 {"c1": prod_a_anti[o], "c2": prod_b_anti[o], "r_anti": sum_r_anti[o]}
                 for o in range(len(prod_a_anti))
+            ]
+            ballot["enc_gr"] = [
+                {"x": int(enc_gr_c1.x), "y": int(enc_gr_c1.y), "curve": enc_gr_c1.curve},
+                {"x": int(enc_gr_c2.x), "y": int(enc_gr_c2.y), "curve": enc_gr_c2.curve},
+                enc_gr_r,
             ]
             raised.append([combined_outputs[0][i][0], ballot])
 

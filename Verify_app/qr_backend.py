@@ -14,7 +14,8 @@ class qr_data:
             self.ege = ElGamalEncryption(self.curve)
             self.secret_trapdoor_key, self.public_trapdoor_key = self.ege.keygen()
 
-            qr_data.secret_trapdoor_key = self.secret_trapdoor_key
+            if qr_data.secret_trapdoor_key is None:
+                qr_data.secret_trapdoor_key = self.secret_trapdoor_key
 
     @classmethod
     def get_trapdoor_key(cls):
