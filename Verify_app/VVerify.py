@@ -60,7 +60,6 @@ class VVerify:
         return g_ri_x
     
     def verifyVote(self, cur, triplet_start : int, dkey):
-        #verification_comm = self.generate_verification_comm(dkey)
 
         cur.execute("SELECT sk FROM voter_keys WHERE id = %s", (self.id,))
         row = cur.fetchone()
@@ -84,7 +83,17 @@ class VVerify:
         verification_comm = dkey * true_key
         print("verification comm", verification_comm, flush=True)
         for item in verification_bb:
-            
+            cur.execute ("SELECT identifier FROM triplets_with_identifiers WHERE id = %s", (triplet_start,))
+            identifier = cur.fetchone()
+            if identifier is not None:
+                point = ECC.EccPoint(
+                    item["comm"]["x"], item["comm"]["y"], item["comm"]["curve"]
+                )
+                if point == verification_comm:
+                    true_i = identifier
+                triplet_start += 1
+                continue
+
             ident = self.getRandomIdentifier(used_identifiers, self.identifiers)
             cur.execute("INSERT INTO triplets_with_identifiers (id, triplet, identifier) VALUES (%s, %s, %s)", ( triplet_start, json.dumps(item), ident))
             triplet_start += 1
@@ -95,6 +104,7 @@ class VVerify:
             if point == verification_comm:
                 true_i = ident
         
+        print("true_i", true_i, flush=True)
         return true_i
 
     def getBB(self):

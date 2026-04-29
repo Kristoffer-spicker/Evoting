@@ -144,6 +144,7 @@ async def verify_vote(request: verifyrequest):
                 json={
                     "voterid": request.voter_id
                 },
+                headers={"x-api-key": secret_key},
                 timeout=30.0
             )
             response.raise_for_status()

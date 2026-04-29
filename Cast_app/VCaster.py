@@ -1,7 +1,6 @@
 import random
 import json
 import gmpy2
-import requests
 # pylint: disable=no-member
 
 from primitives import DSA, ChaumPedersenProof, ElGamalEncryption
@@ -69,13 +68,7 @@ class VCaster:
         self.encrypted_vote = self.ege.encrypt(
             teller_public_key.Q, self.g_vote
         )
-            # Send g_vote directly to VVerify
-        requests.post("http://verify_app:8002/receive_g_vote", json={
-        "voter_id": self.id,
-        "g_vote_x": str(self.g_vote.x),
-        "g_vote_y": str(self.g_vote.y),
-        "curve": self.g_vote.curve
-    })
+    
 
     def encrypt_antivote(self, teller_public_key): 
         self.encrypted_antivote = []
