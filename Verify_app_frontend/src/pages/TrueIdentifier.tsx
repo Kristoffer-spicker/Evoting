@@ -17,6 +17,7 @@ export function TrueIdentifier(): React.JSX.Element {
   const steps = ["Voting QR Code", "After Vote casting", "True Identifier", "Identifiers for All Candidates", "Complete"]
 
   useEffect(() => {
+    let cancelled = false
     const loadTrueIdentifier = async () => {
       try {
       
@@ -30,13 +31,16 @@ export function TrueIdentifier(): React.JSX.Element {
         
         
         const alreadySeen = await hasVoterSeenTrueIdentifier(voter.voterId)
+        if (cancelled) return 
         if (alreadySeen) {
           setError('You have already seen your True Identifier')
           return
         }
 
+
         const trueIdentifier = await getVoterTrueIdentifier(voter.voterId)
-        
+        if (cancelled) return
+        console.log('True Identifier:', trueIdentifier?.emoji, trueIdentifier?.text)
         if (trueIdentifier) {
           setIdentifier({
             emoji: trueIdentifier.emoji,
@@ -54,7 +58,8 @@ export function TrueIdentifier(): React.JSX.Element {
     }
 
     loadTrueIdentifier()
-  }, [navigate])
+     return () => { cancelled = true }
+  }, [])
 
   if (isLoading) {
     return (

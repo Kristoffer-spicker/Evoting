@@ -13,7 +13,7 @@ type CurvePoint = {
   curve_name: string;
 };
 
-const MASTER_IDENTIFIERS = [
+const MASTER_IDENTIFIERS = Object.freeze([
   { emoji: "✈️", text: "Airplane" },
   { emoji: "🎒", text: "Backpack" },
   { emoji: "👑", text: "Crown" },
@@ -32,7 +32,7 @@ const MASTER_IDENTIFIERS = [
   { emoji: "🎸", text: "Guitar" },
   { emoji: "🌙", text: "Moon" },
   { emoji: "🌻", text: "Sunflower" }
-];
+]);
 
 export const generateUniqueId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -243,21 +243,12 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
     }
     serverLog("Voter registered");
 
-    const shuffled = [...MASTER_IDENTIFIERS].sort(() => 0.5 - Math.random());
-    const selected12Identifiers = shuffled.slice(0, 12);
-    const trueIdentifier = selected12Identifiers[Math.floor(Math.random() * selected12Identifiers.length)];
-    const remainingIdentifiers = selected12Identifiers.filter(
-      id => !(id.emoji === trueIdentifier.emoji && id.text === trueIdentifier.text)
-    );
-    const orderedIdentifiersList = [trueIdentifier, ...remainingIdentifiers];
-
     const voterData = {
       name: name.trim(),
       voterID: voterId.trim(),
       password: password.trim(),
       hasVoted: false,
-      hasSeenTrueIdentifier: false,
-      true_identifier: trueIdentifier
+      hasSeenTrueIdentifier: false
     };
 
     const savedVoter = await back4appClient.createVoter({ 
@@ -268,11 +259,6 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
     if (savedVoter.sessionToken) {
     localStorage.setItem('surtr_session_token', savedVoter.sessionToken);
     }
-
-    await back4appClient.createIdentifiersList({
-      voterID: voterId.trim(),
-      list: orderedIdentifiersList
-    });
 
     const newVoter: Voter = {
       id: savedVoter.objectId ?? '',
@@ -431,16 +417,30 @@ export const getVoterTrueIdentifier = async (voterId: string): Promise<{emoji: s
   /*
   getVoterTrueIdentifier: Function that gets the voters specific identifier
   */
-  if (USE_BACK4APP) {
-    try {
-      const trueIdentifier = await back4appClient.getTrueIdentifierByVoterID(voterId);
-      return trueIdentifier || null;
-    } catch (error) {
-      return null;
-    }
+  const url = (import.meta as any).env.VITE_API_URL;
+  const response = await fetch(`${url}/verify_vote`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ voter_id: voterId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to generate True_identifier: ${response.status}`);
   }
-  const identifiers = await getVoterIdentifiers(voterId);
-  return identifiers.length > 0 ? identifiers[0] : null;
+
+  const identifier: string = await response.json();
+  console.log(`True Identifier: "${identifier}"`);
+
+  const match = MASTER_IDENTIFIERS.find(item => item.text === identifier);
+  console.log(`Match: ${match?.emoji} ${match?.text}`);
+
+  if (!match) {
+    return null;
+  }
+
+  return match;
 };
 
 export const markTrueIdentifierSeen = async (voterId: string): Promise<boolean> => {
