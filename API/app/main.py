@@ -74,6 +74,7 @@ app.add_middleware(
 class LogRequest(BaseModel):
     message: str
 
+
 @app.post("/log")
 def log_message(log: LogRequest):
     print(f"[FRONTEND] {log.message}", flush=True)
@@ -150,6 +151,28 @@ async def verify_vote(request: verifyrequest):
             response.raise_for_status()
             return response.json()
         
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail="verify_app rejected the rquest")
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Could not reach verify_app")
+        
+
+@app.post("/get_indentifiers")
+async def get_identifiers(request: verifyrequest):
+    secret_key = os.getenv("SECRET_KEY")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "http://verify_app:8002/get_indentifiers",
+                json={
+                    "voterid": request.voter_id
+                },
+                headers={"x-api-key": secret_key},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json()
+    
         except httpx.HTTPStatusError as e:
             raise HTTPException(status_code=e.response.status_code, detail="verify_app rejected the rquest")
         except httpx.RequestError:

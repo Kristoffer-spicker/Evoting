@@ -187,5 +187,29 @@ async def verify(request: verifyrequest, x_api_key: str = Header(...)):
     return verifier.verifyVote(cur, triplet_start, dkey)
         
 
+@app.post("/get_indentifiers")
+async def getIdentifiers(request: verifyrequest, x_api_key: str = Header(...)):
+    '''if x_api_key != os.getenv("SECRET_KEY"):
+    raise HTTPException(status_code=403, detail="Forbidden")'''
+    voterid = request.voterid
+    cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (voterid,))
+    v_id = cur.fetchone()
+    v_id = v_id[0]
+    identifiers = []
+    triplet_start = v_id * vote_max
+    for i in range (triplet_start, triplet_start + vote_max):
+        cur.execute("SELECT identifier, triplet -> 'v' FROM triplets_with_identifiers WHERE id = %s", (i,))
+        temp = cur.fetchone()
+        curve = json.dumps(decode_curve_point(temp[1]), cls=ECCEncoder)
+        cur.execute("SELECT id FROM candidates WHERE curve_p = %s", (curve,))
+        tempc = cur.fetchone()
+        temp = (temp[0], tempc[0])
+        print ("temp", temp[0], temp[1], flush=True)
+        if temp is None:
+            print("Tallying not done yet — triplets not found", flush=True)
+            return False
+        identifiers.append(temp)
+    return identifiers
+
 
 uvicorn.run(app, host="0.0.0.0", port=8002)
