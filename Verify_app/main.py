@@ -187,13 +187,14 @@ async def verify(request: verifyrequest, x_api_key: str = Header(...)):
     return verifier.verifyVote(cur, triplet_start, dkey)
         
 
-@app.post("/get_indentifiers")
+@app.post("/get_identifiers")
 async def getIdentifiers(request: verifyrequest, x_api_key: str = Header(...)):
     '''if x_api_key != os.getenv("SECRET_KEY"):
     raise HTTPException(status_code=403, detail="Forbidden")'''
     voterid = request.voterid
     cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (voterid,))
     v_id = cur.fetchone()
+    print("step one down", v_id, flush=True)
     v_id = v_id[0]
     identifiers = []
     triplet_start = v_id * vote_max

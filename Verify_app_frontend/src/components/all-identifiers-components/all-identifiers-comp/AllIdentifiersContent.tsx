@@ -65,15 +65,8 @@ const AllIdentifiersContent = ({ onFinish }: AllIdentifiersContentProps) => {
         
        
         const voterIdentifiers = await getVoterIdentifiers(voter.voterId);
-        
-        
-        const formattedIdentifiers = voterIdentifiers.map((identifier, index) => ({
-          id: (index + 1).toString(),
-          emoji: identifier.emoji,
-          word: identifier.text
-        }));
 
-        setIdentifiers(formattedIdentifiers);
+        setIdentifiers(voterIdentifiers);
       } catch (err) {
         console.error('Error loading identifiers:', err);
         setError('Failed to load identifiers.');

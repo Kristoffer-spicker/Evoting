@@ -157,13 +157,13 @@ async def verify_vote(request: verifyrequest):
             raise HTTPException(status_code=503, detail="Could not reach verify_app")
         
 
-@app.post("/get_indentifiers")
+@app.post("/get_identifiers")
 async def get_identifiers(request: verifyrequest):
     secret_key = os.getenv("SECRET_KEY")
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
-                "http://verify_app:8002/get_indentifiers",
+                "http://verify_app:8002/get_identifiers",
                 json={
                     "voterid": request.voter_id
                 },
