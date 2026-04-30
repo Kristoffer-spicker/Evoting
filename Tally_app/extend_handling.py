@@ -4,6 +4,7 @@ import traceback
 from Decoding import decode_bb_data
 from Encoding import ECCEncoder
 from util import deserialize_ep
+from Tallying import Teller
 
 def handler(notify, con, tellers):
     """
@@ -16,20 +17,22 @@ def handler(notify, con, tellers):
     cur = con.cursor()
     cur.execute("SELECT ballot FROM encrypted_votes WHERE id = %s", (notify,))
     ballot = cur.fetchone()[0]
+    verify_teller = tellers[0]
+    decoded = decode_bb_data(ballot)
+    if (Teller.validate_ballot(self=verify_teller, curve=verify_teller.curve, teller_public_key=verify_teller.public_key, ballot=decoded)):
+        extended_ballot = extend_and_encode_vote(decoded, tellers)
+        parsed = json.loads(extended_ballot)
 
-    extended_ballot = extend_and_encode_vote(ballot, tellers)
-    parsed = json.loads(extended_ballot)
-
-    cur.execute(
-        "INSERT INTO extended_votes (id, ballot) VALUES (%s, %s) ON CONFLICT (id) DO UPDATE SET ballot = EXCLUDED.ballot", (parsed["id"], json.dumps(parsed["ballot"]))
-    )
-
-    con.commit()
-    cur.close()
-    con.close()
+        cur.execute(
+            "INSERT INTO extended_votes (id, ballot) VALUES (%s, %s) ON CONFLICT (id) DO UPDATE SET ballot = EXCLUDED.ballot", (parsed["id"], json.dumps(parsed["ballot"]))
+        )
+        con.commit()
+        cur.close()
+        con.close()
+    
 
     
-def extend_and_encode_vote(row, tellers):
+def extend_and_encode_vote(decoded, tellers):
     """
     Takes an encoded vote 
     The vote is then decoded
@@ -37,7 +40,6 @@ def extend_and_encode_vote(row, tellers):
     Lastly it builts the final extended vote and finally encoded via the custom encoder from the encoding class
     """
     try:
-        decoded = decode_bb_data(row)
 
         current_list = [[decoded["id"], decoded]]
         combined_outputs = []

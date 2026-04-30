@@ -457,7 +457,7 @@ class ChaumPedersenProof:
         hash_concat = ""
         count = len(ul)
         for i in range(0, count):
-            hash_concat = hash_concat + str(ul[i]) + str(vl[i])
+            hash_concat = hash_concat + str(ul[i].x) + str(ul[i].y) + str(vl[i].x) + str(vl[i].y)
         return hash_concat
 
     def accumulate(self, cl):

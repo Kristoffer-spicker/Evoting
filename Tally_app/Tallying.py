@@ -535,30 +535,38 @@ class Teller:
 
     def validate_ballot(self, curve, teller_public_key, ballot):
         dsa = DSA(curve)
-        hash = self.curve.hash_to_mpz(
-            str(ballot["ev"])
-            + str(ballot["ev_anti"])
-            + str(ballot["enc_ptk"])
-            + str(ballot["enc_ptk_anti"])
-            + str(ballot["pi_1"])
-            + str(ballot["pi_1_anti"])
-            + str(ballot["pi_2"])
-            + str(ballot["pi_3"])
-            + str(ballot["sum_r"])
-        )
+
+        _fields_to_verify = {
+            "ev": ballot["ev"],
+            "ev_anti": ballot["ev_anti"],
+            "enc_ptk": ballot["enc_ptk"],
+            "enc_ptk_anti": ballot["enc_ptk_anti"],
+            "pi_1": ballot["pi_1"],
+            "pi_1_anti": ballot["pi_1_anti"],
+            "pi_2": ballot["pi_2"],
+            "pi_3": ballot["pi_3"],
+            "sum_r": ballot["sum_r"],
+        }
+        hash = self.curve.hash_to_mpz(json.dumps(_fields_to_verify, cls=ECCEncoder, sort_keys=True))
+        print("step one down", flush=True)
 
         chmp = ChaumPedersenProof(curve)
         ege = ElGamalEncryption(curve)
         try:
             if not dsa.verify(ballot["spk"], ballot["sig"], hash):
                 raise InvalidSignatureException(ballot["id"])
+            print("step one one down", flush=True)
             ciphertext_ptk = {"c1": ballot["enc_ptk"][0], "c2": ballot["enc_ptk"][1]}
             if not chmp.verify(ciphertext_ptk,teller_public_key.Q, ballot["pi_1"][0], ballot["pi_1"][1], ballot["pi_1"][2]):
                 raise InvalidProofException(ballot["id"])
-            ciphertext_ptk_anti = {"c1": ballot["enc_ptk_anti"][0], "c2": ballot["enc_ptk_anti"][1]}
-            if not chmp.verify(ciphertext_ptk_anti,teller_public_key.Q, ballot["pi_1_anti"][0], ballot["pi_1_anti"][1], ballot["pi_1_anti"][2]):
-                raise InvalidProofException(ballot["id"])
+            print("step one two down", flush=True)
+            for i in range(len(ballot["enc_ptk_anti"])):
+                ciphertext_ptk_anti = {"c1": ballot["enc_ptk_anti"][i][0], "c2": ballot["enc_ptk_anti"][i][1]}
+                if not chmp.verify(ciphertext_ptk_anti, teller_public_key.Q, ballot["pi_1_anti"][i][0], ballot["pi_1_anti"][i][1], ballot["pi_1_anti"][i][2]):
+                    raise InvalidProofException(ballot["id"])
+            print("step one three down", flush=True)
             ciphertext = {"c1": ballot["ev"][0], "c2": ballot["ev"][1]}
+            print("step two down", flush=True)
             if not chmp.verify_or_n(
                 ciphertext,
                 teller_public_key.Q,
@@ -569,28 +577,40 @@ class Teller:
                 ballot["id"],
             ):
                 raise InvalidWFNProofException(ballot["id"])
-            ciphertext_anti = {"c1": ballot["ev_anti"][0], "c2": ballot["ev_anti"][1]}
-            if not chmp.verify_or_n(
-                ciphertext_anti,
-                teller_public_key.Q,
-                ballot["pi_3"][0],
-                ballot["pi_3"][1],
-                ballot["pi_3"][2],
-                ballot["pi_3"][3],
-                ballot["id"],
-            ):
-                raise InvalidWFNProofException(ballot["id"])
-            mul_cip = [ballot["ev"][0] + ballot["ev_anti"][0], ballot["ev"][1] + ballot["ev_anti"][1], 
-                    ballot["sum_r"]] 
+            print("step three down", flush=True)
+            for i in range(len(ballot["ev_anti"])):
+                ciphertext_anti = {"c1": ballot["ev_anti"][i][0], "c2": ballot["ev_anti"][i][1]}
+                if not chmp.verify_or_n(
+                    ciphertext_anti,
+                    teller_public_key.Q,
+                    ballot["pi_3"][i][0],
+                    ballot["pi_3"][i][1],
+                    ballot["pi_3"][i][2],
+                    ballot["pi_3"][i][3],
+                    ballot["id"],
+                ):
+                    raise InvalidWFNProofException(ballot["id"])
+            print("step four down", flush=True)
+            c1_sum = ballot["ev"][0]
+            c2_sum = ballot["ev"][1]
+            for ct in ballot["ev_anti"]:
+                c1_sum = c1_sum + ct[0]
+                c2_sum = c2_sum + ct[1]
+            mul_cip = [c1_sum, c2_sum, ballot["sum_r"]]
+            print("step five down", flush=True)
+            k = len(ballot["ev_anti"])
+            expected = curve.raise_p(k * (k + 1) // 2)
             t = ballot["sum_r"]*teller_public_key.Q
             z = -t
-            m = mul_cip[1] + z 
-            if not(m == curve.get_pars().P): 
+            m = mul_cip[1] + z
+            if not(m == expected):
                 raise InvalidWFNProofException(ballot["id"])
-            
+            print("step six down", flush=True)
+            return True
 
         except Exception as e:
             print(e)
+            return False
 
 
     def raise_h(self, teller_public_key, ballot):
