@@ -47,6 +47,12 @@ const shuffleArray = <T>(array: T[]): T[] => {
   return shuffled;
 };
 
+interface Identifier {
+  id: string;
+  emoji: string;
+  word: string;
+}
+
 const generateDeviceFingerprint = (): string => {
   const nav = window.navigator;
   const screen = window.screen;
@@ -397,20 +403,32 @@ export const voterExists = async (voterId: string): Promise<boolean> => {
   return voters.some(v => v.voterId === voterId);
 };
 
-export const getVoterIdentifiers = async (voterId: string): Promise<Array<{emoji: string, text: string}>> => {
+export const getVoterIdentifiers = async (voterId: string): Promise<Array<{id: string, emoji: string, text: string}>> => {
   /*
   getVoterIdentifiers: function that gets all the identifiers so the voter can see them
   */
-  if (USE_BACK4APP) {
-    try {
-      const identifiersRecord = await back4appClient.getIdentifiersByVoterID(voterId);
-      return identifiersRecord?.list || [];
-    } catch (error) {
-      return [];
-    }
+  const url = (import.meta as any).env.VITE_API_URL;
+  const response = await fetch(`${url}/get_identifiers`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ voter_id: voterId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to generate identifiers: ${response.status}`);
   }
-  const shuffled = [...MASTER_IDENTIFIERS].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, 12);
+
+  const identifiers_and_ids = await response.json();
+
+  const formatted = identifiers_and_ids.map((item: any) => ({
+    id: item[1].toString(),
+    emoji: MASTER_IDENTIFIERS.find(ident => ident.text === item[0])?.emoji,
+    word: item[0].toString()
+  }))
+
+  return formatted;
 };
 
 export const getVoterTrueIdentifier = async (voterId: string): Promise<{emoji: string, text: string} | null> => {
