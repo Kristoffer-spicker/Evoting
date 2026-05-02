@@ -15,7 +15,7 @@ interface QRResponse {
 async function genQR(voterID: string): Promise<QRResponse> {
     const url = (import.meta as any).env.VITE_API_URL;
     
-    const response = await fetch(`${url}/qrcode`, {
+    const resdponse = await fetch(`${url}/qrcode`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
