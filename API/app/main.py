@@ -116,7 +116,7 @@ def get_tally_key(session: SessionDep):
 
 @app.post("/qrcode")
 async def qrcode(request: qrCodeRequest):
-    secret_key = os.getenv("SECRET_KEY") #NOT USED
+    secret_key = os.getenv("API_TO_VERIFY_KEY") 
     async with httpx.AsyncClient() as client:
         try:
             qrdata = await client.post(
@@ -124,6 +124,7 @@ async def qrcode(request: qrCodeRequest):
                 json={
                     "id": request.voter_id,
                 },
+                headers={"x-api-key": secret_key},
                 timeout=30.0
             )
             return qrdata.json()
