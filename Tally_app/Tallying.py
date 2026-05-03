@@ -661,11 +661,13 @@ class Teller:
 
     def verify_proof_reenc(curve, teller_public_key, h_r, ptk, proof, id):
         nizk = NIZK(curve)
+        print("verifying proof", flush=True)
         if not nizk.verify_2(h_r, teller_public_key.Q, ptk, proof):
             raise InvalidProofException(id)
 
     def re_encryption_mix(self, list_0):
         mx = Mixnet(self.curve)
+        print("mixing proof generating", flush=True)
         proof = mx.re_encryption_mix(list_0, self.public_key.Q)
         return proof
 

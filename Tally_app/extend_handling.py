@@ -57,17 +57,72 @@ def extend_and_encode_vote(decoded, tellers):
             p.start()
             try:
                 print(f"[PARENT] waiting for q1.get()", flush=True)
-                _ = json.loads(q1.get())
+                teller_proofs = json.loads(q1.get())
+                print(f"[PARENT] got from q1.get()", flush=True)
+                for record in teller_proofs:
+                    h_r_deser = {
+                        "c1": deserialize_ep(record["h_r"]["c1"]),
+                        "c2": deserialize_ep(record["h_r"]["c2"]),
+                    }
+                    enc_ptk_deser = [
+                        deserialize_ep(record["enc_ptk"][0]),
+                        deserialize_ep(record["enc_ptk"][1]),
+                    ]
+                    for i in range(len(record["proof"])):
+                        h_r_anti_deser = {
+                            "c1": deserialize_ep(record["h_r_anti"][i]["c1"]),
+                            "c2": deserialize_ep(record["h_r_anti"][i]["c2"]),
+                        }
+                        enc_ptk_anti_deser = [
+                            deserialize_ep(record["enc_ptk_anti"][i][0]),
+                            deserialize_ep(record["enc_ptk_anti"][i][1]),
+                        ]
+                        Teller.verify_proof_h_r(
+                            teller.curve,
+                            enc_ptk_deser,
+                            h_r_deser,
+                            enc_ptk_anti_deser,
+                            h_r_anti_deser,
+                            record["proof"][i],
+                            teller.public_key,
+                        )
+                    reenc_deser = [
+                        deserialize_ep(record["reenc"][0]),
+                        deserialize_ep(record["reenc"][1]),
+                        record["reenc"][2],
+                    ]
+                    ev_deser = [
+                        deserialize_ep(record["ev"][0]),
+                        deserialize_ep(record["ev"][1]),
+                    ]
+                    proof_reenc_deser = {
+                        "t_1": deserialize_ep(record["proof_re_enc"]["t_1"]),
+                        "t_2": deserialize_ep(record["proof_re_enc"]["t_2"]),
+                        "s_1": record["proof_re_enc"]["s_1"],
+                    }
+                    Teller.verify_proof_reenc(
+                        teller.curve,
+                        teller.public_key,
+                        reenc_deser,
+                        ev_deser,
+                        proof_reenc_deser,
+                        record["id"],
+                    )
+                print(f"[PARENT] proofs verified", flush=True)
                 print(f"[PARENT] waiting for q2.get()", flush=True)
                 _ = json.loads(q2.get())
                 print(f"[PARENT] waiting for q3.get()", flush=True)
                 combined_outputs.append(json.loads(q3.get()))
                 print(f"[PARENT] got from q3.get()", flush=True)
             except Exception as e:
-                print(f"[PARENT] ERROR getting queue: {e}", flush=True)
-                
+                print(f"[PARENT] ERROR: {e}", flush=True)
+                traceback.print_exc()
+                raise
+            finally:
+                q2.get()
+                q3.get()
+                p.join()
             
-            p.join()
                
 
        
