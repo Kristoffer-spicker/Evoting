@@ -142,7 +142,7 @@ async def verify_vote(request: verifyrequest):
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
-                "http://verify_app:8002/verify_vote",
+                "http://verify_app:8002/get_true_identifier",
                 json={
                     "voterid": request.voter_id
                 },

@@ -3,6 +3,8 @@ import io
 import os
 import random
 import json
+import select
+import sys
 import uvicorn # type: ignore # pylint: disable=import-error
 from dotenv import load_dotenv
 from fastapi import FastAPI # type: ignore # pylint: disable=import-error
@@ -13,6 +15,7 @@ from threshold_crypto import CurveParameters
 from pydantic import BaseModel # pyright: ignore[reportMissingImports] # pylint: disable=import-error
 from Crypto.PublicKey import ECC
 from qr_backend import qr_data
+import threading
 from curve import Curve
 import segno #type: ignore # pylint: disable=import-error
 import gmpy2
@@ -22,6 +25,28 @@ from VVerify import VVerify
 # pylint: disable=no-member
 
 load_dotenv("../.env")
+
+# Makes the connection to our database in the docker container
+def get_listener_connection():
+    con = psycopg2.connect(
+        host="db",
+        port=5432,
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+    )
+    con.autocommit = True  # Required for LISTEN to work
+    print("Connected!", flush=True)
+    return con
+
+#Calls the listener in try catch to establish connection to DB
+try:
+    con = get_listener_connection()
+    cur = con.cursor()
+    print("Got cursor", flush=True)
+except Exception as e:
+    print("FAILED TO CONNECT TO DB:", e, flush=True)
+    sys.exit(1)
 class ECCEncoder(json.JSONEncoder): #JSONEncoder is a class from the json module that is used to convert python objects to JSON formatting.
 
     def default(self, obj):
@@ -154,10 +179,39 @@ def make_QR_code(request: QRRequest):
 
     return {"status": "ok", "qr_code": encoded}
 
-@app.post("/verify_vote")
+def decrypted_triplets_listen():
+    """
+    Listen to the decrypted_triplets table 
+    Starts by connecting to the server
+    Then runs a while true loop that checks the table continuously
+    """
+    conn = get_listener_connection()
+    cur = conn.cursor()
+    cur.execute("LISTEN decrypted_triplets ;")
+    print("Listening on decrypted_triplets ", flush=True)
+    verifier = VVerify(
+            curve=curve,
+            id=None,
+            vote_min=0,
+            vote_max=vote_max,
+            cur=cur,
+            con=con
+        )
+    while True:
+        if select.select([conn], [], [], 5) == ([], [], []):
+            continue
+        else:
+            conn.poll()
+            while conn.notifies:
+                notify = conn.notifies.pop(0)
+                verifier.verifyVote(cur, int(notify.payload))  
+
+
+
+@app.post("/get_true_identifier")
 async def verify(request: verifyrequest, x_api_key: str = Header(...)):
-    '''if x_api_key != os.getenv("API_TO_VERIFY_KEY"):
-        raise HTTPException(status_code=403, detail="Forbidden")'''
+    if x_api_key != os.getenv("API_TO_VERIFY_KEY"):
+        raise HTTPException(status_code=403, detail="Forbidden")
     voterid = request.voterid
     cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (voterid,))
     v_id = cur.fetchone()
@@ -184,7 +238,7 @@ async def verify(request: verifyrequest, x_api_key: str = Header(...)):
         print("Tallying not done yet — triplets not found", flush=True)
         return False
     dkey = decode_curve_point(raw[0])
-    return verifier.verifyVote(cur, triplet_start, dkey)
+    return verifier.get_true_identifier(dkey, triplet_start, cur)
         
 
 @app.post("/get_identifiers")
@@ -213,4 +267,6 @@ async def getIdentifiers(request: verifyrequest, x_api_key: str = Header(...)):
     return identifiers
 
 
-uvicorn.run(app, host="0.0.0.0", port=8002)
+threading.Thread(target=decrypted_triplets_listen).start()
+threading.Thread(target=uvicorn.run, kwargs={"app": app, "host": "0.0.0.0", "port": 8002}, daemon=True).start()
+
