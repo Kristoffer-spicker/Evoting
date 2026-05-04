@@ -57,6 +57,9 @@ except Exception as e:
 cur.execute("SELECT current_database()")
 print("Connected to:", cur.fetchone()[0])
 
+class verifyrequest(BaseModel):
+    voterid: str
+
 
 # Decodes from x, y coordinates to EccPoints
 def decode_point_recursive(obj):
@@ -199,41 +202,6 @@ def poc_setup():
         voters.append(voter)
 
 
-'''def voting():
-    """The voting phase of the protocol.
-    For each 'voter' in the 'voters' list:
-        a trapdoor keypair is generated,
-        a proof of knowledge of the trapdoor secret key is generated,
-        the vote is encrypted under the tellers' threshold public key,
-        a proof of wellformedness of the ballot is generated,
-        the signed, encrypted ballot is posted to a bulletin board.
-    """
-    for voter in voters:
-        teller_public_key = get_random_tpk(teller_public_keys)
-        t_voting_single_start = time.time()
-        voter.generate_trapdoor_keypair()
-        #Loop
-        voter.generate_antitrapdoor_keypair()
-        voter.encrypt_vote(teller_public_key)
-
-        # Indsæt loop for alle andre kandidater
-        voter.encrypt_antivote(teller_public_key) # encrypt other vote
-        voter.encrypt_trapdoor(teller_public_key) # encrypt the trapdoor
-
-        #Indsæt loop for all andre kandidaters trapdoors
-        voter.encrypt_antitrapdoor(teller_public_key) # encrypt the other trapdoor
-        voter.generate_pok_trapdoor_keypair(teller_public_key)
-
-        # Loop for alle andre anti
-        voter.generate_pok_antitrapdoor_keypair(teller_public_key)
-        voter.generate_wellformedness_proof(teller_public_key)
-
-        # Loop for beviser for alle andre kandidater
-        voter.generate_wellformedness_proof_anti(teller_public_key) # proof other vote
-        print("Vote has been cast for", voter.id)
-        voter.sign_ballot(voter.secret_key)
-        time.sleep(10)'''
-
 def get_random_tpk(tpks):
     encoded_pk = random.choice(tpks)
     return encoded_pk
@@ -328,6 +296,39 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
     voter.sign_ballot()
 
     return {"status": "ok", "voter_id": data["id"]}
+
+def decode_curve_point(point):
+    x = int(point["x"])
+    y = int(point["y"])
+    curve_name = point.get("curve_name") or point.get("curve")
+    return ECC.EccPoint(x, y, curve_name)
+
+
+@app.post("/get_personalized_ballot")
+async def get_personalized_ballot(request: verifyrequest, x_api_key: str = Header(...)):
+    if x_api_key != os.getenv("API_TO_CAST_KEY"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    voter = VCaster.findVoter(request.voterid, curve, vote_min, vote_max, cur, con)
+    cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (request.voterid,))
+    v_id = cur.fetchone()
+    v_id = v_id[0]
+    triplet_start = v_id * vote_max
+
+    ballot_order = []
+    for i in range(triplet_start, triplet_start + vote_max):
+        cur.execute("SELECT triplet->'v' FROM decrypted_triplets WHERE id = %s", (i,))
+        temp = cur.fetchone()
+        if temp is None:
+            return
+        
+        curve_p = decode_curve_point(temp[0])
+        cur.execute("SELECT id FROM candidates WHERE curve_p = %s", (json.dumps(curve_p, cls=ECCEncoder),))
+        c_id = cur.fetchone()
+        c_id = c_id[0]
+        ballot_order.append(c_id)
+    print(ballot_order[0], ballot_order[1], ballot_order[2], flush=True)
+    return ballot_order
 
 
 threading.Thread(target=election_timer, args=(election_time,)).start()

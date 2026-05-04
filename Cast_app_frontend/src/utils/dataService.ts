@@ -6,6 +6,10 @@ const USE_BACK4APP = (import.meta as any).env?.VITE_USE_PARSE === 'true';
 
 const DEVICE_ID_KEY = 'surtr_device_id';
 
+const allCandidates = [
+  { id: 0, name: "James Bond"}, { id: 1, name: "Tony Stark"}, { id: 2, name: "Jack Sparrow"}, { id: 3, name: "Ellen Ripley"}
+];
+
 const generateDeviceFingerprint = (): string => {
   const nav = window.navigator;
   const screen = window.screen;
@@ -291,7 +295,6 @@ export const saveBallotOrder = async (
   }
 };
 
-
 export const getBallotOrder = async (voterID: string) => {
   /*
   getBallotOrder: Function that retrieves ballot order
@@ -306,6 +309,35 @@ export const getBallotOrder = async (voterID: string) => {
     console.error('Error fetching ballot order:', error);
     throw error;
   }
+};
+
+
+export const getBallotOrderNew = async (voterID: string) => {
+  const url = (import.meta as any).env.VITE_API_URL;
+
+  const response = await fetch(`${url}/get_personalized_ballot`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ voter_id: voterID }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to get ballot order');
+  }
+  const data = await response.json();
+
+  var candidates = [] as string[]
+
+  for (let i = 0; i < data.length; i++) {
+    var c_name = allCandidates.find(candidate => candidate.id == data[i])?.name || "";
+    candidates.push(c_name);
+  }
+
+  console.log("Created:", data);
+  return { ballotList: candidates };
+
 };
 
 

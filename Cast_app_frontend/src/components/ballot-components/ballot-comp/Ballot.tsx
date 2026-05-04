@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ProgressBar from '../../scan-QR-components/scan-comp/ProgressBar';
 import BallotContent from './BallotContent';
-import { getBallotOrder } from '../../../utils';
+import { getBallotOrderNew } from '../../../utils';
 import styles from '../ballot-styled-comp/Ballot.module.css';
 
 interface BallotProps {
@@ -39,7 +39,8 @@ const Ballot: React.FC<BallotProps> = ({
       try {
       
         if (voterData?.voterId && voterData.voterId !== '0000') {
-          const existingBallot = await getBallotOrder(voterData.voterId);
+          const existingBallot = await getBallotOrderNew(voterData.voterId);
+          console.log('Existing ballot:', existingBallot[0]);
           
           if (existingBallot && existingBallot.ballotList && existingBallot.ballotList.length > 0) {
           
