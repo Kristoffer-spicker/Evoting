@@ -40,7 +40,6 @@ const Ballot: React.FC<BallotProps> = ({
       
         if (voterData?.voterId && voterData.voterId !== '0000') {
           const existingBallot = await getBallotOrderNew(voterData.voterId);
-          console.log('Existing ballot:', existingBallot[0]);
           
           if (existingBallot && existingBallot.ballotList && existingBallot.ballotList.length > 0) {
           
