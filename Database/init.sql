@@ -60,6 +60,47 @@ CREATE TABLE IF NOT EXISTS triplets_with_identifiers (
     identifier TEXT
 );
 
+-- Stores re-encryption mixnet proofs per teller per phase.
+-- phase: 'triplet_reenc' (per-ballot, triplet_handling.py)
+--        'final_reenc'   (all-ballot, extended_triplets.py)
+-- ballot_id is NULL for the final phase (all ballots mixed together).
+CREATE TABLE IF NOT EXISTS mix_proofs (
+    id          SERIAL PRIMARY KEY,
+    phase       TEXT NOT NULL,
+    teller_id   INT  NOT NULL,
+    ballot_id   TEXT,
+    proof       JSONB NOT NULL
+);
+
+-- Stores the input list fed into each teller's re_encryption_mix call.
+-- Needed by VerifyTally: verify_re_enc_mix requires the pre-shuffle list_0.
+CREATE TABLE IF NOT EXISTS mix_inputs (
+    id          SERIAL PRIMARY KEY,
+    phase       TEXT NOT NULL,
+    teller_id   INT  NOT NULL,
+    ballot_id   TEXT,
+    input_list  JSONB NOT NULL
+);
+
+-- Stores partial-decryption proofs per teller per phase.
+-- phase: 'triplet_decrypt' or 'final_decrypt'
+-- proof is an array of proof dicts, one per process chunk.
+CREATE TABLE IF NOT EXISTS decryption_proofs (
+    id          SERIAL PRIMARY KEY,
+    phase       TEXT NOT NULL,
+    teller_id   INT  NOT NULL,
+    proof       JSONB NOT NULL
+);
+
+-- Stores extension proofs from mp_raise_h per teller per ballot.
+-- Each row is the q1 output: a list of records with h_r, enc_ptk, proof, reenc, proof_re_enc.
+CREATE TABLE IF NOT EXISTS extension_proofs (
+    id          SERIAL PRIMARY KEY,
+    ballot_id   TEXT NOT NULL,
+    teller_id   INT  NOT NULL,
+    proof       JSONB NOT NULL
+);
+
 -- This function fires a notification at insertion into encryptedVotes
 CREATE OR REPLACE FUNCTION notify_encrypted_vote()
 RETURNS trigger AS $$

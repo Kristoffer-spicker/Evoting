@@ -3,7 +3,6 @@ import multiprocessing
 import time
 from Decoding import decode_extended_ballot
 from Encoding import ECCEncoder
-from Tallying import Teller
 
 
 def extend_handler(notify, con, tellers):
@@ -20,7 +19,7 @@ def extend_handler(notify, con, tellers):
     cur.execute("SELECT ballot from extended_votes WHERE id = %s", (data,))
     ballot = cur.fetchone()[0]
 
-    triplets = reencryptTriplets(ballot, tellers)
+    triplets = reencryptTriplets(ballot, tellers, data, cur)
     parsed = json.loads(triplets)
     # For-loop to go trough each triplet for a voter and insert them in the reencrypted_triplets table
     for trip in parsed:
@@ -44,7 +43,7 @@ def extend_handler(notify, con, tellers):
     
 
 
-def reencryptTriplets(ballot, tellers):
+def reencryptTriplets(ballot, tellers, ballot_id, cur):
     """
     Takes an encoded extended vote
     That vote is then decodeed
@@ -52,13 +51,14 @@ def reencryptTriplets(ballot, tellers):
     the remainign candidates not voted for and added to a triplets list.
     Then the triplets are put trough the encryption mixnet
     Lastly the re-encrypted triplets are encoded after the mixnet via the custom encoder from the encoding class
+    Mix proofs are stored in mix_proofs per teller for later VerifyTally use.
     """
     decoded_list = json.loads(ballot) if isinstance(ballot, str) else ballot
 
     triplets = []
 
-    for ballot_id, single_ballot in decoded_list:
-        decoded = decode_extended_ballot(single_ballot)  # ← use new decoder
+    for _, single_ballot in decoded_list:
+        decoded = decode_extended_ballot(single_ballot)
 
         triplets.append([decoded["ev"], decoded["h_r"], decoded["enc_gr"]])
 
@@ -69,9 +69,17 @@ def reencryptTriplets(ballot, tellers):
                 decoded["enc_gr"]
             ])
 
-    for teller in tellers:
+    for teller_idx, teller in enumerate(tellers):
+        cur.execute(
+            "INSERT INTO mix_inputs (phase, teller_id, ballot_id, input_list) VALUES (%s, %s, %s, %s)",
+            ("triplet_reenc", teller_idx, ballot_id, json.dumps(triplets, cls=ECCEncoder))
+        )
         result = teller.re_encryption_mix(triplets)
-        triplets = result[0]  # list_1 is the re-encrypted triplets
+        triplets = result[0]
+        cur.execute(
+            "INSERT INTO mix_proofs (phase, teller_id, ballot_id, proof) VALUES (%s, %s, %s, %s)",
+            ("triplet_reenc", teller_idx, ballot_id, json.dumps(list(result), cls=ECCEncoder))
+        )
 
     return json.dumps(triplets, cls=ECCEncoder)
 
@@ -85,7 +93,7 @@ def triplet_decryption(triplets, tellers, cur):
     compound_pd = []
     compound_pd2 = []
     compound_pd3 = []
-    for teller in tellers:
+    for teller_idx, teller in enumerate(tellers):
         q1 = multiprocessing.Queue()
         q2 = multiprocessing.Queue()
         q3 = multiprocessing.Queue()
@@ -111,6 +119,10 @@ def triplet_decryption(triplets, tellers, cur):
         for p in processes:
             p.join()
             # p.close()
+        cur.execute(
+            "INSERT INTO decryption_proofs (phase, teller_id, proof) VALUES (%s, %s, %s)",
+            ("triplet_decrypt", teller_idx, json.dumps(proofs, cls=ECCEncoder))
+        )
         compound_pd.append(data)
         compound_pd2.append(data2)
         compound_pd3.append(data3)

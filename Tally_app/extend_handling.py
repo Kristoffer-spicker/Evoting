@@ -4,6 +4,7 @@ import traceback
 from Decoding import decode_bb_data
 from Encoding import ECCEncoder
 from util import deserialize_ep
+from Tallying import Teller
 
 def handler(notify, con, tellers):
     """
@@ -16,56 +17,57 @@ def handler(notify, con, tellers):
     cur = con.cursor()
     cur.execute("SELECT ballot FROM encrypted_votes WHERE id = %s", (notify,))
     ballot = cur.fetchone()[0]
+    verify_teller = tellers[0]
+    decoded = decode_bb_data(ballot)
+    if (Teller.validate_ballot(self=verify_teller, curve=verify_teller.curve, teller_public_key=verify_teller.public_key, ballot=decoded)):
+        extended_ballot = extend_and_encode_vote(decoded, tellers, cur)
+        parsed = json.loads(extended_ballot)
 
-    extended_ballot = extend_and_encode_vote(ballot, tellers)
-    parsed = json.loads(extended_ballot)
-
-    cur.execute(
-        "INSERT INTO extended_votes (id, ballot) VALUES (%s, %s) ON CONFLICT (id) DO UPDATE SET ballot = EXCLUDED.ballot", (parsed["id"], json.dumps(parsed["ballot"]))
-    )
-
-    con.commit()
-    cur.close()
-    con.close()
+        cur.execute(
+            "INSERT INTO extended_votes (id, ballot) VALUES (%s, %s) ON CONFLICT (id) DO UPDATE SET ballot = EXCLUDED.ballot", (parsed["id"], json.dumps(parsed["ballot"]))
+        )
+        con.commit()
+        cur.close()
+        con.close()
+    
 
     
-def extend_and_encode_vote(row, tellers):
+def extend_and_encode_vote(decoded, tellers, cur):
     """
-    Takes an encoded vote 
+    Takes an encoded vote
     The vote is then decoded
     Then the decoded vote is run through the mp_raise_h function which extends the vote this is done with multiprocessing
     Lastly it builts the final extended vote and finally encoded via the custom encoder from the encoding class
     """
     try:
-        decoded = decode_bb_data(row)
 
         current_list = [[decoded["id"], decoded]]
         combined_outputs = []
         teller_registry = []
 
-            
-        for teller in tellers:
+        for teller_idx, teller in enumerate(tellers):
             q1 = multiprocessing.Queue()
             q2 = multiprocessing.Queue()
             q3 = multiprocessing.Queue()
-            print("started queues", flush=True)
             p = multiprocessing.Process(
-                target = teller.mp_raise_h, args=(current_list, q1, q2, q3)
+                target=teller.mp_raise_h, args=(current_list, q1, q2, q3)
             )
             p.start()
             try:
-                print(f"[PARENT] waiting for q1.get()", flush=True)
-                _ = json.loads(q1.get())
-                print(f"[PARENT] waiting for q2.get()", flush=True)
+                proofs_raw = q1.get()
+                cur.execute(
+                    "INSERT INTO extension_proofs (ballot_id, teller_id, proof) VALUES (%s, %s, %s)",
+                    (decoded["id"], teller_idx, proofs_raw)
+                )
                 _ = json.loads(q2.get())
-                print(f"[PARENT] waiting for q3.get()", flush=True)
                 combined_outputs.append(json.loads(q3.get()))
-                print(f"[PARENT] got from q3.get()", flush=True)
             except Exception as e:
-                print(f"[PARENT] ERROR getting queue: {e}", flush=True)
-                
+                print(f"[PARENT] ERROR: {e}", flush=True)
+                traceback.print_exc()
+                raise
+            finally:
+                p.join()
             
-            p.join()
                
 
        

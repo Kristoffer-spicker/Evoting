@@ -101,7 +101,8 @@ class VCaster:
 
     def generate_wellformedness_proof_anti(self, teller_public_key):
         self.wellformedness_proof_anti = []
-        for i in range (0, len(self.encrypted_antivote)):
+        actual_candidates = [c for c in range(self.vote_min, self.vote_max) if c != self.vote]
+        for i in range(0, len(self.encrypted_antivote)):
             encrypted_antivote = {
                 "c1": self.encrypted_antivote[i][0],
                 "c2": self.encrypted_antivote[i][1],
@@ -113,27 +114,25 @@ class VCaster:
                 r,
                 teller_public_key.Q,
                 self.vote_max,
-                int(i),
+                actual_candidates[i],
                 self.id,
             ))
     def sign_ballot(self):
         self.dsa = DSA(self.curve)
         anti_sum = sum(ct[2] for ct in self.encrypted_antivote)
         self.sum_r = self.encrypted_vote[2]+anti_sum
-        hash = self.curve.hash_to_mpz(
-            str(self.encrypted_vote)
-            + str(self.encrypted_antivote)
-            + str(self.encrypted_trapdoor)
-            # Loop
-            + str(self.encrypted_antitrapdoor)
-            + str(self.pok_trapdoor_key)
-            # Loop
-            + str(self.pok_antitrapdoor_key)
-            + str(self.wellformedness_proof)
-            # Loop
-            + str(self.wellformedness_proof_anti)
-            + str(self.sum_r)    
-        )
+        _fields_to_sign = {
+            "ev": self.encrypted_vote,
+            "ev_anti": self.encrypted_antivote,
+            "enc_ptk": self.encrypted_trapdoor,
+            "enc_ptk_anti": self.encrypted_antitrapdoor,
+            "pi_1": self.pok_trapdoor_key,
+            "pi_1_anti": self.pok_antitrapdoor_key,
+            "pi_2": self.wellformedness_proof,
+            "pi_3": self.wellformedness_proof_anti,
+            "sum_r": self.sum_r,
+        }
+        hash = self.curve.hash_to_mpz(json.dumps(_fields_to_sign, cls=ECCEncoder, sort_keys=True))
         self.signature = self.dsa.sign(self.secret_key, hash)
         bb_data = {
             "id": self.id,

@@ -15,7 +15,9 @@ def deserialize_pd(curve, pd):
 
 
 def deserialize_ep(d):
-    """Handles both 'curve' and 'curve_name' key formats"""
+    """Handles both 'curve' and 'curve_name' key formats, and already-deserialized ECC.EccPoint"""
+    if isinstance(d, ECC.EccPoint):
+        return d
     curve = d.get('curve') or d.get('curve_name', 'P-192')
     return ECC.EccPoint(int(d['x']), int(d['y']), curve)
 

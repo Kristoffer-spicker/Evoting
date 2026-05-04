@@ -14,6 +14,7 @@ import threshold_crypto as tc
 from extend_handling import handler
 from triplet_handling import extend_handler
 from extended_triplets import final_triplets
+from verify_tally import verify_tally
 from Encoding import ECCEncoder
 
 
@@ -71,6 +72,7 @@ def start_decrypt(e_timer):
     time.sleep(e_timer)
     print("voting phase has ended", flush=True)
     final_triplets(cur, con, tellers)
+    verify_tally(cur, con, tellers)
 
 tellers = []
 
