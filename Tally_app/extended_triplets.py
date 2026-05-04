@@ -46,6 +46,9 @@ def final_triplets(cur, con, tellers):
     """)
     con.commit()
     triplets = cur.fetchall()
+    if not triplets:
+        print("final_triplets: no extended votes yet, skipping", flush=True)
+        return
     tripletsdecoded = []
     for trip in triplets:
         decoded = (finaltripletdecoder(trip))
@@ -55,9 +58,17 @@ def final_triplets(cur, con, tellers):
                 decoded["new_key"]
             ])
     
-    for teller in tellers:
+    for teller_idx, teller in enumerate(tellers):
+        cur.execute(
+            "INSERT INTO mix_inputs (phase, teller_id, ballot_id, input_list) VALUES (%s, %s, %s, %s)",
+            ("final_reenc", teller_idx, None, json.dumps(tripletsdecoded, cls=ECCEncoder))
+        )
         result = teller.re_encryption_mix(tripletsdecoded)
-        tripletsdecoded = result[0]  # list_1 is the re-encrypted triplets
+        tripletsdecoded = result[0]
+        cur.execute(
+            "INSERT INTO mix_proofs (phase, teller_id, ballot_id, proof) VALUES (%s, %s, %s, %s)",
+            ("final_reenc", teller_idx, None, json.dumps(list(result), cls=ECCEncoder))
+        )
         print("remix and reincryption complete", flush=True)
 
     mixedtrips = json.loads(json.dumps(tripletsdecoded, cls=ECCEncoder))
@@ -151,7 +162,7 @@ def triplet_decryption(triplets, tellers, cur):
     compound_pd = []
     compound_pd2 = []
     compound_pd3 = []
-    for teller in tellers:
+    for teller_idx, teller in enumerate(tellers):
         q1 = multiprocessing.Queue()
         q2 = multiprocessing.Queue()
         q3 = multiprocessing.Queue()
@@ -177,6 +188,10 @@ def triplet_decryption(triplets, tellers, cur):
         for p in processes:
             p.join()
             # p.close()
+        cur.execute(
+            "INSERT INTO decryption_proofs (phase, teller_id, proof) VALUES (%s, %s, %s)",
+            ("final_decrypt", teller_idx, json.dumps(proofs, cls=ECCEncoder))
+        )
         compound_pd.append(data)
         compound_pd2.append(data2)
         compound_pd3.append(data3)

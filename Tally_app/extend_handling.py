@@ -20,7 +20,7 @@ def handler(notify, con, tellers):
     verify_teller = tellers[0]
     decoded = decode_bb_data(ballot)
     if (Teller.validate_ballot(self=verify_teller, curve=verify_teller.curve, teller_public_key=verify_teller.public_key, ballot=decoded)):
-        extended_ballot = extend_and_encode_vote(decoded, tellers)
+        extended_ballot = extend_and_encode_vote(decoded, tellers, cur)
         parsed = json.loads(extended_ballot)
 
         cur.execute(
@@ -32,9 +32,9 @@ def handler(notify, con, tellers):
     
 
     
-def extend_and_encode_vote(decoded, tellers):
+def extend_and_encode_vote(decoded, tellers, cur):
     """
-    Takes an encoded vote 
+    Takes an encoded vote
     The vote is then decoded
     Then the decoded vote is run through the mp_raise_h function which extends the vote this is done with multiprocessing
     Lastly it builts the final extended vote and finally encoded via the custom encoder from the encoding class
@@ -45,82 +45,27 @@ def extend_and_encode_vote(decoded, tellers):
         combined_outputs = []
         teller_registry = []
 
-            
-        for teller in tellers:
+        for teller_idx, teller in enumerate(tellers):
             q1 = multiprocessing.Queue()
             q2 = multiprocessing.Queue()
             q3 = multiprocessing.Queue()
-            print("started queues", flush=True)
             p = multiprocessing.Process(
-                target = teller.mp_raise_h, args=(current_list, q1, q2, q3)
+                target=teller.mp_raise_h, args=(current_list, q1, q2, q3)
             )
             p.start()
             try:
-                print(f"[PARENT] waiting for q1.get()", flush=True)
-                teller_proofs = json.loads(q1.get())
-                print(f"[PARENT] got from q1.get()", flush=True)
-                for record in teller_proofs:
-                    h_r_deser = {
-                        "c1": deserialize_ep(record["h_r"]["c1"]),
-                        "c2": deserialize_ep(record["h_r"]["c2"]),
-                    }
-                    enc_ptk_deser = [
-                        deserialize_ep(record["enc_ptk"][0]),
-                        deserialize_ep(record["enc_ptk"][1]),
-                    ]
-                    for i in range(len(record["proof"])):
-                        h_r_anti_deser = {
-                            "c1": deserialize_ep(record["h_r_anti"][i]["c1"]),
-                            "c2": deserialize_ep(record["h_r_anti"][i]["c2"]),
-                        }
-                        enc_ptk_anti_deser = [
-                            deserialize_ep(record["enc_ptk_anti"][i][0]),
-                            deserialize_ep(record["enc_ptk_anti"][i][1]),
-                        ]
-                        Teller.verify_proof_h_r(
-                            teller.curve,
-                            enc_ptk_deser,
-                            h_r_deser,
-                            enc_ptk_anti_deser,
-                            h_r_anti_deser,
-                            record["proof"][i],
-                            teller.public_key,
-                        )
-                    reenc_deser = [
-                        deserialize_ep(record["reenc"][0]),
-                        deserialize_ep(record["reenc"][1]),
-                        record["reenc"][2],
-                    ]
-                    ev_deser = [
-                        deserialize_ep(record["ev"][0]),
-                        deserialize_ep(record["ev"][1]),
-                    ]
-                    proof_reenc_deser = {
-                        "t_1": deserialize_ep(record["proof_re_enc"]["t_1"]),
-                        "t_2": deserialize_ep(record["proof_re_enc"]["t_2"]),
-                        "s_1": record["proof_re_enc"]["s_1"],
-                    }
-                    Teller.verify_proof_reenc(
-                        teller.curve,
-                        teller.public_key,
-                        reenc_deser,
-                        ev_deser,
-                        proof_reenc_deser,
-                        record["id"],
-                    )
-                print(f"[PARENT] proofs verified", flush=True)
-                print(f"[PARENT] waiting for q2.get()", flush=True)
+                proofs_raw = q1.get()
+                cur.execute(
+                    "INSERT INTO extension_proofs (ballot_id, teller_id, proof) VALUES (%s, %s, %s)",
+                    (decoded["id"], teller_idx, proofs_raw)
+                )
                 _ = json.loads(q2.get())
-                print(f"[PARENT] waiting for q3.get()", flush=True)
                 combined_outputs.append(json.loads(q3.get()))
-                print(f"[PARENT] got from q3.get()", flush=True)
             except Exception as e:
                 print(f"[PARENT] ERROR: {e}", flush=True)
                 traceback.print_exc()
                 raise
             finally:
-                q2.get()
-                q3.get()
                 p.join()
             
                

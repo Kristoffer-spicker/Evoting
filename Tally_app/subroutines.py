@@ -184,9 +184,9 @@ class Mixnet:
             data[i][3][1] = deserialize_ep(data[i][3][1])
             data[i][5][0] = deserialize_ep(data[i][5][0])
             data[i][5][1] = deserialize_ep(data[i][5][1])
-            temp.append(data[i][1])
-            temp.append(data[i][3])
-            temp.append(data[i][5])
+            temp.append(data[i][1][:3])
+            temp.append(data[i][3][:3])
+            temp.append(data[i][5][:3])
             list_1[permutation[i]] = temp
             temp = []
             temp.append(data[i][2])
@@ -200,14 +200,13 @@ class Mixnet:
         u_prime = [0] * count
         list_vh = list_votes
         for i in range(len(list_vh)):
-            if isinstance(list_vh[i][1][0], ECC.EccPoint):
-                lvi_1 = serialize_point(list_vh[i][1][0])
-                lvi_2 = serialize_point(list_vh[i][1][1])
-            else:
-                lvi_1 = list_vh[i][1][0]
-                lvi_2 = list_vh[i][1][1]
-            lvi_3 = list_vh[i][1][2]
-            list_vh[i][1] = [lvi_1, lvi_2, lvi_3]
+            for j in range(3):
+                if isinstance(list_vh[i][j][0], ECC.EccPoint):
+                    list_vh[i][j] = [
+                        serialize_point(list_vh[i][j][0]),
+                        serialize_point(list_vh[i][j][1]),
+                        list_vh[i][j][2],
+                    ]
         list_1h = list_1
 
         for i in range(len(list_1h)):
@@ -236,7 +235,9 @@ class Mixnet:
             pc_expl = pc_expl + str(serialize_point(item))
 
         fix_string = str(list_vh) + str(list_1h) + str(pc_expl)
-        base_hasher = hashlib.sha256() 
+        print("[re_enc_mix] u-hash input len=%d scalar_type=%s prefix=%r" % (
+            len(fix_string), type(list_vh[0][0][2]).__name__, fix_string[:80]), flush=True)
+        base_hasher = hashlib.sha256()
         base_hasher.update(fix_string.encode("UTF-8"))
 
         for i in range(count):
@@ -302,10 +303,10 @@ class Mixnet:
         w_4_inv = (
             self.curve.get_pars().order - w[3]
         ) * self.curve.get_pars().P
-        t_4_2 = (self.curve.get_pars().order - w[3]) * self.curve.get_pars().P
         t_4_1 = w_4_inv
         t_4_3 = w_4_inv
-        t_4_4 = t_4_2
+        t_4_2 = (self.curve.get_pars().order - w[3]) * public_key
+        t_4_4 = (self.curve.get_pars().order - w[3]) * public_key
         t_hat = [0] * count
 
         generators = pc.get_generators()
@@ -349,24 +350,24 @@ class Mixnet:
         for item in permutation_commitment["c"]:
             pc_expl = pc_expl + str(serialize_point(item))
 
-        c_hash = hashlib.sha256(
-            (
-                str(list_vh)
-                + str(list_1h)
-                + str(pc_expl)
-                + str(serialize_point(h))
-                + str(c_expl)
-                + str(serialize_point(public_key))
-                + str(serialize_point(t1))
-                + str(serialize_point(t2))
-                + str(serialize_point(t3))
-                + str(serialize_point(t_4_1))
-                + str(serialize_point(t_4_2))
-                + str(t_hat_expl)
-                + str(serialize_point(t_4_3))
-                + str(serialize_point(t_4_4))
-            ).encode("UTF-8")
-        ).hexdigest()
+        _c_hash_input = (
+            str(list_vh)
+            + str(list_1h)
+            + str(pc_expl)
+            + str(serialize_point(h))
+            + str(c_expl)
+            + str(serialize_point(public_key))
+            + str(serialize_point(t1))
+            + str(serialize_point(t2))
+            + str(serialize_point(t3))
+            + str(serialize_point(t_4_1))
+            + str(serialize_point(t_4_2))
+            + str(t_hat_expl)
+            + str(serialize_point(t_4_3))
+            + str(serialize_point(t_4_4))
+        )
+        print("[re_enc_mix] c_hash input len=%d prefix=%r" % (len(_c_hash_input), _c_hash_input[:80]), flush=True)
+        c_hash = hashlib.sha256(_c_hash_input.encode("UTF-8")).hexdigest()
         c_hash = gmpy2.mpz("0x" + c_hash) % self.curve.get_pars().order
         s_1 = self.curve.add_mod_q(w[0], self.curve.mul_mod_q(c_hash, r_vect))
         s_2 = self.curve.add_mod_q(w[1], self.curve.mul_mod_q(c_hash, r_hat))
@@ -446,15 +447,13 @@ class Mixnet:
             pc_expl = pc_expl + str(serialize_point(item))
         list_vh = list_0
         for i in range(len(list_vh)):
-            if isinstance(list_vh[i][1][0], ECC.EccPoint):
-                lvi_1 = serialize_point(list_vh[i][1][0])
-                lvi_2 = serialize_point(list_vh[i][1][1])
-                lvi_3 = list_vh[i][1][2]
-            else:
-                lvi_1 = list_vh[i][1][0]
-                lvi_2 = list_vh[i][1][1]
-                lvi_3 = list_vh[i][1][2]
-            list_vh[i][1] = [lvi_1, lvi_2, lvi_3]
+            for j in range(3):
+                if isinstance(list_vh[i][j][0], ECC.EccPoint):
+                    list_vh[i][j] = [
+                        serialize_point(list_vh[i][j][0]),
+                        serialize_point(list_vh[i][j][1]),
+                        list_vh[i][j][2],
+                    ]
         list_1h = list_1
 
         for i in range(len(list_1h)):
@@ -470,6 +469,12 @@ class Mixnet:
                 )
                 list_1h[i][1][1] = serialize_point(
                     list_1h[i][1][1]
+                )
+                list_1h[i][2][0] = serialize_point(
+                    list_1h[i][2][0]
+                )
+                list_1h[i][2][1] = serialize_point(
+                    list_1h[i][2][1]
                 )
 
         u_ver[0] = (
@@ -527,27 +532,27 @@ class Mixnet:
             pc_expl = pc_expl + str(serialize_point(item))
 
         c_ver_vect = c_prod + (-h_prod)
+        _verify_hash_input = (
+            str(list_vh)
+            + str(list_1h)
+            + str(pc_expl)
+            + str(serialize_point(h))
+            + str(c_expl)
+            + str(serialize_point(public_key))
+            + str(serialize_point(t1))
+            + str(serialize_point(t2))
+            + str(serialize_point(t3))
+            + str(serialize_point(t_4_1))
+            + str(serialize_point(t_4_2))
+            + str(t_hat_expl)
+            + str(serialize_point(t_4_3))
+            + str(serialize_point(t_4_4))
+        )
+        print("[verify_mix] c_ver_hash input len=%d prefix=%r" % (len(_verify_hash_input), _verify_hash_input[:80]), flush=True)
         c_ver_hash = (
             gmpy2.mpz(
                 "0x"
-                + hashlib.sha256(
-                    (
-                        str(list_vh)
-                        + str(list_1h)
-                        + str(pc_expl)
-                        + str(serialize_point(h))
-                        + str(c_expl)
-                        + str(serialize_point(public_key))
-                        + str(serialize_point(t1))
-                        + str(serialize_point(t2))
-                        + str(serialize_point(t3))
-                        + str(serialize_point(t_4_1))
-                        + str(serialize_point(t_4_2))
-                        + str(t_hat_expl)
-                        + str(serialize_point(t_4_3))
-                        + str(serialize_point(t_4_4))
-                    ).encode("UTF8")
-                ).hexdigest()
+                + hashlib.sha256(_verify_hash_input.encode("UTF8")).hexdigest()
             )
             % self.curve.get_pars().order
         )
@@ -557,6 +562,9 @@ class Mixnet:
         t1_prime = t1_prime_1 + t1_prime_2
 
         if t1 != t1_prime:
+            print("[verify_mix] FAIL t1: hash mismatch — c_ver_hash=%s" % c_ver_hash, flush=True)
+            print("[verify_mix]   t1      =%s" % serialize_point(t1), flush=True)
+            print("[verify_mix]   t1_prime=%s" % serialize_point(t1_prime), flush=True)
             return 0
 
         t2v = (c[count - 1]) + -(h * u_prod)
@@ -565,6 +573,7 @@ class Mixnet:
         t2v = -t2v + (s_2 * self.curve.get_pars().P)
 
         if t2 != t2v:
+            print("[verify_mix] FAIL t2", flush=True)
             return 0
 
         t3_prime_1 = c_ver_tilde * (self.curve.get_pars().order - c_ver_hash)
@@ -586,7 +595,8 @@ class Mixnet:
         t3_prime = t3_prime_1 + t3_prime_2
 
         if t3 != t3_prime:
-            return  0
+            print("[verify_mix] FAIL t3", flush=True)
+            return 0
 
         t41v2 = t41v2 * (self.curve.get_pars().order - c_ver_hash)
         t41v = t41v1 + t41v2
@@ -601,9 +611,11 @@ class Mixnet:
         )
 
         if t_4_1 != t41v:
-            return  0
+            print("[verify_mix] FAIL t_4_1", flush=True)
+            return 0
 
         if t_4_3 != t43v:
+            print("[verify_mix] FAIL t_4_3", flush=True)
             return 0
 
         t42v1 = ECC.EccPoint(0, 0, "P-192")
@@ -626,6 +638,7 @@ class Mixnet:
         t44v = t44v + -((s_5) * public_key)
 
         if t_4_4 != t44v:
+            print("[verify_mix] FAIL t_4_4", flush=True)
             return 0
 
         for i in range(count):
@@ -635,6 +648,7 @@ class Mixnet:
             else:
                 temp = temp + (c[i - 1] * s_prime[i])
             if t_hat[i] != temp:
+                print("[verify_mix] FAIL t_hat[%d]" % i, flush=True)
                 return 0
 
         return 1
