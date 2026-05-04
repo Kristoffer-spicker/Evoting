@@ -116,7 +116,7 @@ def get_tally_key(session: SessionDep):
 
 @app.post("/qrcode")
 async def qrcode(request: qrCodeRequest):
-    secret_key = os.getenv("SECRET_KEY")
+    secret_key = os.getenv("API_TO_VERIFY_KEY") 
     async with httpx.AsyncClient() as client:
         try:
             qrdata = await client.post(
@@ -124,6 +124,7 @@ async def qrcode(request: qrCodeRequest):
                 json={
                     "id": request.voter_id,
                 },
+                headers={"x-api-key": secret_key},
                 timeout=30.0
             )
             return qrdata.json()
@@ -137,7 +138,7 @@ async def qrcode(request: qrCodeRequest):
 
 @app.post("/verify_vote")
 async def verify_vote(request: verifyrequest):
-    secret_key = os.getenv("SECRET_KEY")
+    secret_key = os.getenv("API_TO_VERIFY_KEY")
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
@@ -159,7 +160,7 @@ async def verify_vote(request: verifyrequest):
 
 @app.post("/get_identifiers")
 async def get_identifiers(request: verifyrequest):
-    secret_key = os.getenv("SECRET_KEY")
+    secret_key = os.getenv("API_TO_VERIFY_KEY") 
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
@@ -189,7 +190,7 @@ async def cast_vote(request: CastVoteRequest):
     ensuring only the API can trigger the voting function.
     '''
     print(f"Received: {request}", flush=True)
-    secret_key = os.getenv("SECRET_KEY")
+    secret_key = os.getenv("API_TO_CAST_KEY")
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(

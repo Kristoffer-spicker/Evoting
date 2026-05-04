@@ -284,7 +284,7 @@ async def trigger(data: dict, x_api_key: str = Header(...)):
     the chosen candidate (vote_value), and runs the full voting flow
     which encrypts and posts the ballot to the database.
     '''
-    if x_api_key != os.getenv("SECRET_KEY"):
+    if x_api_key != os.getenv("API_TO_CAST_KEY"):
         raise HTTPException(status_code=403, detail="Forbidden")
     
     qr_bytes = base64.b64decode(data["qr_data"])

@@ -24,7 +24,8 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-      SECRET_KEY: ${SECRET_KEY}
+      API_TO_CAST_KEY: ${API_TO_CAST_KEY}
+      API_TO_VERIFY_KEY: ${API_TO_VERIFY_KEY}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
     networks:
       - evoting
@@ -39,7 +40,7 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-      SECRET_KEY: ${SECRET_KEY}
+      API_TO_CAST_KEY: ${API_TO_CAST_KEY}
     networks:
       - evoting
 
@@ -64,6 +65,7 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      API_TO_VERIFY_KEY: ${API_TO_VERIFY_KEY}
     networks:
       - evoting
 

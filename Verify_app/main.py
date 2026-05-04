@@ -156,7 +156,7 @@ def make_QR_code(request: QRRequest):
 
 @app.post("/verify_vote")
 async def verify(request: verifyrequest, x_api_key: str = Header(...)):
-    '''if x_api_key != os.getenv("SECRET_KEY"):
+    '''if x_api_key != os.getenv("API_TO_VERIFY_KEY"):
         raise HTTPException(status_code=403, detail="Forbidden")'''
     voterid = request.voterid
     cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (voterid,))
@@ -189,8 +189,8 @@ async def verify(request: verifyrequest, x_api_key: str = Header(...)):
 
 @app.post("/get_identifiers")
 async def getIdentifiers(request: verifyrequest, x_api_key: str = Header(...)):
-    '''if x_api_key != os.getenv("SECRET_KEY"):
-    raise HTTPException(status_code=403, detail="Forbidden")'''
+    if x_api_key != os.getenv("API_TO_VERIFY_KEY"):
+        raise HTTPException(status_code=403, detail="Forbidden")
     voterid = request.voterid
     cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (voterid,))
     v_id = cur.fetchone()
