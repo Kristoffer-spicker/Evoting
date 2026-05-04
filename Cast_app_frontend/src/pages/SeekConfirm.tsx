@@ -13,9 +13,7 @@ export type Candidate = {
   name: string;
 }
 const allCandidates = [
-  { id: 0, name: "James Bond"}, { id: 1, name: "Tony Stark"}, { id: 2, name: "Jack Sparrow"}, { id: 3, name: "Ellen Ripley"},
-  { id: 4, name: "Mr. Bean" }, { id: 5, name: "Homer Simpson" }, {id: 6, name: "Charlie Chaplin"}, {id: 7, name: "Peter Sellers"}, 
-  {id: 8, name: "Raymond Reddington"}, {id: 9, name: "Daenerys Targaryen"}, {id: 10, name: "Rachel Green"}, {id: 11, name: "Walter White"}
+  { id: 0, name: "James Bond"}, { id: 1, name: "Tony Stark"}, { id: 2, name: "Jack Sparrow"}, { id: 3, name: "Ellen Ripley"}
 ];
 
 
@@ -127,6 +125,7 @@ const SeekConfirm: React.FC = () => {
 
   try {
     const existingBallot = await getBallotOrder(userData.voterId);
+    console.log('Existing ballot:', existingBallot);
     if (!existingBallot || !existingBallot.ballotList || existingBallot.ballotList.length === 0) {
       const newBallot = createBallotOrder(selectedCandidate.name, allCandidates.map(c => c.name));
       await saveBallotOrder(userData.voterId, newBallot);

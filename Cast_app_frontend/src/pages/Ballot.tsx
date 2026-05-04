@@ -14,7 +14,7 @@ const Ballot: React.FC = () => {
   const [accessDenied, setAccessDenied] = useState(false);
 
   
-  const selectedCandidate = location.state?.selectedCandidate || 'Jack Sparrow';
+  const selectedCandidate = location.state?.selectedCandidate || 'James Bond';
   const voterData = useMemo(() => ({
     userName: location.state?.userName || 'Voter',
     voterId: location.state?.voterId || '0000'

@@ -178,6 +178,27 @@ async def get_identifiers(request: verifyrequest):
             raise HTTPException(status_code=e.response.status_code, detail="verify_app rejected the rquest")
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Could not reach verify_app")
+        
+@app.post("/get_personalized_ballot")
+async def get_personalized_ballot(request: verifyrequest):
+    secret_key = os.getenv("API_TO_CAST_KEY")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "http://cast_app:8001/get_personalized_ballot",
+                json={
+                    "voterid": request.voter_id
+                },
+                headers={"x-api-key": secret_key},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json()
+    
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail="cast_app rejected the rquest")
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Could not reach cast_app")
 
 
 @app.post("/castvote")
