@@ -129,6 +129,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+
 -- The trigger that calls the function on every INSERT
 CREATE OR REPLACE TRIGGER encrypted_vote_inserted
 AFTER INSERT ON encrypted_votes
@@ -138,4 +139,8 @@ FOR EACH ROW EXECUTE FUNCTION notify_encrypted_vote();
 CREATE OR REPLACE TRIGGER extended_vote_inserted
 AFTER INSERT ON extended_votes
 FOR EACH ROW EXECUTE FUNCTION notify_extended_vote();
+
+CREATE OR REPLACE TRIGGER decrypted_triplets_inserted
+AFTER INSERT ON decrypted_triplets
+FOR EACH ROW EXECUTE FUNCTION notify_decrypted_triplets_vote();
 
