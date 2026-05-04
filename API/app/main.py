@@ -209,7 +209,6 @@ async def cast_vote(request: CastVoteRequest):
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Could not reach cast_app")
 
-
 @app.get("/")
 def read_root():
     return {"Hello": "World"}

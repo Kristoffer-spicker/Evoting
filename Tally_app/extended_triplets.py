@@ -141,10 +141,10 @@ def candidate_tallying(decrypted_trips, cur):
             ORDER BY ft.vote_count DESC
         """)
         results = cur.fetchall()
-        print("\n=== Final Tally ===", flush=True)
-        for row in results:
-            print(f"  Candidate {row[0]} | Votes: {row[2]} | Point: {row[1]}", flush=True)
-        print("==================\n", flush=True)
+    print("\n=== Final Tally ===", flush=True)
+    for row in results:
+        print(f"  Candidate {row[0]} | Votes: {row[2]} | Point: {row[1]}", flush=True)
+    print("==================\n", flush=True)
     
 
 

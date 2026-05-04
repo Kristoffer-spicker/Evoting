@@ -1,5 +1,4 @@
 import gmpy2
-from Crypto.PublicKey import ECC
 from Tallying import Teller
 from Decoding import decode_point_recursive
 from util import deserialize_ep
