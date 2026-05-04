@@ -94,35 +94,61 @@ def triplet_decryption(triplets, tellers, cur):
     compound_pd2 = []
     compound_pd3 = []
     for teller_idx, teller in enumerate(tellers):
-        q1 = multiprocessing.Queue()
-        q2 = multiprocessing.Queue()
-        q3 = multiprocessing.Queue()
-        q4 = multiprocessing.Queue()
-        processes = [
-            multiprocessing.Process(
-                target=teller.mp_partial_decrypt, args=(ciph, q1, q2, q3, q4)
+        batch_queues = []
+        processes = []
+        for ciph in split_ciphertexts:
+            pq1 = multiprocessing.Queue()
+            pq2 = multiprocessing.Queue()
+            pq3 = multiprocessing.Queue()
+            pq4 = multiprocessing.Queue()
+            p = multiprocessing.Process(
+                target=teller.mp_partial_decrypt, args=(ciph, pq1, pq2, pq3, pq4)
             )
-            for ciph in split_ciphertexts
-        ]
-        for p in processes:
             p.daemon = True
+            processes.append(p)
+            batch_queues.append((pq1, pq2, pq3, pq4))
+        for p in processes:
             p.start()
         data = []
         data2 = []
         data3 = []
         proofs = []
-        for p in processes:
-            data = data + q1.get()
-            data2 = data2 + q2.get()
-            data3 = data3 + q3.get()
-            proofs.append(q4.get())
+        per_batch_pd = []
+        per_batch_pd2 = []
+        per_batch_pd3 = []
+        for i, (p, (pq1, pq2, pq3, pq4)) in enumerate(zip(processes, batch_queues)):
+            batch_d = pq1.get()
+            batch_d2 = pq2.get()
+            batch_d3 = pq3.get()
+            batch_proof = pq4.get()
+            data = data + batch_d
+            data2 = data2 + batch_d2
+            data3 = data3 + batch_d3
+            proofs.append(batch_proof)
+            per_batch_pd.append(batch_d)
+            per_batch_pd2.append(batch_d2)
+            per_batch_pd3.append(batch_d3)
         for p in processes:
             p.join()
             # p.close()
         cur.execute(
-            "INSERT INTO decryption_proofs (phase, teller_id, proof) VALUES (%s, %s, %s)",
+            "INSERT INTO decryption_proofs (phase, teller_id, proof) VALUES (%s, %s, %s) RETURNING id",
             ("triplet_decrypt", teller_idx, json.dumps(proofs, cls=ECCEncoder))
         )
+        proof_row_id = cur.fetchone()[0]
+        for batch_idx, (batch_ciph, batch_pd, batch_pd2, batch_pd3) in enumerate(
+            zip(split_ciphertexts, per_batch_pd, per_batch_pd2, per_batch_pd3)
+        ):
+            cur.execute(
+                "INSERT INTO decryption_inputs "
+                "(phase, teller_id, batch_idx, proof_id, ciphertexts, pd_1, pd_2, pd_3) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                ("triplet_decrypt", teller_idx, batch_idx, proof_row_id,
+                 json.dumps(batch_ciph),
+                 json.dumps(batch_pd),
+                 json.dumps(batch_pd2),
+                 json.dumps(batch_pd3))
+            )
         compound_pd.append(data)
         compound_pd2.append(data2)
         compound_pd3.append(data3)
@@ -152,6 +178,7 @@ def triplet_decryption(triplets, tellers, cur):
     print("Decryption first part done in ",time.time() - time_now)
 
     global decrypted
+    q1 = multiprocessing.Queue()
     #1 ciphertext (votes)
     split_ciphertexts = tellers[0].ciphertext_list_split(
         final_pd, multiprocessing.cpu_count()
