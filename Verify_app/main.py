@@ -206,6 +206,15 @@ def decrypted_triplets_listen():
                 notify = conn.notifies.pop(0)
                 verifier.verifyVote(cur, int(notify.payload))  
 
+@app.post("/get_election_result")
+async def get_election_result(x_api_key: str = Header(...)):
+    if x_api_key != os.getenv("API_TO_VERIFY_KEY"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    cur.execute("SELECT candidate_id, vote_count FROM final_tally")
+    result = cur.fetchall()
+    if result is None:
+        return []
+    return result
 
 
 @app.post("/get_true_identifier")

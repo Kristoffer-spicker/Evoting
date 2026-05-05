@@ -101,12 +101,6 @@ def read_candidate(candidate_id: int, session: SessionDep) -> Candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
     return candidate    
 
-'''@app.post("/addcandidates/")
-def create_candidate(candidate: Candidate, session: SessionDep) -> Candidate:
-    session.add(candidate)
-    session.commit()
-    session.refresh(candidate)
-    return candidate'''
 
 @app.get("/getTallyKey")
 def get_tally_key(session: SessionDep):
@@ -199,6 +193,24 @@ async def get_personalized_ballot(request: verifyrequest):
             raise HTTPException(status_code=e.response.status_code, detail="cast_app rejected the rquest")
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Could not reach cast_app")
+        
+@app.post("/get_result")
+async def get_resutl():
+    secret_key = os.getenv("API_TO_VERIFY_KEY")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "http://verify_app:8002/get_election_result",
+                headers={"x-api-key": secret_key},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json()
+    
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail="verify_app rejected the rquest")
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Could not reach verify_app")
 
 
 @app.post("/castvote")

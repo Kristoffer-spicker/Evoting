@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, Info } from 'lucide-react';
 import { ProgressSteps } from '@/components/preparation-components/preparation-comp';
-import { areElectionResultsPublished, getCurrentAuthenticatedVoter, getVoterTriplets } from '@/utils/dataService';
+import { getFinalResult, getCurrentAuthenticatedVoter, getVoterTriplets } from '@/utils/dataService';
 import styles from '../complete-styled-comp/Complete.module.css';
 
 const CompleteContent = () => {
@@ -10,19 +10,14 @@ const CompleteContent = () => {
   const steps = ["Voting QR Code", "After Vote casting", "True Identifier", "Identifiers for All Candidates", "Complete"];
 
   
-  const [resultsPublished, setResultsPublished] = useState<boolean>(false);
   const [voterTriplets, setVoterTriplets] = useState<Array<{tripletId: number, candidateName: string, emoji: string}>>([]);
-
+  const [finalResult, setFinalResult] = useState<any>(null);
   useEffect(() => {
-    const checkResultsStatus = async () => {
-      try {
-        const published = await areElectionResultsPublished();
-        setResultsPublished(published);
-      } catch (error) {
-        console.error('Error checking results status:', error);
-        setResultsPublished(false);
-      }
-    };
+    const loadResult = async () => {
+      const result = await getFinalResult();
+      setFinalResult(result ?? []);
+      console.log(result);
+    }
 
     const loadTriplets = async () => {
       try {
@@ -35,17 +30,10 @@ const CompleteContent = () => {
       }
     };
 
-    checkResultsStatus();
     loadTriplets();
+    loadResult();
   }, []);
 
-  const handleVerifyVote = () => {
-    navigate('/verify-vote');
-  };
-
-  const handleClose = () => {
-    navigate('/');
-  };
 
   return (
     <div className={styles.contentWrapper}>
@@ -73,6 +61,26 @@ const CompleteContent = () => {
           </div>
         )}
 
+        <div className={styles.tripletsBox}>
+          <h3 className={styles.tripletsTitle}>Election Results</h3>
+          {finalResult === null ? null : finalResult.length === 0 ? (
+            <p>Election result not counted yet</p>
+          ) : (
+            <div className={styles.tripletsTable}>
+              <div className={styles.tripletsHeaderRow}>
+                <span className={styles.tripletsHeaderCell}>Candidate</span>
+                <span className={styles.tripletsHeaderCell}>Votes</span>
+              </div>
+              {finalResult.map((entry: {candidateName: string, vote_count: number}, index: number) => (
+                <div key={index} className={styles.tripletsRow}>
+                  <span className={styles.tripletsCell}>{entry.candidateName}</span>
+                  <span className={styles.tripletsCell}>{entry.vote_count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className={styles.successCard}>
           <div className={styles.successContent}>
             <div className={styles.successIcon}>
@@ -82,41 +90,6 @@ const CompleteContent = () => {
               You have successfully completed all steps of the voting process.
             </p>
           </div>
-        </div>
-
-    
-        <div className={styles.nextStepCard}>
-          <h2 className={styles.nextStepTitle}>Next Step</h2>
-          
-          <p className={styles.nextStepText}>
-            {resultsPublished 
-              ? <>Vote verification is available now. To verify your vote, click the <strong>Verify My Vote</strong> button below.</>
-              : <>You can verify your vote from this page when the election results are published.</>
-            }
-          </p>
-
-          <button 
-            className={`${styles.verifyButton} ${resultsPublished ? styles.verifyButtonEnabled : styles.verifyButtonDisabled}`}
-            onClick={handleVerifyVote}
-            disabled={!resultsPublished}
-          >
-            Verify My Vote
-          </button>
-
-
-          {!resultsPublished && (
-            <div className={styles.infoSection}>
-              <Info size={20} className={styles.infoIcon} />
-              <p className={styles.infoText}>
-                Vote verification will be available after the election results are published.
-              </p>
-            </div>
-          )}
-
-         
-          <button className={styles.closeButton} onClick={handleClose}>
-            Close
-          </button>
         </div>
       </div>
     </div>
