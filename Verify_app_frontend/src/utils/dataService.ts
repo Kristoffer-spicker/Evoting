@@ -1,4 +1,3 @@
-import { stringify } from 'querystring';
 import { Voter } from '../types/voter';
 import back4appClient from './back4appClient';
 import { ec as EC } from 'elliptic';
@@ -46,12 +45,6 @@ const shuffleArray = <T>(array: T[]): T[] => {
   }
   return shuffled;
 };
-
-interface Identifier {
-  id: string;
-  emoji: string;
-  word: string;
-}
 
 const generateDeviceFingerprint = (): string => {
   const nav = window.navigator;
@@ -284,6 +277,25 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
   }
 };
 
+export const getFinalResult = async() => {
+  const url = (import.meta as any).env?.VITE_API_URL;
+  const response = await fetch(`${url}/get_result`, {
+     method: 'POST',
+     headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  console.log(response);
+  const data = await response.json();
+  if (data[0] === undefined) {
+    return [];
+  }
+  return data.map((item: any) => ({
+    candidateName: CANDIDATES.find(c => c.id === Number(item[0]))?.name ?? `Candidate ${item[0]}`,
+    vote_count: item[1],
+  }));
+}
+
 const saveVoterToLocal = async (name: string, voterId: string, password: string): Promise<Voter> => {
   /*
   saveVoterToLocal: Function that saves the voter to locla storage when
@@ -456,8 +468,8 @@ export const getVoterTriplets = async (voterId: string): Promise<Array<{tripletI
   const data = await response.json();
 
   // API returns [triplet_id, identifier_text, candidate_id]
-  return data.map((item: any) => ({
-    tripletId: item[0],
+  return data.map((item: any, index: number) => ({
+    tripletId: index + 1,
     candidateName: CANDIDATES.find(c => c.id === item[2])?.name ?? `Candidate ${item[2]}`,
     emoji: MASTER_IDENTIFIERS.find(i => i.text === item[1])?.emoji ?? '❓',
   }));
