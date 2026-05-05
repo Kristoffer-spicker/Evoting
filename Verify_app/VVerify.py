@@ -75,6 +75,7 @@ class VVerify:
             cur.execute ("SELECT identifier FROM triplets_with_identifiers WHERE id = %s", (triplet_start,))
             identifier = cur.fetchone()
             if identifier is not None:
+                used_identifiers.append(identifier[0])
                 triplet_start += 1
                 continue
 

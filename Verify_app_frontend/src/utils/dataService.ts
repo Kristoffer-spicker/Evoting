@@ -403,7 +403,14 @@ export const voterExists = async (voterId: string): Promise<boolean> => {
   return voters.some(v => v.voterId === voterId);
 };
 
-export const getVoterIdentifiers = async (voterId: string): Promise<Array<{id: string, emoji: string, text: string}>> => {
+const CANDIDATES = Object.freeze([
+  { id: 0, name: "James Bond" },
+  { id: 1, name: "Tony Stark" },
+  { id: 2, name: "Jack Sparrow" },
+  { id: 3, name: "Ellen Ripley" },
+]);
+
+export const getVoterIdentifiers = async (voterId: string): Promise<Array<{id: string, emoji: string, word: string}>> => {
   /*
   getVoterIdentifiers: function that gets all the identifiers so the voter can see them
   */
@@ -422,13 +429,38 @@ export const getVoterIdentifiers = async (voterId: string): Promise<Array<{id: s
 
   const identifiers_and_ids = await response.json();
 
+  // API returns [triplet_id, identifier_text, candidate_id]
   const formatted = identifiers_and_ids.map((item: any) => ({
-    id: item[1].toString(),
-    emoji: MASTER_IDENTIFIERS.find(ident => ident.text === item[0])?.emoji,
-    word: item[0].toString()
+    id: item[0].toString(),
+    emoji: MASTER_IDENTIFIERS.find(ident => ident.text === item[1])?.emoji,
+    word: item[1].toString()
   }))
 
   return formatted;
+};
+
+export const getVoterTriplets = async (voterId: string): Promise<Array<{tripletId: number, candidateName: string, emoji: string}>> => {
+  const url = (import.meta as any).env.VITE_API_URL;
+  const response = await fetch(`${url}/get_identifiers`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ voter_id: voterId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch triplets: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // API returns [triplet_id, identifier_text, candidate_id]
+  return data.map((item: any) => ({
+    tripletId: item[0],
+    candidateName: CANDIDATES.find(c => c.id === item[2])?.name ?? `Candidate ${item[2]}`,
+    emoji: MASTER_IDENTIFIERS.find(i => i.text === item[1])?.emoji ?? '❓',
+  }));
 };
 
 export const getVoterTrueIdentifier = async (voterId: string): Promise<{emoji: string, text: string} | null> => {

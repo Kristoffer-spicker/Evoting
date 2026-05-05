@@ -258,8 +258,8 @@ async def getIdentifiers(request: verifyrequest, x_api_key: str = Header(...)):
         curve = json.dumps(decode_curve_point(temp[1]), cls=ECCEncoder)
         cur.execute("SELECT id FROM candidates WHERE curve_p = %s", (curve,))
         tempc = cur.fetchone()
-        temp = (temp[0], tempc[0])
-        print ("temp", temp[0], temp[1], flush=True)
+        temp = (i, temp[0], tempc[0])
+        print ("temp", temp[0], temp[1], temp[2], flush=True)
         if temp is None:
             print("Tallying not done yet — triplets not found", flush=True)
             return False

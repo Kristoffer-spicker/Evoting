@@ -16,8 +16,7 @@ const VerifyVoteContent = () => {
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [verificationError, setVerificationError] = useState<string | null>(null);
-  
-  
+
   const [realCandidateIdentifiers, setRealCandidateIdentifiers] = useState<CandidateIdentifier[]>([]);
 
 
@@ -55,7 +54,6 @@ const VerifyVoteContent = () => {
         const voterHasVoted = await checkVoterHasVoted(authenticatedVoter.voterId);
         setHasVoted(voterHasVoted);
 
-       
         const resultsArePublished = await areElectionResultsPublished();
 
        
@@ -177,7 +175,7 @@ const VerifyVoteContent = () => {
 
   return (
     <>
-  
+
       <div className={styles.progressBar}>
         <div className={styles.progressContainer}>
           <h2 className={styles.progressTitle}>Vote Verification</h2>

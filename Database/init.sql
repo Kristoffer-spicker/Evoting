@@ -101,6 +101,22 @@ CREATE TABLE IF NOT EXISTS extension_proofs (
     proof       JSONB NOT NULL
 );
 
+-- Stores per-batch ciphertexts and partial decryptions for decryption proof verification.
+-- TEXT columns (not JSONB) preserve JSON key order, which is required because
+-- str() of these dicts is used verbatim in the Chaum-Pedersen hash computation.
+-- proof_id links each batch back to its row in decryption_proofs.
+CREATE TABLE IF NOT EXISTS decryption_inputs (
+    id          SERIAL PRIMARY KEY,
+    phase       TEXT NOT NULL,
+    teller_id   INT  NOT NULL,
+    batch_idx   INT  NOT NULL,
+    proof_id    INT  NOT NULL REFERENCES decryption_proofs(id),
+    ciphertexts TEXT NOT NULL,
+    pd_1        TEXT NOT NULL,
+    pd_2        TEXT NOT NULL,
+    pd_3        TEXT NOT NULL
+);
+
 -- This function fires a notification at insertion into encryptedVotes
 CREATE OR REPLACE FUNCTION notify_encrypted_vote()
 RETURNS trigger AS $$

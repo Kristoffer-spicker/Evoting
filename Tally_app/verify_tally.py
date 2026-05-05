@@ -1,3 +1,4 @@
+import json
 import gmpy2
 from Tallying import Teller
 from Decoding import decode_point_recursive
@@ -114,6 +115,66 @@ def verify_tally(cur, con, tellers):
             errors.append(
                 f"verify_re_enc_mix exception: phase={phase} teller={teller_id} ballot={ballot_id}: {e}"
             )
+
+    # 3. Verify decryption proofs
+    cur.execute("SELECT id, phase, teller_id, proof FROM decryption_proofs ORDER BY id")
+    dec_proof_lookup = {}  # (phase, teller_id, proof_row_id) -> list of batch proofs
+    for proof_row_id, phase, teller_id, proof_list in cur.fetchall():
+        dec_proof_lookup[proof_row_id] = proof_list
+
+    cur.execute(
+        "SELECT phase, teller_id, batch_idx, proof_id, ciphertexts, pd_1, pd_2, pd_3 "
+        "FROM decryption_inputs ORDER BY proof_id, batch_idx"
+    )
+    for phase, teller_id, batch_idx, proof_row_id, ct_raw, pd1_raw, pd2_raw, pd3_raw in cur.fetchall():
+        if proof_row_id not in dec_proof_lookup:
+            errors.append(
+                f"Missing decryption proof row id={proof_row_id} for phase={phase} teller={teller_id}"
+            )
+            continue
+
+        proof_list = dec_proof_lookup[proof_row_id]
+        if batch_idx >= len(proof_list):
+            errors.append(
+                f"Batch idx {batch_idx} out of range (proof has {len(proof_list)} batches) "
+                f"phase={phase} teller={teller_id}"
+            )
+            continue
+
+        batch_proof = proof_list[batch_idx]
+        ciphertexts = json.loads(ct_raw)
+        if not ciphertexts:
+            continue
+        pd_by_idx = [json.loads(pd1_raw), json.loads(pd2_raw), json.loads(pd3_raw)]
+
+        teller = tellers[teller_id]
+        public_key_share = teller.curve.raise_p(teller.secret_key_share.y)
+
+        for ct_idx in [1, 2, 3]:
+            tau = batch_proof[f"tau_{ct_idx}"]
+            p_1 = deserialize_ep(batch_proof[f"p_{ct_idx}_1"])
+            p_2 = deserialize_ep(batch_proof[f"p_{ct_idx}_2"])
+            w = batch_proof[f"w_{ct_idx}"]
+            pd = pd_by_idx[ct_idx - 1]
+
+            try:
+                ok = teller.verify_decryption_proof(
+                    tau, p_1, p_2, w,
+                    public_key_share,
+                    ciphertexts,
+                    pd,
+                    ct_idx,
+                )
+                if not ok:
+                    errors.append(
+                        f"verify_decryption_proof FAILED: phase={phase} teller={teller_id} "
+                        f"batch={batch_idx} ct_idx={ct_idx}"
+                    )
+            except Exception as e:
+                errors.append(
+                    f"verify_decryption_proof exception: phase={phase} teller={teller_id} "
+                    f"batch={batch_idx} ct_idx={ct_idx}: {e}"
+                )
 
     if errors:
         print(f"=== VerifyTally: {len(errors)} check(s) FAILED ===", flush=True)

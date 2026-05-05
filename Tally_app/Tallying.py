@@ -9,6 +9,7 @@ import threshold_crypto as tc
 import gmpy2
 from util import (
     deserialize_ep,
+    deserialize_pd,
     _ecc_key_to_serializable,
     serialize_pd,
 )
@@ -234,40 +235,45 @@ class Teller:
         public_key_share,
         ciphertexts,
         partial_decryptions,
-    ): 
-        prod_alpha = ECC.EccPoint(0, 0, "P-192")
-        prod_partial_decryptions = ECC.EccPoint(0, 0, "P-192")
+        ct_idx,
+    ):
+        prod_alpha = None
+        prod_partial_decryptions = None
         alpha_terms = []
-        for ciphertext in ciphertexts:
+        for i, ciphertext in enumerate(ciphertexts):
             index = ciphertext[0]
-            alpha_terms.append(ciphertext[1][0])
+            alpha = ciphertext[ct_idx][0]
+            alpha_terms.append(alpha)
             t = (
                 gmpy2.mpz(
                     "0x"
                     + hashlib.sha256(
                         str(
-                            str(tau) + str(ciphertext[1][0]) + str(index)
+                            str(tau) + str(alpha) + str(index)
                         ).encode("UTF-8")
                     ).hexdigest()
                 )
                 % self.curve.get_pars().order
             )
-
-            s_2 = ciphertexts[1][0] * t
-            prod_alpha = prod_alpha + s_2
-        for partial_decryption in partial_decryptions:
-            prod_partial_decryptions = (
-                prod_partial_decryptions + partial_decryption.v_y
-            )
+            alpha_pt = deserialize_ep(alpha) * t
+            pd_pt = deserialize_pd(self.curve.get_pars(), partial_decryptions[i][1]).yC1 * t
+            if prod_alpha is None:
+                prod_alpha = alpha_pt
+                prod_partial_decryptions = pd_pt
+            else:
+                prod_alpha = prod_alpha + alpha_pt
+                prod_partial_decryptions = prod_partial_decryptions + pd_pt
+        _ps = lambda pt: str(int(pt.x)) + str(int(pt.y))
         u = (
             gmpy2.mpz(
                 "0x"
                 + hashlib.sha256(
                     str(
-                        str(p_1)
-                        + str(p_1)
-                        + str(self.curve.get_pars().P)
-                        + str(public_key_share)
+                        _ps(p_1)
+                        + _ps(p_2)
+                        + str(self.curve.get_pars().P.x)
+                        + str(self.curve.get_pars().P.y)
+                        + _ps(public_key_share)
                         + str(alpha_terms)
                         + str(partial_decryptions)
                     ).encode("UTF-8")
@@ -275,8 +281,9 @@ class Teller:
             )
             % self.curve.get_pars().order
         )
-        v_1 = self.curve.raise_p(w) + (public_key_share * u)
-        v_2 = prod_alpha * w
+        w_pos = gmpy2.mpz(w) % self.curve.get_pars().order
+        v_1 = self.curve.raise_p(w_pos) + (public_key_share * u)
+        v_2 = prod_alpha * w_pos
         v_2 = v_2 + (prod_partial_decryptions * u)
         if (p_1 == v_1) and (p_2 == v_2):
             return 1
@@ -410,16 +417,18 @@ class Teller:
         p_1_2 = prod_alpha_1 * r_1
         p_2_2 = prod_alpha_2 * r_2
         p_3_2 = prod_alpha_3 * r_3
+        pk_pt = self.curve.raise_p(self.secret_key_share.y)
+        _ps = lambda pt: str(int(pt.x)) + str(int(pt.y))
         u_1 = (
             gmpy2.mpz(
                 "0x"
                 + hashlib.sha256(
                     str(
-                        str(p_1_1)
-                        + str(p_1_2)
+                        _ps(p_1_1)
+                        + _ps(p_1_2)
                         + str(self.curve.get_pars().P.x)
                         + str(self.curve.get_pars().P.y)
-                        + str(self.curve.raise_p(self.secret_key_share.y))
+                        + _ps(pk_pt)
                         + str(alpha_terms_1)
                         + str(output)
                     ).encode("UTF-8")
@@ -433,11 +442,11 @@ class Teller:
                 "0x"
                 + hashlib.sha256(
                     str(
-                        str(p_2_1)
-                        + str(p_2_2)
+                        _ps(p_2_1)
+                        + _ps(p_2_2)
                         + str(self.curve.get_pars().P.x)
                         + str(self.curve.get_pars().P.y)
-                        + str(self.curve.raise_p(self.secret_key_share.y))
+                        + _ps(pk_pt)
                         + str(alpha_terms_2)
                         + str(output2)
                     ).encode("UTF-8")
@@ -451,11 +460,11 @@ class Teller:
                 "0x"
                 + hashlib.sha256(
                     str(
-                        str(p_3_1)
-                        + str(p_3_2)
+                        _ps(p_3_1)
+                        + _ps(p_3_2)
                         + str(self.curve.get_pars().P.x)
                         + str(self.curve.get_pars().P.y)
-                        + str(self.curve.raise_p(self.secret_key_share.y))
+                        + _ps(pk_pt)
                         + str(alpha_terms_3)
                         + str(output3)
                     ).encode("UTF-8")

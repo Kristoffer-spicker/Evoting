@@ -67,14 +67,13 @@ const ScanQR: React.FC = () => {
   };
 
   const handleScanResult = async (qrData : string) => {
+    setScannedQRData(qrData);
     try {
       await updateVoterQRStatus(userData.voterId);
-      setScannedQRData(qrData);
-      setShowSuccessPopup(true);
     } catch (error) {
       console.error('Error updating QR status:', error);
-      setShowSuccessPopup(true);
     }
+    setShowSuccessPopup(true);
   };
 
   const handleCancel = () => {
