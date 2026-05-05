@@ -281,24 +281,10 @@ class Teller:
             )
             % self.curve.get_pars().order
         )
-        if prod_alpha is None:
-            raise ValueError("verify_decryption_proof: empty ciphertexts list")
         w_pos = gmpy2.mpz(w) % self.curve.get_pars().order
         v_1 = self.curve.raise_p(w_pos) + (public_key_share * u)
         v_2 = prod_alpha * w_pos
         v_2 = v_2 + (prod_partial_decryptions * u)
-        print(
-            f"[VDEC ct={ct_idx}] p1==v1={p_1==v_1} p2==v2={p_2==v_2}"
-            f"  p_1={repr(str(p_1))[:60]}"
-            f"  v_1={repr(str(v_1))[:60]}",
-            flush=True,
-        )
-        print(
-            f"[VDEC ct={ct_idx}] u={u}"
-            f"  alpha[0]={repr(str(alpha_terms[0]))[:80]}"
-            f"  pd[0]={repr(str(partial_decryptions[0]))[:80]}",
-            flush=True,
-        )
         if (p_1 == v_1) and (p_2 == v_2):
             return 1
         return 0
@@ -489,17 +475,6 @@ class Teller:
         w_1 = r_1 - (u_1 * self.secret_key_share.y)
         w_2 = r_2 - (u_2 * self.secret_key_share.y)
         w_3 = r_3 - (u_3 * self.secret_key_share.y)
-        print(
-            f"[PGEN ct=1] u_1={u_1}"
-            f"  alpha[0]={repr(str(alpha_terms_1[0]))[:80] if alpha_terms_1 else 'EMPTY'}"
-            f"  output[0]={repr(str(output[0]))[:80] if output else 'EMPTY'}",
-            flush=True,
-        )
-        print(
-            f"[PGEN ct=1] p_1_1={repr(str(p_1_1))[:60]}"
-            f"  p_1_2={repr(str(p_1_2))[:60]}",
-            flush=True,
-        )
         q4.put(
             {
                 "p_1_1": self.serialize_ecc_point(p_1_1),

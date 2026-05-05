@@ -208,6 +208,8 @@ def triplet_decryption(triplets, tellers, cur):
         for batch_idx, (batch_ciph, batch_pd, batch_pd2, batch_pd3) in enumerate(
             zip(split_ciphertexts, per_batch_pd, per_batch_pd2, per_batch_pd3)
         ):
+            if not batch_ciph:
+                continue
             cur.execute(
                 "INSERT INTO decryption_inputs "
                 "(phase, teller_id, batch_idx, proof_id, ciphertexts, pd_1, pd_2, pd_3) "
