@@ -101,6 +101,10 @@ def final_triplets(cur, con, tellers):
     con.commit()
     
 def candidate_tallying(decrypted_trips, cur):
+    cur.execute(""" SELECT MAX(id) FROM candidates """)
+    num_candidates = cur.fetchone()[0]
+
+    final_result = [0] * (num_candidates + 1)
     for trip in decrypted_trips:
         raw = trip["v"]  # this is the decrypted ECC point as a dict {"x": ..., "y": ...}
 
@@ -123,24 +127,23 @@ def candidate_tallying(decrypted_trips, cur):
             continue  # skip invalid/spoiled votes instead of crashing
 
         candidate_id = candidate[0]
+        
 
+        final_result[candidate_id] += 1
+    
+    for i in range(num_candidates + 1):
         cur.execute(
-            """
-            INSERT INTO final_tally (candidate_id, vote_count)
-            VALUES (%s, 1)
-            ON CONFLICT (candidate_id)
-            DO UPDATE SET vote_count = final_tally.vote_count + 1
-            """,
-            (str(candidate_id),)
+            "INSERT INTO final_tally (candidate_id, vote_count) VALUES (%s, %s)",
+            (i, final_result[i])
         )
 
-        cur.execute("""
-            SELECT c.id, c.curve_p, ft.vote_count
-            FROM final_tally ft
-            JOIN candidates c ON c.id = ft.candidate_id::int
-            ORDER BY ft.vote_count DESC
-        """)
-        results = cur.fetchall()
+    cur.execute("""
+        SELECT c.id, c.curve_p, ft.vote_count
+        FROM final_tally ft
+        JOIN candidates c ON c.id = ft.candidate_id::int
+        ORDER BY ft.vote_count DESC
+    """)
+    results = cur.fetchall()
     print("\n=== Final Tally ===", flush=True)
     for row in results:
         print(f"  Candidate {row[0]} | Votes: {row[2]} | Point: {row[1]}", flush=True)

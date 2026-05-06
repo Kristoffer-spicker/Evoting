@@ -24,7 +24,7 @@ def handler(notify, con, tellers):
         parsed = json.loads(extended_ballot)
 
         cur.execute(
-            "INSERT INTO extended_votes (id, ballot) VALUES (%s, %s) ON CONFLICT (id) DO UPDATE SET ballot = EXCLUDED.ballot", (parsed["id"], json.dumps(parsed["ballot"]))
+            "INSERT INTO extended_votes (id, ballot) VALUES (%s, %s) ON CONFLICT (id) DO NOTHING", (parsed["id"], json.dumps(parsed["ballot"]))
         )
         con.commit()
         cur.close()
