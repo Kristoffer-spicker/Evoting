@@ -235,6 +235,9 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
   they have registered.
   */
   try {
+    // Registration is unauthenticated — a stale token causes Back4app to return
+    // error 209 (Invalid session token) before the duplicate check even runs.
+    localStorage.removeItem('surtr_session_token');
     const existingVoter = await back4appClient.findVoterByVoterID(voterId.trim());
     if (existingVoter) {
       throw new Error('A voter with this ID is already registered');

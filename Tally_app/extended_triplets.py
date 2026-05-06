@@ -82,7 +82,6 @@ def final_triplets(cur, con, tellers):
             print("id is none updated to 0", flush=True)
         else: 
             id = int(id) + 1
-            print("id is good :))", flush=True)
 
         structured_trip = {
         "comm": trip[1],  # new_com / enc_gy

@@ -235,8 +235,6 @@ class Mixnet:
             pc_expl = pc_expl + str(serialize_point(item))
 
         fix_string = str(list_vh) + str(list_1h) + str(pc_expl)
-        print("[re_enc_mix] u-hash input len=%d scalar_type=%s prefix=%r" % (
-            len(fix_string), type(list_vh[0][0][2]).__name__, fix_string[:80]), flush=True)
         base_hasher = hashlib.sha256()
         base_hasher.update(fix_string.encode("UTF-8"))
 
@@ -366,7 +364,6 @@ class Mixnet:
             + str(serialize_point(t_4_3))
             + str(serialize_point(t_4_4))
         )
-        print("[re_enc_mix] c_hash input len=%d prefix=%r" % (len(_c_hash_input), _c_hash_input[:80]), flush=True)
         c_hash = hashlib.sha256(_c_hash_input.encode("UTF-8")).hexdigest()
         c_hash = gmpy2.mpz("0x" + c_hash) % self.curve.get_pars().order
         s_1 = self.curve.add_mod_q(w[0], self.curve.mul_mod_q(c_hash, r_vect))
@@ -548,7 +545,6 @@ class Mixnet:
             + str(serialize_point(t_4_3))
             + str(serialize_point(t_4_4))
         )
-        print("[verify_mix] c_ver_hash input len=%d prefix=%r" % (len(_verify_hash_input), _verify_hash_input[:80]), flush=True)
         c_ver_hash = (
             gmpy2.mpz(
                 "0x"
@@ -563,8 +559,6 @@ class Mixnet:
 
         if t1 != t1_prime:
             print("[verify_mix] FAIL t1: hash mismatch — c_ver_hash=%s" % c_ver_hash, flush=True)
-            print("[verify_mix]   t1      =%s" % serialize_point(t1), flush=True)
-            print("[verify_mix]   t1_prime=%s" % serialize_point(t1_prime), flush=True)
             return 0
 
         t2v = (c[count - 1]) + -(h * u_prod)

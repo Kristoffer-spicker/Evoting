@@ -51,7 +51,6 @@ class VCaster:
         '''
         cast_vote: Function that takes a given candidates vote and cast it as a ballot
         '''
-        print(f"id is {self.id} candidate is {self.vote}")
         self.encrypt_vote(teller_public_key)
         self.encrypt_antivote(teller_public_key)
         self.generate_wellformedness_proof(teller_public_key)
@@ -81,7 +80,6 @@ class VCaster:
                 self.encrypted_antivote.append(self.ege.encrypt(
                     teller_public_key.Q, self.g_antivote
                 ))
-                print("Added antivote", self.encrypt_antivote, i, flush=True)
 
     def generate_wellformedness_proof(self, teller_public_key):
         encrypted_vote = {

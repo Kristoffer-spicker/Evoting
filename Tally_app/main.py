@@ -71,8 +71,10 @@ voting_phase_timer = args.election_time
 def start_decrypt(e_timer):
     time.sleep(e_timer)
     print("voting phase has ended", flush=True)
+    decrypt_start = time.time()
     final_triplets(cur, con, tellers)
     verify_tally(cur, con, tellers)
+    print(f"Total post-election tallying time: {time.time() - decrypt_start:.2f}s", flush=True)
 
 tellers = []
 
