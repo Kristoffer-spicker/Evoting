@@ -215,7 +215,6 @@ export const saveVoter = async (name: string, voterId: string, password: string)
 
 async function serverLog(message: string) {
   const url = (import.meta as any).env?.VITE_API_URL;
-  console.log("Attempting to log to:", `${url}/log`);
   try {
     const response = await fetch(`${url}/log`, {
       method: 'POST',
@@ -268,7 +267,6 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
       hasVoted: false,
     };
 
-    console.log('Voter saved successfully to Back4app:', newVoter);
     return newVoter;
   } catch (error) {
     console.error('Error saving voter to Back4app:', error);
@@ -285,7 +283,6 @@ export const getFinalResult = async() => {
       'Content-Type': 'application/json',
     },
   });
-  console.log(response);
   const data = await response.json();
   if (data[0] === undefined) {
     return [];
@@ -493,10 +490,8 @@ export const getVoterTrueIdentifier = async (voterId: string): Promise<{emoji: s
   }
 
   const identifier: string = await response.json();
-  console.log(`True Identifier: "${identifier}"`);
 
   const match = MASTER_IDENTIFIERS.find(item => item.text === identifier);
-  console.log(`Match: ${match?.emoji} ${match?.text}`);
 
   if (!match) {
     return null;
@@ -514,7 +509,6 @@ export const markTrueIdentifierSeen = async (voterId: string): Promise<boolean> 
     try {
       const voter = await back4appClient.findVoterByVoterID(voterId);
       if (!voter) return false;
-      await back4appClient.updateVoter(voter.objectId, { hasSeenTrueIdentifier: true });
       const authenticatedVoter = localStorage.getItem('surtr_authenticated_voter');
       if (authenticatedVoter) {
         const voterData = JSON.parse(authenticatedVoter);
@@ -523,6 +517,7 @@ export const markTrueIdentifierSeen = async (voterId: string): Promise<boolean> 
       }
       return true;
     } catch (error) {
+      console.error('markTrueIdentifierSeen failed:', error);
       return false;
     }
   }

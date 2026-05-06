@@ -67,9 +67,10 @@ class Back4appClient {
     /*
     update: function used to update the database
     */
+    const sessionToken = localStorage.getItem('surtr_session_token') || undefined;
     const response = await fetch(`${this.serverUrl}/classes/${className}/${objectId}`, {
       method: 'PUT',
-      headers: this.getHeaders(),
+      headers: this.getHeaders(sessionToken),
       body: JSON.stringify(data)
     });
     return this.handleResponse(response);
@@ -138,7 +139,8 @@ class Back4appClient {
   }
 
   async findVoterByVoterID(voterID: string) {
-    const result = await this.query('_User', { voterID });
+    const sessionToken = localStorage.getItem('surtr_session_token') || undefined;
+    const result = await this.query('_User', { voterID }, sessionToken);
     return result.results.length > 0 ? result.results[0] : null;
   }
 
