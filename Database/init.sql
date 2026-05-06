@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS decryption_inputs (
     pd_3        TEXT NOT NULL
 );
 
+
 -- This function fires a notification at insertion into encryptedVotes
 CREATE OR REPLACE FUNCTION notify_encrypted_vote()
 RETURNS trigger AS $$

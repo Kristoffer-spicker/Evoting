@@ -67,12 +67,12 @@ const CompleteContent = () => {
             <p>Election result not counted yet</p>
           ) : (
             <div className={styles.tripletsTable}>
-              <div className={styles.tripletsHeaderRow}>
+              <div className={styles.electionHeaderRow}>
                 <span className={styles.tripletsHeaderCell}>Candidate</span>
                 <span className={styles.tripletsHeaderCell}>Votes</span>
               </div>
               {finalResult.map((entry: {candidateName: string, vote_count: number}, index: number) => (
-                <div key={index} className={styles.tripletsRow}>
+                <div key={index} className={styles.electionRow}>
                   <span className={styles.tripletsCell}>{entry.candidateName}</span>
                   <span className={styles.tripletsCell}>{entry.vote_count}</span>
                 </div>

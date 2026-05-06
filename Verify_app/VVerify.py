@@ -53,8 +53,6 @@ class VVerify:
 
     def generate_verification_comm(self, dkey, c_id):
         self.secret_trapdoor_key = qr_data.get_trapdoor_key()
-        print("secret trapdoor key", self.secret_trapdoor_key, flush=True)
-        print("dkey", dkey, flush=True)
         g_ri_x = dkey * self.secret_trapdoor_key
         return g_ri_x
     
