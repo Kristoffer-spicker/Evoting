@@ -204,7 +204,9 @@ def decrypted_triplets_listen():
             conn.poll()
             while conn.notifies:
                 notify = conn.notifies.pop(0)
-                verifier.verifyVote(cur, int(notify.payload))  
+                triplet_id = int(notify.payload)
+                triplet_start = (triplet_id // vote_max) * vote_max
+                verifier.verifyVote(cur, triplet_start)
 
 @app.post("/get_election_result")
 async def get_election_result(x_api_key: str = Header(...)):
