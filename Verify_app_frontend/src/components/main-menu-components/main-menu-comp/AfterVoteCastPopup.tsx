@@ -18,7 +18,7 @@ export function AfterVoteCastPopup({ onConfirm, onCancel }: AfterVoteCastPopupPr
 
       
         <p className={styles.message}>
-          You can view the True Identifier only once.
+          You can view the All Identifiers page only once.
         </p>
         
         <p className={styles.question}>
@@ -31,7 +31,7 @@ export function AfterVoteCastPopup({ onConfirm, onCancel }: AfterVoteCastPopupPr
             onClick={onConfirm}
             className={styles.confirmButton}
           >
-            View True Identifier
+            View All Identifiers
           </button>
           
           <button

@@ -15,8 +15,8 @@ export function Login(): React.JSX.Element {
         const hasSeenTrueId = await hasVoterSeenTrueIdentifier(data.voterId)
         
         if (!hasSeenTrueId) {
-          console.log('Has not seen true identifier, redirecting to qr-code')
-          navigate('/qr-code')
+          console.log('Has not seen true identifier, redirecting to true-identifier')
+          navigate('/true-identifier')
         } else {
           const hasSeenAllIds = await hasVoterSeenAllIdentifiers(data.voterId)
           
@@ -30,7 +30,7 @@ export function Login(): React.JSX.Element {
         }
       } catch (error) {
         console.error('Error checking voter progress:', error)
-        navigate('/qr-code')
+        navigate('/true-identifier')
       }
     }
   }

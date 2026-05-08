@@ -1,51 +1,34 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-//import { QRCodeSVG } from 'qrcode.react';
 import { ProgressSteps } from '@/components/preparation-components/preparation-comp';
 import styles from '../qr-code-styled-comp/qrCodeContent.module.css';
-import { send } from 'process';
 
 interface LocationState {
   voterId?: string;
+  qrCode?: string;
 }
-interface QRResponse {
-  qr_code: string;
-}
-
-async function genQR(voterID: string): Promise<QRResponse> {
-    const url = (import.meta as any).env.VITE_API_URL;
-    
-    const response = await fetch(`${url}/qrcode`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ voter_id: voterID }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to generate QR: ${response.status}`);
-    }
-
-    const data: QRResponse = await response.json();
-    return data;
-  }
 
 const QRCodeContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const steps = ["Voting QR Code", "After Vote casting", "True Identifier", "Identifiers for All Candidates", "Complete"];
-  
+  const steps = ["True Identifier", "Voting QR Code", "After Vote casting", "Identifiers for All Candidates", "Complete"];
+
   const state = location.state as LocationState;
   const voterId = state?.voterId || '0000';
 
-  const [qrCode, setQrCode] = useState<string>("");
+  const [qrCode, setQrCode] = useState<string>(state?.qrCode || "");
   const hasFetched = useRef(false);
 
   useEffect(() => {
-    if (hasFetched.current) return;
+    if (qrCode || hasFetched.current) return;
     hasFetched.current = true;
-    genQR(voterId)
+    const url = (import.meta as any).env.VITE_API_URL;
+    fetch(`${url}/qrcode`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voter_id: voterId }),
+    })
+      .then(r => r.json())
       .then(data => setQrCode(data.qr_code))
       .catch(err => console.error(err));
   }, []);
@@ -59,7 +42,7 @@ const QRCodeContent = () => {
     <div className={styles.contentWrapper}>
       <div className={styles.container}>
        
-        <ProgressSteps currentStep={1} steps={steps} />
+        <ProgressSteps currentStep={2} steps={steps} />
 
       
         <div className={styles.mainCard}>

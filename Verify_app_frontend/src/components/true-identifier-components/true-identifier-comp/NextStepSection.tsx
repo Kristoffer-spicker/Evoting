@@ -17,7 +17,7 @@ export function NextStepSection({ onContinue }: NextStepSectionProps): React.JSX
         
         <div className={styles.nextStepContent}>
           <p className={styles.nextStepDescription}>
-            Next, the identifiers for all candidates are shown to support verification for any candidate, if needed.
+            Next, the QR code to cast your vote will be shown.
           </p>
           
           <p className={styles.nextStepInstruction}>
@@ -32,7 +32,7 @@ export function NextStepSection({ onContinue }: NextStepSectionProps): React.JSX
       
       <div className={styles.buttonContainer}>
         <button onClick={onContinue} className={styles.continueButton}>
-          Continue to Identifiers for All Candidates
+          Continue to QR Code
         </button>
       </div>
     </>

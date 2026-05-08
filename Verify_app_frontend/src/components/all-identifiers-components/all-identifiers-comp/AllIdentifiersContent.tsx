@@ -17,7 +17,7 @@ interface AllIdentifiersContentProps {
 
 const AllIdentifiersContent = ({ onFinish }: AllIdentifiersContentProps) => {
   const navigate = useNavigate();
-  const steps = ["Voting QR Code", "After Vote casting", "True Identifier", "Identifiers for All Candidates", "Complete"];
+  const steps = ["True Identifier", "Voting QR Code", "After Vote casting", "Identifiers for All Candidates", "Complete"];
   
   const [identifiers, setIdentifiers] = useState<Identifier[]>([]);
   const [loading, setLoading] = useState(true);

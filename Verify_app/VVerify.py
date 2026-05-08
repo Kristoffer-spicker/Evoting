@@ -56,30 +56,52 @@ class VVerify:
         g_ri_x = dkey * self.secret_trapdoor_key
         return g_ri_x
     
-    def verifyVote(self, cur, triplet_start : int):
-
+    def verifyVote(self, cur, triplet_start: int):
         cur.execute(
             "SELECT triplet FROM decrypted_triplets WHERE id >= %s AND id < %s",
             (triplet_start, triplet_start + self.vote_max)
         )
         rows = cur.fetchall()
         verification_bb = [row[0] for row in rows]
-        #List to make sure tht the voters vote and anti votes doesnt have the same indetifier
-        used_identifiers = []
 
-        # Loop for creating a mapping between a triplet and its identifier
-        
+        v_id = triplet_start // self.vote_max
+        cur.execute("SELECT voterid FROM registered_voters WHERE id = %s", (v_id,))
+        voterid = cur.fetchone()[0]
+
+        cur.execute("SELECT sk, true_identifier FROM voter_keys WHERE id = %s", (voterid,))
+        row = cur.fetchone()
+        true_key = row[0][0]
+        voter_true_identifier = row[1]
+
+        used_identifiers = []
+        current_id = triplet_start
+
         for item in verification_bb:
-            cur.execute ("SELECT identifier FROM triplets_with_identifiers WHERE id = %s", (triplet_start,))
-            identifier = cur.fetchone()
-            if identifier is not None:
-                used_identifiers.append(identifier[0])
-                triplet_start += 1
+            cur.execute("SELECT identifier FROM triplets_with_identifiers WHERE id = %s", (current_id,))
+            existing = cur.fetchone()
+            if existing is not None:
+                used_identifiers.append(existing[0])
+                current_id += 1
                 continue
 
-            ident = self.getRandomIdentifier(used_identifiers, self.identifiers)
-            cur.execute("INSERT INTO triplets_with_identifiers (id, triplet, identifier) VALUES (%s, %s, %s)", ( triplet_start, json.dumps(item), ident))
-            triplet_start += 1
+            d = item["dkey"]
+            dkey_point = ECC.EccPoint(int(d["x"]), int(d["y"]), d.get("curve_name") or d.get("curve"))
+            verification_comm = dkey_point * true_key
+
+            c = item["comm"]
+            comm_point = ECC.EccPoint(int(c["x"]), int(c["y"]), c.get("curve_name") or c.get("curve"))
+
+            if comm_point == verification_comm:
+                ident = voter_true_identifier
+            else:
+                excluded = used_identifiers + [voter_true_identifier]
+                ident = self.getRandomIdentifier(excluded, self.identifiers)
+
+            cur.execute(
+                "INSERT INTO triplets_with_identifiers (id, triplet, identifier) VALUES (%s, %s, %s)",
+                (current_id, json.dumps(item), ident)
+            )
+            current_id += 1
             used_identifiers.append(ident)
   
     

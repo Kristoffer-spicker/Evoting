@@ -130,6 +130,25 @@ async def qrcode(request: qrCodeRequest):
 
     
 
+@app.post("/voter_true_identifier")
+async def voter_true_identifier(request: verifyrequest):
+    secret_key = os.getenv("API_TO_VERIFY_KEY")
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "http://verify_app:8002/voter_true_identifier",
+                json={"id": request.voter_id},
+                headers={"x-api-key": secret_key},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail="verify_app rejected the request")
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Could not reach verify_app")
+
+
 @app.post("/verify_vote")
 async def verify_vote(request: verifyrequest):
     secret_key = os.getenv("API_TO_VERIFY_KEY")

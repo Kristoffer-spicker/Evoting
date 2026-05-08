@@ -50,8 +50,9 @@ CREATE TABLE IF NOT EXISTS registered_voters (
 );
 
 CREATE TABLE IF NOT EXISTS voter_keys (
-    id        TEXT PRIMARY KEY, 
-    sk        JSONB NOT NULL
+    id               TEXT PRIMARY KEY,
+    sk               JSONB NOT NULL,
+    true_identifier  TEXT
 );
 
 CREATE TABLE IF NOT EXISTS triplets_with_identifiers (
