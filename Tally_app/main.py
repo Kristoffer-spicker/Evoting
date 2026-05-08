@@ -5,6 +5,7 @@ import sys
 import multiprocessing
 import threading
 import time
+import queue
 import argparse
 import psycopg2
 from curve import Curve
@@ -78,6 +79,15 @@ def start_decrypt(e_timer):
 
 tellers = []
 
+ballot_queue = queue.Queue()
+
+def ballot_worker():
+    while True:
+        ballot_id = ballot_queue.get()
+        handler(ballot_id, get_listener_connection(), tellers)
+        extend_handler(ballot_id, get_listener_connection(), tellers)
+        ballot_queue.task_done()
+
 teller_proofs = []
 
 teller_sk = []
@@ -148,7 +158,7 @@ def encrypted_listen():
             conn.poll()
             while conn.notifies:
                 notify = conn.notifies.pop(0)
-                handler(notify.payload, get_listener_connection(), tellers)
+                ballot_queue.put(notify.payload)
 
 
 def extended_listen():
@@ -182,9 +192,7 @@ except Exception as e:
 
 # THEN start threads
 threading.Thread(target=start_decrypt, args=(voting_phase_timer,)).start()
+threading.Thread(target=ballot_worker, daemon=True).start()
 t1 = threading.Thread(target=encrypted_listen)
-t2 = threading.Thread(target=extended_listen)
 t1.start()
-t2.start()
 t1.join()
-t2.join()
