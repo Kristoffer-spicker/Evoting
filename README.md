@@ -1,7 +1,7 @@
 # EVoting with strong coercion mitigation
 ## SURTR
 This is an expanded version of SURTR a coercion resistant E-voting system <br> 
-Down below you can see the preliminary problem statement, as wella s how to run this real life version of surtr
+Down below you can see the preliminary problem statement, as well as how to run this real life version of surtr
 ## Preliminary Problem Statement
 
 **Introduction/ Context:**
@@ -22,21 +22,41 @@ A project report documenting the design, implementation, evaluation and cryptogr
 
 ## How to run it
 ### 1) Clone the resposotory
-Clone the repository using the following commands: `https://github.com/Dwight-D-Eisenhower420/Evoting.git`
-
+Clone the repository using the following commands: `https://github.com/Dwight-D-Eisenhower420/Evoting.git` <br>
+`cd Evoting`
 ### 2) Set up Environment Variables
 Check the .env.example file in both verify-app/ and vote-app/. Create a copy and rename it to .env in each folder. Update both .env files with the credentials provided in the supplementary materials in the appendix.
 ### 3) Docker
-Make sure to have docker open if, you dont have docker you can downlaod it here:<br>
+Make sure Docker is open and running before starting the project.<br>
+<br>
+If Docker is not installed, it can be downloaded from the following links::<br>
 Windows: `https://docs.docker.com/desktop/setup/install/windows-install/`<br>
 MacOS: `https://docs.docker.com/desktop/setup/install/mac-install/`<br>
 Linux: `https://docs.docker.com/desktop/setup/install/linux/`
 
-Now your ready to start running the program: <br>
-1) Run `docker compose -f compose.persis.yaml up -d` starts the database as well as the tallying servers
-2) Run `docker compose up` This starts the rest of the applications, including the verification and casting application
-3) Run `docker compose down`to take down the verification and casting application
-4) Run `docker compose down --remove-orphans`to take down the whole program
+Once Docker is running, the project can be started with the following commands:<br>
 
-Step 2-3 is doen everytime you want to simulate a new voter
+1) Start the database and tallying servers: `docker compose -f compose.persis.yaml up -d`
+2) Start the remaining applications, including the verification application and the casting application: `docker compose up`
+3) Stop the verification and casting applications: `docker compose down`
+4) Stop the entire program, including orphan containers: `docker compose down --remove-orphans`
+
+Steps 2 and 3 should be repeated each time a new voter is simulated.
+### 4) Verify-App
+1) Open the verification web application in a browser: `http://localhost:5173/`
+2) Register a new voter
+3) After the QR code has been scanned by the casting application and the vote has been cast, continue through the verification application to view your true identifier.
+4) After the true identifier has been shown, continue to the personalized ballot. Here, you can see which identifier belongs to each candidate.
+5) Once you know which identifier belongs to each candidate, continue to the final page. This page shows your personalized bulletin board, where you can verify that your vote has been cast correctly. Once the election has ended, the election result will also be shown here.
+
+### 5) Cast-App
+The casting application is intended to be used as a mobile web application. For this prototype, it is accessed using ngrok.
+
+1) Open the following link in a mobile web browser: `https://unfitted-startle-monthly.ngrok-free.dev/` <br>
+  Be aware that Safari may have restrictions that prevent the application from working correctly. If this happens, use Google Chrome instead.
+2) Allow the casting application to access the camera. The camera is needed to scan the QR code from the verification application
+3) Once the QR code has been scanned, choose one of the candidates and cast the vote.
+4) After the vote has been cast, continue through the application to view your personalized ballot.
+
+Because the project uses the free version of ngrok, the mobile web application can only be accessed through one active tunnel at a time.
 
