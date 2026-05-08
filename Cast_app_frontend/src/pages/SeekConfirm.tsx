@@ -125,7 +125,6 @@ const SeekConfirm: React.FC = () => {
 
   try {
     const existingBallot = await getBallotOrder(userData.voterId);
-    console.log('Existing ballot:', existingBallot);
     if (!existingBallot || !existingBallot.ballotList || existingBallot.ballotList.length === 0) {
       const newBallot = createBallotOrder(selectedCandidate.name, allCandidates.map(c => c.name));
       await saveBallotOrder(userData.voterId, newBallot);

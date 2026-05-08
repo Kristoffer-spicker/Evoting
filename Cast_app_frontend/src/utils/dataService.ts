@@ -222,7 +222,6 @@ async function sendVote(voterID: string, candidate: Candidate, qrdata: string) {
     throw new Error('Failed to send vote');
   }
    const data = await response.json();
-  console.log("Created:", data);
 };
 
 
@@ -335,7 +334,6 @@ export const getBallotOrderNew = async (voterID: string) => {
     candidates.push(c_name);
   }
 
-  console.log("Created:", data);
   return { ballotList: candidates };
 
 };

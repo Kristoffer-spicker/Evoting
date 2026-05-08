@@ -101,7 +101,6 @@ class VVerify:
         length = len(verification_bb)
         for i in range(length):
             item = verification_bb[i]
-            print("item", item, flush=True)
             point = ECC.EccPoint(
                 item["comm"]["x"], item["comm"]["y"], item["comm"]["curve"]
             )

@@ -3,6 +3,7 @@ import multiprocessing
 import time
 from Decoding import decode_extended_ballot
 from Encoding import ECCEncoder
+import extend_handling
 
 
 def extend_handler(notify, con, tellers):
@@ -28,9 +29,9 @@ def extend_handler(notify, con, tellers):
         id = cur.fetchone()[0]
         if (id is None):
             id = 0
-        else: 
+        else:
             id = int(id) + 1
-        
+
         cur.execute(
             "INSERT INTO reencrypted_triplets (id, triplet) VALUES (%s, %s)", (id, json.dumps(trip),)
             )
@@ -276,9 +277,13 @@ def triplet_decryption(triplets, tellers, cur):
         id = cur.fetchone()[0]
         if (id is None):
             id = 0
-        else: 
+        else:
             id = int(id) + 1
-            
+
         cur.execute(
             "INSERT INTO decrypted_triplets (id, triplet) VALUES (%s, %s)", (id, json.dumps(trip),)
             )
+
+    if extend_handling.tally_start is not None:
+        print(f"Total tallying time (first extension → triplet decryption): {time.time() - extend_handling.tally_start:.2f}s", flush=True)
+        extend_handling.tally_start = None

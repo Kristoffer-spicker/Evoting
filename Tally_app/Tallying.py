@@ -557,25 +557,20 @@ class Teller:
             "sum_r": ballot["sum_r"],
         }
         hash = self.curve.hash_to_mpz(json.dumps(_fields_to_verify, cls=ECCEncoder, sort_keys=True))
-        print("step one down", flush=True)
 
         chmp = ChaumPedersenProof(curve)
         ege = ElGamalEncryption(curve)
         try:
             if not dsa.verify(ballot["spk"], ballot["sig"], hash):
                 raise InvalidSignatureException(ballot["id"])
-            print("step one one down", flush=True)
             ciphertext_ptk = {"c1": ballot["enc_ptk"][0], "c2": ballot["enc_ptk"][1]}
             if not chmp.verify(ciphertext_ptk,teller_public_key.Q, ballot["pi_1"][0], ballot["pi_1"][1], ballot["pi_1"][2]):
                 raise InvalidProofException(ballot["id"])
-            print("step one two down", flush=True)
             for i in range(len(ballot["enc_ptk_anti"])):
                 ciphertext_ptk_anti = {"c1": ballot["enc_ptk_anti"][i][0], "c2": ballot["enc_ptk_anti"][i][1]}
                 if not chmp.verify(ciphertext_ptk_anti, teller_public_key.Q, ballot["pi_1_anti"][i][0], ballot["pi_1_anti"][i][1], ballot["pi_1_anti"][i][2]):
                     raise InvalidProofException(ballot["id"])
-            print("step one three down", flush=True)
             ciphertext = {"c1": ballot["ev"][0], "c2": ballot["ev"][1]}
-            print("step two down", flush=True)
             if not chmp.verify_or_n(
                 ciphertext,
                 teller_public_key.Q,
@@ -586,7 +581,6 @@ class Teller:
                 ballot["id"],
             ):
                 raise InvalidWFNProofException(ballot["id"])
-            print("step three down", flush=True)
             for i in range(len(ballot["ev_anti"])):
                 ciphertext_anti = {"c1": ballot["ev_anti"][i][0], "c2": ballot["ev_anti"][i][1]}
                 if not chmp.verify_or_n(
@@ -599,14 +593,12 @@ class Teller:
                     ballot["id"],
                 ):
                     raise InvalidWFNProofException(ballot["id"])
-            print("step four down", flush=True)
             c1_sum = ballot["ev"][0]
             c2_sum = ballot["ev"][1]
             for ct in ballot["ev_anti"]:
                 c1_sum = c1_sum + ct[0]
                 c2_sum = c2_sum + ct[1]
             mul_cip = [c1_sum, c2_sum, ballot["sum_r"]]
-            print("step five down", flush=True)
             k = len(ballot["ev_anti"])
             expected = curve.raise_p(k * (k + 1) // 2)
             t = ballot["sum_r"]*teller_public_key.Q
@@ -614,7 +606,6 @@ class Teller:
             m = mul_cip[1] + z
             if not(m == expected):
                 raise InvalidWFNProofException(ballot["id"])
-            print("step six down", flush=True)
             return True
 
         except Exception as e:
@@ -670,13 +661,11 @@ class Teller:
 
     def verify_proof_reenc(curve, teller_public_key, h_r, ptk, proof, id):
         nizk = NIZK(curve)
-        print("verifying proof", flush=True)
         if not nizk.verify_2(h_r, teller_public_key.Q, ptk, proof):
             raise InvalidProofException(id)
 
     def re_encryption_mix(self, list_0):
         mx = Mixnet(self.curve)
-        print("mixing proof generating", flush=True)
         proof = mx.re_encryption_mix(list_0, self.public_key.Q)
         return proof
 

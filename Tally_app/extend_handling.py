@@ -1,10 +1,13 @@
 import json
 import multiprocessing
 import traceback
+import time
 from Decoding import decode_bb_data
 from Encoding import ECCEncoder
 from util import deserialize_ep
 from Tallying import Teller
+
+tally_start = None
 
 def handler(notify, con, tellers):
     """
@@ -12,6 +15,9 @@ def handler(notify, con, tellers):
     Takes a encrypted vote decodes, extends and encodes it
     Finally the extended and encoded vote is added to the extended_votes table
     """
+    global tally_start
+    if tally_start is None:
+        tally_start = time.time()
     print("New ballot Received", flush=True)
     con = con
     cur = con.cursor()

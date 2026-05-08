@@ -204,7 +204,9 @@ def decrypted_triplets_listen():
             conn.poll()
             while conn.notifies:
                 notify = conn.notifies.pop(0)
-                verifier.verifyVote(cur, int(notify.payload))  
+                triplet_id = int(notify.payload)
+                triplet_start = (triplet_id // vote_max) * vote_max
+                verifier.verifyVote(cur, triplet_start)
 
 @app.post("/get_election_result")
 async def get_election_result(x_api_key: str = Header(...)):
@@ -225,7 +227,6 @@ async def verify(request: verifyrequest, x_api_key: str = Header(...)):
     cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (voterid,))
     v_id = cur.fetchone()
     v_id = v_id[0]
-    print("step one down", flush=True)
 
     verifier = VVerify(
                 curve=curve,
@@ -236,7 +237,6 @@ async def verify(request: verifyrequest, x_api_key: str = Header(...)):
                 con=con
             )
     
-    print("step two down", flush=True)
 
     triplet_start = v_id * vote_max
     print(f"v_id={v_id}, querying triplet IDs {triplet_start} to {triplet_start + vote_max - 1}", flush=True)
@@ -257,7 +257,6 @@ async def getIdentifiers(request: verifyrequest, x_api_key: str = Header(...)):
     voterid = request.voterid
     cur.execute("SELECT id FROM registered_voters WHERE voterid = %s", (voterid,))
     v_id = cur.fetchone()
-    print("step one down", v_id, flush=True)
     v_id = v_id[0]
     identifiers = []
     triplet_start = v_id * vote_max

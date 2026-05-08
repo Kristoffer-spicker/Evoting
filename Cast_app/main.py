@@ -327,7 +327,6 @@ async def get_personalized_ballot(request: verifyrequest, x_api_key: str = Heade
         c_id = cur.fetchone()
         c_id = c_id[0]
         ballot_order.append(c_id)
-    print(ballot_order[0], ballot_order[1], ballot_order[2], flush=True)
     return ballot_order
 
 

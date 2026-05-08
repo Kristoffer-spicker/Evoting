@@ -67,9 +67,10 @@ class Back4appClient {
     /*
     update: function used to update the database
     */
+    const sessionToken = localStorage.getItem('surtr_session_token') || undefined;
     const response = await fetch(`${this.serverUrl}/classes/${className}/${objectId}`, {
       method: 'PUT',
-      headers: this.getHeaders(),
+      headers: this.getHeaders(sessionToken),
       body: JSON.stringify(data)
     });
     return this.handleResponse(response);
@@ -138,7 +139,8 @@ class Back4appClient {
   }
 
   async findVoterByVoterID(voterID: string) {
-    const result = await this.query('_User', { voterID });
+    const sessionToken = localStorage.getItem('surtr_session_token') || undefined;
+    const result = await this.query('_User', { voterID }, sessionToken);
     return result.results.length > 0 ? result.results[0] : null;
   }
 
@@ -161,7 +163,6 @@ class Back4appClient {
   async getTrueIdentifierByVoterID(voterID: string) {
     const sessionToken = localStorage.getItem('surtr_session_token') || undefined;
     const result = await this.query('_User', { voterID }, sessionToken);
-    console.log(result.results[0].true_identifier);
     return result.results.length > 0 ? result.results[0].true_identifier : null;
   }
 
@@ -193,16 +194,6 @@ class Back4appClient {
     const sessionToken = localStorage.getItem('surtr_session_token') || undefined;
     const result = await this.query('_User', { voterID }, sessionToken);
     return result.results.length > 0 ? result.results[0].true_identifier : null;
-   /*const queryParams = new URLSearchParams()
-    queryParams.append('where', JSON.stringify({ voterID }));
-    const url = `${this.serverUrl}/classes/users${queryParams.toString()}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: this.getHeaders(sessionToken)
-    })
-    const result = await this.handleResponse(response);
-    console.log(result.results[0].true_identifier);*
-    return result.results.length > 0 ? result.results[0].true_identifier : null;*/
   }
 
   async getVoterIdentifierList(voterID: string) {

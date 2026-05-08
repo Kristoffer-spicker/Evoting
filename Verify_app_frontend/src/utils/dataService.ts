@@ -75,85 +75,6 @@ export const getDeviceId = (): string => {
   return deviceId;
 };
 
-/**
- * Generates a P-192 keypair in the browser using the elliptic library.
- * 
- * The private key is a random scalar integer (returned as a hex string) and
- * the public key is the corresponding point on the P-192 curve (Q = d*G),
- * where d is the private scalar and G is the curve's generator point.
- * 
- * This is mathematically equivalent to the ElGamal/DSA keypair generated
- * by Python's VCaster, both of these pick a random scalar and compute the same
- * point multiplication. The resulting public key {x, y} can be used
- * directly by the Python backend for ElGamal encryption and DSA verification.
- * 
- * The private key never leaves the browser unencrypted, as it is immediately
- * passed to encryptPrivateKeyForStorage() before being saved to Back4app.
- * 
- * @returns privateKey - hex encoded scalar, compatible with Python's DSA.sign()
- * @returns publicKey - {x, y, curve_name} point, compatible with Python's EccPoint
- */export function generateVoterKeypair(): {
-  privateKey: string;
-  publicKey: CurvePoint;
-} {
-  // Generate a cryptographically random P-192 keypair
-  const keyPair = ec.genKeyPair();
-  return {
-    privateKey: keyPair.getPrivate('hex'),
-    publicKey: {
-      x: keyPair.getPublic().getX().toString(),
-      y: keyPair.getPublic().getY().toString(),
-      curve_name: "NIST P-192"
-    }
-  };
-}
-
-/**
- * Encrypts the voter's private key hex string, deriving
- * the encryption key from the voter's password.
- * 
- * @param privateKeyHex - the raw P-192 private scalar as a hex string
- * @param password - the voter's plaintext password used to derive the AES key
- * @returns base64 encoded string containing salt + IV + ciphertext
- **/
- async function encryptPrivateKey(privateKeyHex: string, password: string): Promise<string> {
-  const enc = new TextEncoder();
-
-  // Import the password as raw key material
-  const keyMaterial = await window.crypto.subtle.importKey(
-    "raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]
-  );
-
-  // Random salt — ensures identical passwords produce different AES keys
-  const salt = window.crypto.getRandomValues(new Uint8Array(16));
-  const aesKey = await window.crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,          // not extractable — the AES key itself can never be exported
-    ["encrypt"]
-  );
-  
-  // Random IV — must never be reused with the same AES key
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
-
-  // Encrypt the private key hex string
-  const encoded = enc.encode(privateKeyHex);
-  const ciphertext = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, encoded);
-
-  const combined = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
-  combined.set(salt, 0);
-  combined.set(iv, 16);
-  combined.set(new Uint8Array(ciphertext), 28);
-  return btoa(String.fromCharCode(...combined));
-}
-
-export async function encryptPrivateKeyForStorage(
-  privateKeyHex: string,
-  password: string
-): Promise<string> {
-  return await encryptPrivateKey(privateKeyHex, password);
-}
 
 export const loadVoters = async (): Promise<Voter[]> => {
   /*
@@ -215,7 +136,6 @@ export const saveVoter = async (name: string, voterId: string, password: string)
 
 async function serverLog(message: string) {
   const url = (import.meta as any).env?.VITE_API_URL;
-  console.log("Attempting to log to:", `${url}/log`);
   try {
     const response = await fetch(`${url}/log`, {
       method: 'POST',
@@ -236,6 +156,9 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
   they have registered.
   */
   try {
+    // Registration is unauthenticated — a stale token causes Back4app to return
+    // error 209 (Invalid session token) before the duplicate check even runs.
+    localStorage.removeItem('surtr_session_token');
     const existingVoter = await back4appClient.findVoterByVoterID(voterId.trim());
     if (existingVoter) {
       throw new Error('A voter with this ID is already registered');
@@ -268,7 +191,6 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
       hasVoted: false,
     };
 
-    console.log('Voter saved successfully to Back4app:', newVoter);
     return newVoter;
   } catch (error) {
     console.error('Error saving voter to Back4app:', error);
@@ -285,7 +207,6 @@ export const getFinalResult = async() => {
       'Content-Type': 'application/json',
     },
   });
-  console.log(response);
   const data = await response.json();
   if (data[0] === undefined) {
     return [];
@@ -493,10 +414,8 @@ export const getVoterTrueIdentifier = async (voterId: string): Promise<{emoji: s
   }
 
   const identifier: string = await response.json();
-  console.log(`True Identifier: "${identifier}"`);
 
   const match = MASTER_IDENTIFIERS.find(item => item.text === identifier);
-  console.log(`Match: ${match?.emoji} ${match?.text}`);
 
   if (!match) {
     return null;
@@ -514,7 +433,6 @@ export const markTrueIdentifierSeen = async (voterId: string): Promise<boolean> 
     try {
       const voter = await back4appClient.findVoterByVoterID(voterId);
       if (!voter) return false;
-      await back4appClient.updateVoter(voter.objectId, { hasSeenTrueIdentifier: true });
       const authenticatedVoter = localStorage.getItem('surtr_authenticated_voter');
       if (authenticatedVoter) {
         const voterData = JSON.parse(authenticatedVoter);
@@ -523,6 +441,7 @@ export const markTrueIdentifierSeen = async (voterId: string): Promise<boolean> 
       }
       return true;
     } catch (error) {
+      console.error('markTrueIdentifierSeen failed:', error);
       return false;
     }
   }

@@ -40,7 +40,6 @@ export function TrueIdentifier(): React.JSX.Element {
 
         const trueIdentifier = await getVoterTrueIdentifier(voter.voterId)
         if (cancelled) return
-        console.log('True Identifier:', trueIdentifier?.emoji, trueIdentifier?.text)
         if (trueIdentifier) {
           setIdentifier({
             emoji: trueIdentifier.emoji,
