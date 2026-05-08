@@ -148,7 +148,11 @@ def QR_content(id) -> bytes:
     secret = voter.get_trapdoor_key()
 
     encoded = json.dumps(secret, cls=ECCEncoder)
-    cur.execute("INSERT INTO voter_keys (id, sk) VALUES (%s, %s)", (id, encoded,))
+    true_identifier = random.choice(VVerify.identifiers)
+    cur.execute(
+        "INSERT INTO voter_keys (id, sk, true_identifier) VALUES (%s, %s, %s) ON CONFLICT (id) DO NOTHING",
+        (id, encoded, true_identifier)
+    )
 
     tpk = get_random_tpk(teller_public_keys)
     voter.encrypt_trapdoor(tpk)
@@ -217,6 +221,17 @@ async def get_election_result(x_api_key: str = Header(...)):
     if result is None:
         return []
     return result
+
+
+@app.post("/voter_true_identifier")
+async def voter_true_identifier(request: QRRequest, x_api_key: str = Header(...)):
+    if x_api_key != os.getenv("API_TO_VERIFY_KEY"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    cur.execute("SELECT true_identifier FROM voter_keys WHERE id = %s", (request.id,))
+    row = cur.fetchone()
+    if row is None or row[0] is None:
+        return None
+    return row[0]
 
 
 @app.post("/get_true_identifier")

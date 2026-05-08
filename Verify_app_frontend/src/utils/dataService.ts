@@ -156,13 +156,9 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
   they have registered.
   */
   try {
-    // Registration is unauthenticated — a stale token causes Back4app to return
-    // error 209 (Invalid session token) before the duplicate check even runs.
     localStorage.removeItem('surtr_session_token');
-    const existingVoter = await back4appClient.findVoterByVoterID(voterId.trim());
-    if (existingVoter) {
-      throw new Error('A voter with this ID is already registered');
-    }
+    // No pre-check query — _User requires auth to read. Rely on Back4App's
+    // unique username constraint and catch the duplicate error below.
     serverLog("Voter registered");
 
     const voterData = {
@@ -195,6 +191,9 @@ const saveVoterToBack4app = async (name: string, voterId: string, password: stri
   } catch (error) {
     console.error('Error saving voter to Back4app:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage.includes('already exists') || errorMessage.includes('Account already exists')) {
+      throw new Error('A voter with this ID is already registered');
+    }
     throw new Error(`Failed to save voter data: ${errorMessage}`);
   }
 };
@@ -396,43 +395,41 @@ export const getVoterTriplets = async (voterId: string): Promise<Array<{tripletI
   }));
 };
 
-export const getVoterTrueIdentifier = async (voterId: string): Promise<{emoji: string, text: string} | null> => {
-  /*
-  getVoterTrueIdentifier: Function that gets the voters specific identifier
-  */
+export const generateQRCode = async (voterId: string): Promise<string> => {
   const url = (import.meta as any).env.VITE_API_URL;
-  const response = await fetch(`${url}/verify_vote`, {
+  const response = await fetch(`${url}/qrcode`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ voter_id: voterId }),
   });
-
   if (!response.ok) {
-    throw new Error(`Failed to generate True_identifier: ${response.status}`);
+    throw new Error(`Failed to generate QR: ${response.status}`);
   }
+  const data = await response.json();
+  return data.qr_code as string;
+};
 
-  const identifier: string = await response.json();
-
-  const match = MASTER_IDENTIFIERS.find(item => item.text === identifier);
-
-  if (!match) {
-    return null;
+export const getVoterTrueIdentifier = async (voterId: string): Promise<{emoji: string, text: string} | null> => {
+  const url = (import.meta as any).env.VITE_API_URL;
+  const response = await fetch(`${url}/voter_true_identifier`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ voter_id: voterId }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch true identifier: ${response.status}`);
   }
-
-  return match;
+  const identifier: string | null = await response.json();
+  if (!identifier) return null;
+  return MASTER_IDENTIFIERS.find(item => item.text === identifier) ?? null;
 };
 
 export const markTrueIdentifierSeen = async (voterId: string): Promise<boolean> => {
-  /*
-  markTrueidentifierSeen: Function that marks a hasSeenTrueIdentifier to true,
-  once they have seen their true identifier
-  */
   if (USE_BACK4APP) {
     try {
       const voter = await back4appClient.findVoterByVoterID(voterId);
       if (!voter) return false;
+      await back4appClient.updateVoter(voter.objectId, { hasSeenTrueIdentifier: true });
       const authenticatedVoter = localStorage.getItem('surtr_authenticated_voter');
       if (authenticatedVoter) {
         const voterData = JSON.parse(authenticatedVoter);

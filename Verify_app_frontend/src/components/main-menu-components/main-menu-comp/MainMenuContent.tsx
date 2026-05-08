@@ -7,7 +7,7 @@ import styles from '../main-menu-styled-comp/mainMenu.module.css'
 export function MainMenuContent(): React.JSX.Element {
   const navigate = useNavigate()
   const [showPopup, setShowPopup] = useState(false)
-  const steps = ["Voting QR Code", "After Vote casting", "True Identifier", "Identifiers for All Candidates", "Complete"]
+  const steps = ["True Identifier", "Voting QR Code", "After Vote casting", "Identifiers for All Candidates", "Complete"]
 
   const handleShowTrueIdentifier = () => {
     setShowPopup(true)
@@ -15,7 +15,7 @@ export function MainMenuContent(): React.JSX.Element {
 
   const handleConfirmTrueIdentifier = () => {
     setShowPopup(false)
-    navigate('/true-identifier')
+    navigate('/all-identifiers')
   }
 
   const handleCancelPopup = () => {
@@ -31,7 +31,7 @@ export function MainMenuContent(): React.JSX.Element {
       <div className={styles.mainContent}>
         <div className={styles.container}>
         
-          <ProgressSteps currentStep={2} steps={steps} />
+          <ProgressSteps currentStep={3} steps={steps} />
 
          
           <div className={styles.mainCard}>
@@ -48,14 +48,11 @@ export function MainMenuContent(): React.JSX.Element {
                 Only proceed to the next step after casting your vote in the <strong>SURTR Vote</strong> app on your phone.
               </p>
               <p className={styles.instructionText}>
-                The next step will show the True Identifier for your vote.
-              </p>
-              <p className={styles.instructionText}>
-                The True Identifier will allow you to independently verify your vote during verification.
+                The next step will show All Identifiers for your vote.
               </p>
 
               <p className={styles.instructionText}>
-                The True Identifier can be viewed only once.
+                The list of All Identifiers can be viewed only once.
               </p>
             </div>
 
@@ -83,7 +80,7 @@ export function MainMenuContent(): React.JSX.Element {
                 onClick={handleShowTrueIdentifier}
                 className={styles.primaryButton}
               >
-                Yes, I have voted – show the True Identifier
+                Yes, I have voted – show Identifiers for All Candidates
               </button>
               
               <button

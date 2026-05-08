@@ -13,11 +13,7 @@ export function Registration(): React.JSX.Element {
       
       
       setTimeout(() => {
-        navigate('/qr-code', {
-          state: {
-            voterId: data.voterId
-          }
-        })
+        navigate('/true-identifier')
       }, 4000)
     }
   }

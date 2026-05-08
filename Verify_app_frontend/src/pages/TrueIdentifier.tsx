@@ -4,23 +4,23 @@ import { TriangleAlert } from 'lucide-react'
 import { MainMenuNavigation } from '@/components/main-menu-components/main-menu-comp'
 import { ProgressSteps } from '@/components/preparation-components/preparation-comp'
 import { TrueIdentifierContent, WarningPopup } from '@/components/true-identifier-components/true-identifier-comp'
-import { getVoterTrueIdentifier, hasVoterSeenTrueIdentifier, markTrueIdentifierSeen } from '@/utils/dataService'
+import { generateQRCode, getVoterTrueIdentifier, hasVoterSeenTrueIdentifier, markTrueIdentifierSeen } from '@/utils/dataService'
 import styles from '@/components/true-identifier-components/true-identifier-styled-comp/trueIdentifier.module.css'
 
 export function TrueIdentifier(): React.JSX.Element {
   const navigate = useNavigate()
   const [identifier, setIdentifier] = useState<{emoji: string, word: string} | null>(null)
+  const [qrCode, setQrCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  const steps = ["Voting QR Code", "After Vote casting", "True Identifier", "Identifiers for All Candidates", "Complete"]
+  const steps = ["True Identifier", "Voting QR Code", "After Vote casting", "Identifiers for All Candidates", "Complete"]
 
   useEffect(() => {
     let cancelled = false
     const loadTrueIdentifier = async () => {
       try {
-      
         const authenticatedVoter = localStorage.getItem('surtr_authenticated_voter')
         if (!authenticatedVoter) {
           setError('No authenticated voter found. Please complete registration and login first.')
@@ -28,23 +28,23 @@ export function TrueIdentifier(): React.JSX.Element {
         }
 
         const voter = JSON.parse(authenticatedVoter)
-        
-        
+
         const alreadySeen = await hasVoterSeenTrueIdentifier(voter.voterId)
-        if (cancelled) return 
+        if (cancelled) return
         if (alreadySeen) {
           setError('You have already seen your True Identifier')
           return
         }
 
+        // Generate QR first — this stores true_identifier in voter_keys on the backend
+        const generatedQR = await generateQRCode(voter.voterId)
+        if (cancelled) return
+        setQrCode(generatedQR)
 
         const trueIdentifier = await getVoterTrueIdentifier(voter.voterId)
         if (cancelled) return
         if (trueIdentifier) {
-          setIdentifier({
-            emoji: trueIdentifier.emoji,
-            word: trueIdentifier.text
-          })
+          setIdentifier({ emoji: trueIdentifier.emoji, word: trueIdentifier.text })
         } else {
           setError('Could not load your true identifier.')
         }
@@ -57,7 +57,7 @@ export function TrueIdentifier(): React.JSX.Element {
     }
 
     loadTrueIdentifier()
-     return () => { cancelled = true }
+    return () => { cancelled = true }
   }, [])
 
   if (isLoading) {
@@ -92,7 +92,7 @@ export function TrueIdentifier(): React.JSX.Element {
         <MainMenuNavigation showBackButton={false} />
         <div className={styles.mainContent}>
           <div className={styles.container}>
-            <ProgressSteps currentStep={3} steps={steps} />
+            <ProgressSteps currentStep={1} steps={steps} />
             <div className={styles.errorContainerGeneric}>
               {error || 'Could not load identifier'}
             </div>
@@ -118,7 +118,7 @@ export function TrueIdentifier(): React.JSX.Element {
       }
     }
     setShowSuccessPopup(false)
-    navigate('/all-identifiers')
+    navigate('/qr-code', { state: { qrCode, voterId: JSON.parse(localStorage.getItem('surtr_authenticated_voter')!).voterId } })
   }
 
   const handleWarningCancel = () => {
@@ -131,7 +131,7 @@ export function TrueIdentifier(): React.JSX.Element {
       
       <div className={styles.mainContent}>
         <div className={styles.container}>
-          <ProgressSteps currentStep={3} steps={steps} />
+          <ProgressSteps currentStep={1} steps={steps} />
           
           {identifier && <TrueIdentifierContent identifier={identifier} onOk={handleOk} />}
         </div>
