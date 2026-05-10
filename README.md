@@ -45,9 +45,10 @@ Steps 2 and 3 should be repeated each time a new voter is simulated.
 ### 4) Verify-App
 1) Open the verification web application in a browser: `http://localhost:5173/`
 2) Register a new voter
-3) After the QR code has been scanned by the casting application and the vote has been cast, continue through the verification application to view your true identifier.
-4) After the true identifier has been shown, continue to the personalized ballot. Here, you can see which identifier belongs to each candidate.
-5) Once you know which identifier belongs to each candidate, continue to the final page. This page shows your personalized bulletin board, where you can verify that your vote has been cast correctly. Once the election has ended, the election result will also be shown here.
+3) After registration, continue through the verification application to view your true identifier. This identifier is shown before the QR code, so make sure to remember it.
+4) After the true identifier has been shown continue to the  QR-code so it cna be scanned by the casting application
+5) After the QR-code has been scanned, continue to the personalized ballot. Here, you can see which identifier belongs to each candidate.
+6) Once you know which identifier belongs to each candidate, continue to the final page. This page shows your personalized bulletin board, where you can verify that your vote has been cast correctly. Once the election has ended, the election result will also be shown here.
 
 ### 5) Cast-App
 The casting application is intended to be used as a mobile web application. For this prototype, it is accessed using ngrok.
