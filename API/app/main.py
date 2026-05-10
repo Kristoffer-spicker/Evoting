@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse # type: ignore # pylint: disable=impo
 from fastapi.middleware.cors import CORSMiddleware # type: ignore # pylint: disable=import-error
 from sqlmodel import Field, Session, SQLModel, create_engine, select  # type: ignore # pylint: disable=import-error
 from pydantic import BaseModel # type: ignore # pylint: disable=import-error
-app = FastAPI(root_path="/api")
+app = FastAPI(root_path="/api", docs_url=None, redoc_url=None, openapi_url=None)
 
 @app.exception_handler(RequestValidationError)
 async def validation_error_handler(_request, exc):
