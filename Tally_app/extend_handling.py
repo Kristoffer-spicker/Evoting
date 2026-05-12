@@ -33,8 +33,8 @@ def handler(notify, con, tellers):
             "INSERT INTO extended_votes (id, ballot) VALUES (%s, %s) ON CONFLICT (id) DO NOTHING", (parsed["id"], json.dumps(parsed["ballot"]))
         )
         con.commit()
-        cur.close()
-        con.close()
+    cur.close()
+    con.close()
     
 
     

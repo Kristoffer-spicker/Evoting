@@ -41,7 +41,9 @@ def extend_handler(notify, con, tellers):
 
     triplet_decryption(parsed, tellers, cur)
     con.commit()
-    
+    cur.close()
+    con.close()
+
 
 
 def reencryptTriplets(ballot, tellers, ballot_id, cur):

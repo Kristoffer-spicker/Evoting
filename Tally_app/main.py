@@ -68,9 +68,12 @@ num_tellers = args.number_of_tellers
 k = args.k
 
 voting_phase_timer = args.election_time
+decryption_started = False
 
 def start_decrypt(e_timer):
+    global decryption_started
     time.sleep(e_timer)
+    decryption_started = True
     print("voting phase has ended", flush=True)
     decrypt_start = time.time()
     final_triplets(cur, con, tellers)
@@ -152,7 +155,8 @@ def encrypted_listen():
     print("Listening on encrypted_votes", flush=True)
     while True:
         if select.select([conn], [], [], 5) == ([], [], []):
-            print("still waiting...",flush=True)
+            if not decryption_started:
+                print("still waiting...",flush=True)
         else:
             print("socket became readable", flush=True)
             conn.poll()
