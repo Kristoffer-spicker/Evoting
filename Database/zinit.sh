@@ -51,7 +51,7 @@ GRANT CONNECT ON DATABASE "${POSTGRES_DB}" TO ${CAST_USER};
 GRANT USAGE ON SCHEMA public TO ${CAST_USER};
 GRANT SELECT ON TABLE tellers, registered_voters, decrypted_triplets, candidates
     TO ${CAST_USER};
-GRANT INSERT ON TABLE registered_voters, encrypted_votes
+GRANT INSERT ON TABLE registered_voters, encrypted_votes, candidates
     TO ${CAST_USER};
 
 -- verify_user

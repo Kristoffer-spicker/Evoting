@@ -148,7 +148,7 @@ def verify_tally(cur, con, tellers):
         pd_by_idx = [json.loads(pd1_raw), json.loads(pd2_raw), json.loads(pd3_raw)]
 
         teller = tellers[teller_id]
-        public_key_share = teller.curve.raise_p(teller.secret_key_share.y)
+        public_key_share = teller.public_key_share
 
         for ct_idx in [1, 2, 3]:
             tau = batch_proof[f"tau_{ct_idx}"]

@@ -108,10 +108,10 @@ const AllIdentifiersContent = ({ onFinish }: AllIdentifiersContentProps) => {
     const positionNumber = parseInt(trimmedInput);
     
    
-    if (isNaN(positionNumber) || positionNumber < 1 || positionNumber > 12) {
+    if (isNaN(positionNumber) || positionNumber < 1 || positionNumber > 4) {
       setDisplayedIdentifier(null);
       setSearchedNumber(null);
-      setInputErrorMessage('The candidate number must be between 1 and 12.');
+      setInputErrorMessage('The candidate number must be between 1 and 4.');
       return;
     }
 
@@ -284,10 +284,9 @@ const AllIdentifiersContent = ({ onFinish }: AllIdentifiersContentProps) => {
                   <Info/>
                 </div>
                 <p className={styles.identifierInfoText}>
-                  {searchedNumber === 1
-                    ? "This is the True Identifier of your vote. It will be associated with the candidate you actually voted for in the verification results. Do not share this identifier with anyone."
-                    : <>This identifier will be associated with the candidate at number <strong>{searchedNumber}</strong> in your Personalized Ballot in the verification results. You may share this identifier with the coercer.</>
-                  }
+                  
+                  <>This identifier will be associated with the candidate at number <strong>{searchedNumber}</strong> in your Personalized Ballot in the verification results. You may share this identifier with the coercer.</>
+                  
                 </p>
               </div>
             </>

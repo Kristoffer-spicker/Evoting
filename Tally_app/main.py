@@ -17,6 +17,7 @@ from triplet_handling import extend_handler
 from extended_triplets import final_triplets
 from verify_tally import verify_tally
 from Encoding import ECCEncoder
+from teller_process import teller_worker, TellerProxy
 
 
 
@@ -113,10 +114,9 @@ def custom_serializer(obj):
 
 def setup():
     """The setup phase of the protocol.
-    Sets up 'num_tellers' teller objects.
-    The teller public key and the threshold secret keys for
-    'num_tellers' tally tellers are established.
-    Adds all 'teller' objects to the 'tellers' list.
+    Generates threshold keys, spawns one isolated teller process per teller,
+    and stores TellerProxy objects in the 'tellers' list.
+    Each teller process holds only its own secret key share.
     """
     global teller_public_key
     global teller_sk
@@ -124,19 +124,38 @@ def setup():
     teller_public_key, teller_sk = Teller.generate_threshold_keys(
         k, num_tellers, curve.get_pars()
     )
-    
-    for i in range(0, num_tellers):
+
+    for i in range(num_tellers):
         teller_id = i
-        teller = Teller(curve, teller_sk[i], teller_public_key)
-        tellers.append(teller)
+
+        # Pre-compute the public key share while we still have the secret key.
+        pk_share_pt = curve.raise_p(teller_sk[i].y)
+
+        parent_conn, child_conn = multiprocessing.Pipe()
+        p = multiprocessing.Process(
+            target=teller_worker,
+            args=(child_conn, i, teller_sk[i], teller_public_key, "P-192"),
+        )
+        p.start()
+        child_conn.close()
+
+        # Wait for the teller process to confirm it is ready.
+        init_msg = parent_conn.recv()
+        if not init_msg.get("ok"):
+            print(f"Teller {i} failed to initialise", flush=True)
+            sys.exit(1)
+
+        proxy = TellerProxy(parent_conn, i, curve, teller_public_key, pk_share_pt)
+        tellers.append(proxy)
+
         t_pk = json.dumps(teller_public_key, default=custom_serializer)
-        cur.execute("INSERT INTO tellers VALUES (%s, %s)", (teller_id,t_pk))
+        cur.execute("INSERT INTO tellers VALUES (%s, %s)", (i, t_pk))
         con.commit()
 
     for i in range(0, 4):
         curve_p = curve.raise_p(i)
         encoded = json.dumps(curve_p, cls=ECCEncoder)
-        cur.execute ("INSERT INTO candidates VALUES (%s, %s)", (i, encoded))
+        cur.execute("INSERT INTO candidates VALUES (%s, %s)", (i, encoded))
         con.commit()
     
     
