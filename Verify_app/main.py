@@ -1,3 +1,4 @@
+import argparse
 import base64
 import io
 import os
@@ -95,7 +96,13 @@ def decode_curve_point(point):
     y = int(point["y"])
     curve_name = point.get("curve_name") or point.get("curve")
     return ECC.EccPoint(x, y, curve_name)
+parser = argparse.ArgumentParser(
+    description="Sutr implementation"
+)
 
+parser.add_argument(
+    "vote_max", metavar="N", type=int, help="Number of candidates"
+)
 
 app = FastAPI()
 
@@ -104,7 +111,7 @@ raw_keys = cur.fetchall()
 teller_public_keys = [decode_public_key(row) for row in raw_keys]
 
 curve = Curve("P-192")
-vote_max = 4
+vote_max = parser.parse_args().vote_max
 
 g_vote_store = {}  # in-memory store
 #g_ri_store = {}

@@ -143,6 +143,9 @@ parser.add_argument(
 parser.add_argument(
     "vote_timer", metavar="N", type=int, help="Total time of election"
 )
+parser.add_argument(
+    "vote_max", metavar="N", type=int, help="Number of candidates" 
+)
 
 args = parser.parse_args()
 
@@ -156,7 +159,7 @@ if (
 
 
 vote_min = 0
-vote_max = 4
+vote_max = args.vote_max
 
 t_voting_single = 0
 t_verification_single = 0

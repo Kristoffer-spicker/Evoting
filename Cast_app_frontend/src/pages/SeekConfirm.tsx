@@ -5,16 +5,13 @@ import ConfirmationHeader from '../components/confirmation-components/confirmati
 import ConfirmationMenu from '../components/confirmation-components/confirmation-comp/ConfirmationMenu';
 import { SeekConfirmContent } from '../components/seekConfirm-components/seekConfirm-comp';
 import MinimalErrorPage from '../components/shared/MinimalErrorPage';
-import { castVoterVote, getBallotOrder, saveBallotOrder, hasVoterAlreadyVoted } from '../utils';
+import { castVoterVote, getBallotOrder, saveBallotOrder, hasVoterAlreadyVoted, fetchCandidateList } from '../utils';
 import styles from '../components/seekConfirm-components/seekConfirm-styled-comp/SeekConfirm.module.css';
 
 export type Candidate = {
   id: number;
   name: string;
 }
-const allCandidates = [
-  { id: 0, name: "James Bond"}, { id: 1, name: "Tony Stark"}, { id: 2, name: "Jack Sparrow"}, { id: 3, name: "Ellen Ripley"}
-];
 
 
 const createBallotOrder = (selected: string, candidates: string[]) => {
@@ -43,6 +40,11 @@ const SeekConfirm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>(''); // ← add this
+  const [candidateList, setCandidateList] = useState<{id: number, name: string}[]>([]);
+
+  useEffect(() => {
+    fetchCandidateList().then(setCandidateList).catch(console.error);
+  }, []);
 
 
   const state = location.state as LocationState;
@@ -126,7 +128,7 @@ const SeekConfirm: React.FC = () => {
   try {
     const existingBallot = await getBallotOrder(userData.voterId);
     if (!existingBallot || !existingBallot.ballotList || existingBallot.ballotList.length === 0) {
-      const newBallot = createBallotOrder(selectedCandidate.name, allCandidates.map(c => c.name));
+      const newBallot = createBallotOrder(selectedCandidate.name, candidateList.map(c => c.name));
       await saveBallotOrder(userData.voterId, newBallot);
       setDebugInfo(prev => prev + ' | Ballot saved OK');
     }

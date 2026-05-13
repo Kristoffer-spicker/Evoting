@@ -31,7 +31,7 @@ services:
       - evoting
 
   cast_app:
-    command: ["python3", "main.py", "50", "150"]
+    command: ["python3", "main.py", "50", "150", "7"]
     build:
       context: ./Cast_app
     environment:
@@ -56,7 +56,7 @@ services:
       - evoting
 
   verify_app:
-    command: ["python3", "main.py"]
+    command: ["python3", "main.py", "7"]
     build:
       context: ./Verify_app
     environment:

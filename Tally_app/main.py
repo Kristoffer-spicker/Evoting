@@ -60,6 +60,9 @@ parser.add_argument(
 parser.add_argument(
     "k", metavar="N", type=int, help="Threshold for number of correctly running tellers"
 )
+parser.add_argument(
+    "candidate_count", metavar="N", type=int, help="Number of candidates"
+)
 args = parser.parse_args()
 
 # This is so Mathildes Macbook uses forks for multiprocessing instead of spawn
@@ -67,6 +70,8 @@ multiprocessing.set_start_method('fork', force=True)
 
 num_tellers = args.number_of_tellers
 k = args.k
+
+candidate_count = args.candidate_count
 
 voting_phase_timer = args.election_time
 decryption_started = False
@@ -152,7 +157,7 @@ def setup():
         cur.execute("INSERT INTO tellers VALUES (%s, %s)", (i, t_pk))
         con.commit()
 
-    for i in range(0, 4):
+    for i in range(0, candidate_count):
         curve_p = curve.raise_p(i)
         encoded = json.dumps(curve_p, cls=ECCEncoder)
         cur.execute("INSERT INTO candidates VALUES (%s, %s)", (i, encoded))

@@ -4,22 +4,24 @@ import { CastVote as CastVoteComponent } from '../components/cast-vote-component
 import ConfirmationHeader from '../components/confirmation-components/confirmation-comp/ConfirmationHeader';
 import ConfirmationMenu from '../components/confirmation-components/confirmation-comp/ConfirmationMenu';
 import MinimalErrorPage from '../components/shared/MinimalErrorPage';
-import { hasVoterAlreadyVoted } from '../utils';
+import { hasVoterAlreadyVoted, fetchCandidateList } from '../utils';
 
 interface LocationState {
   userName: string;
   voterId: string;
   qr_data: string;
 }
-const allCandidates = [
-  { id: 0, name: "James Bond"}, { id: 1, name: "Tony Stark"}, { id: 2, name: "Jack Sparrow"}, { id: 3, name: "Ellen Ripley"}
-];
 
 const CastVote: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [candidateList, setCandidateList] = useState<{id: number, name: string}[]>([]);
+
+  useEffect(() => {
+    fetchCandidateList().then(setCandidateList).catch(console.error);
+  }, []);
   
   const state = location.state as LocationState;
   const userData = {
@@ -59,8 +61,8 @@ const CastVote: React.FC = () => {
   };
 
   const handleVoteSubmit = (candidate: string) => {
-    const selectedCandidate = allCandidates.find(c => c.name === candidate);
-    navigate('/seekconfirm', { 
+    const selectedCandidate = candidateList.find(c => c.name === candidate);
+    navigate('/seekconfirm', {
       state: { 
         userName: userData.userName,
         voterId: userData.voterId,
@@ -80,10 +82,11 @@ const CastVote: React.FC = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F7FAFC', display: 'flex', flexDirection: 'column' }}>
-      <CastVoteComponent 
+      <CastVoteComponent
         onVoteSubmit={handleVoteSubmit}
         onCancel={handleCancel}
         headerComponent={<ConfirmationHeader onMenuToggle={handleMenuToggle} />}
+        candidates={candidateList}
       />
       <ConfirmationMenu
         isOpen={isMenuOpen}
