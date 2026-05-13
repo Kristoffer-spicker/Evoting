@@ -153,8 +153,8 @@ def main():
 
         voter.sign_ballot()
         print(f"[{i + 1}/{args.num_voters}] {voter_id} voted for candidate {voter.vote}", flush=True)
-        #if i < args.num_voters - 1:
-        #    time.sleep(3)
+        if i < args.num_voters - 1:
+            time.sleep(2)
 
     cur.close()
     con.close()
