@@ -67,6 +67,6 @@ The casting application is intended to be used as a mobile web application. For 
 3) Once the QR code has been scanned, choose one of the candidates and cast the vote.
 4) After the vote has been cast, continue through the application to view your personalized ballot.
 
-Because the project uses the free version of ngrok, the mobile web application can only be accessed through one active tunnel at a time.
+Because the project uses the free version of ngrok, the mobile web application can only be accessed through one active tunnel at a time. This means that if 2 comuters runs this locally it will fail, so remmeber to run docker compose down when not using :))
 
 
