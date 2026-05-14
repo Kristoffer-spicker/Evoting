@@ -6,9 +6,20 @@ const USE_BACK4APP = (import.meta as any).env?.VITE_USE_PARSE === 'true';
 
 const DEVICE_ID_KEY = 'surtr_device_id';
 
-const allCandidates = [
-  { id: 0, name: "James Bond"}, { id: 1, name: "Tony Stark"}, { id: 2, name: "Jack Sparrow"}, { id: 3, name: "Ellen Ripley"}
-];
+const KNOWN_NAMES: Record<number, string> = {
+  0: "James Bond", 1: "Tony Stark", 2: "Jack Sparrow", 3: "Ellen Ripley", 4: "Mr. Bean", 5: "Homer Simpson", 6: "Charlie Chaplin", 7: "Peter Sellers",
+  8: "Raymond Reddington", 9: "Daenerys Targaryen", 10: "Rachel Green", 11: "Walter White",
+};
+
+export const fetchCandidateList = async (): Promise<{id: number, name: string}[]> => {
+  const url = (import.meta as any).env.VITE_API_URL;
+  const response = await fetch(`${url}/candidates`);
+  if (!response.ok) throw new Error('Failed to fetch candidates');
+  const data = await response.json();
+  return (data as any[])
+    .sort((a, b) => a.id - b.id)
+    .map(c => ({ id: c.id, name: KNOWN_NAMES[c.id] ?? `Candidate ${c.id}` }));
+};
 
 const generateDeviceFingerprint = (): string => {
   const nav = window.navigator;
@@ -329,8 +340,9 @@ export const getBallotOrderNew = async (voterID: string) => {
 
   var candidates = [] as string[]
 
+  const candidateList = await fetchCandidateList();
   for (let i = 0; i < data.length; i++) {
-    var c_name = allCandidates.find(candidate => candidate.id == data[i])?.name || "";
+    const c_name = candidateList.find(c => c.id === data[i])?.name ?? `Candidate ${data[i]}`;
     candidates.push(c_name);
   }
 

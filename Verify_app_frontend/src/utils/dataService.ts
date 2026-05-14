@@ -211,7 +211,7 @@ export const getFinalResult = async() => {
     return [];
   }
   return data.map((item: any) => ({
-    candidateName: CANDIDATES.find(c => c.id === Number(item[0]))?.name ?? `Candidate ${item[0]}`,
+    candidateName: CANDIDATES[Number(item[0])] ?? `Candidate ${item[0]}`,
     vote_count: item[1],
   }));
 }
@@ -335,12 +335,10 @@ export const voterExists = async (voterId: string): Promise<boolean> => {
   return voters.some(v => v.voterId === voterId);
 };
 
-const CANDIDATES = Object.freeze([
-  { id: 0, name: "James Bond" },
-  { id: 1, name: "Tony Stark" },
-  { id: 2, name: "Jack Sparrow" },
-  { id: 3, name: "Ellen Ripley" },
-]);
+const CANDIDATES: Record<number, string> = {
+  0: "James Bond", 1: "Tony Stark", 2: "Jack Sparrow", 3: "Ellen Ripley", 4: "Mr. Bean", 5: "Homer Simpson", 6: "Charlie Chaplin", 7: "Peter Sellers",
+  8: "Raymond Reddington", 9: "Daenerys Targaryen", 10: "Rachel Green", 11: "Walter White",
+};
 
 export const getVoterIdentifiers = async (voterId: string): Promise<Array<{id: string, emoji: string, word: string}>> => {
   /*
@@ -390,7 +388,7 @@ export const getVoterTriplets = async (voterId: string): Promise<Array<{tripletI
   // API returns [triplet_id, identifier_text, candidate_id]
   return data.map((item: any, index: number) => ({
     tripletId: index + 1,
-    candidateName: CANDIDATES.find(c => c.id === item[2])?.name ?? `Candidate ${item[2]}`,
+    candidateName: CANDIDATES[item[2]] ?? `Candidate ${item[2]}`,
     emoji: MASTER_IDENTIFIERS.find(i => i.text === item[1])?.emoji ?? '❓',
   }));
 };

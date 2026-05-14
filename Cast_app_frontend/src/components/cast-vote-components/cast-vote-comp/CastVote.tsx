@@ -8,21 +8,23 @@ interface CastVoteProps {
   onCancel?: () => void;
   errorMessage?: string | null;
   headerComponent?: React.ReactNode;
+  candidates?: {id: number, name: string}[];
 }
 
-const CastVote: React.FC<CastVoteProps> = ({ 
+const CastVote: React.FC<CastVoteProps> = ({
   onVoteSubmit,
   onCancel,
   errorMessage,
-  headerComponent
+  headerComponent,
+  candidates = []
 }) => {
   // Tracks which candidate the voter has currently selected
   const [selectedCandidate, setSelectedCandidate] = useState<string>('');
 
   const parties = [
     {
-      name: 'Party 1 "Movie Stars"',
-      candidates: ["James Bond", "Tony Stark", "Jack Sparrow", "Ellen Ripley"],
+      name: 'Candidates',
+      candidates: candidates.map(c => c.name),
     },
   ];
 
