@@ -20,7 +20,15 @@ Developing a simple user interface to make the system interactable and easier to
 able and easier to test
 A project report documenting the design, implementation, evaluation and cryptographical concepts.
 
-## How to run it
+## Certificates
+When running the program for the first time it is important to start the page HTTPS://localhost to accept the certificates associated with the API. 
+
+## .env files
+There are .env files needed in the top level directory, the verify_app_frontend, cast_app_frontend and the database folders. 
+In the codebase there exists example files for where each of these should go. The file themselves should just be named '.enc' in all four.
+The contents needed for each file can be found in the appendix of the paper.
+
+## How to run 
 ### 1) Clone the resposotory
 Clone the repository using the following commands: `https://github.com/Dwight-D-Eisenhower420/Evoting.git` <br>
 `cd Evoting`
@@ -60,4 +68,5 @@ The casting application is intended to be used as a mobile web application. For 
 4) After the vote has been cast, continue through the application to view your personalized ballot.
 
 Because the project uses the free version of ngrok, the mobile web application can only be accessed through one active tunnel at a time.
+
 
