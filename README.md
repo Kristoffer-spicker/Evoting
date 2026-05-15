@@ -23,10 +23,12 @@ A project report documenting the design, implementation, evaluation and cryptogr
 ## Certificates
 When running the program for the first time it is important to start the page HTTPS://localhost to accept the certificates associated with the API. 
 
-## .env files
+## .env & pem files
 There are .env files needed in the top level directory, the verify_app_frontend, cast_app_frontend and the database folders. 
 In the codebase there exists example files for where each of these should go. The file themselves should just be named '.enc' in all four.
 The contents needed for each file can be found in the appendix of the paper.
+
+There also exist the folder with the files cert.pem and key.pem, both of these files are empty and their content can be found in the appendix of the paper.
 
 ## How to run 
 ### 1) Clone the resposotory
@@ -44,6 +46,12 @@ Linux: `https://docs.docker.com/desktop/setup/install/linux/`
 
 Once Docker is running, the project can be started with the following commands:<br>
 
+For Macbook users: <br>
+a) `cd Database` into the Database folder <br>
+b) run `chmod +x zinit.sh`to make the script executable <br>
+c) `cd ..` out of the Database folder
+
+For all:
 1) Start by building the tallying servers: `docker compose -f compose.persis.yaml build`
 2) Then build the rest of the containers: `docker compose build`
 3) Start the database and tallying servers: `docker compose -f compose.persis.yaml up -d`
