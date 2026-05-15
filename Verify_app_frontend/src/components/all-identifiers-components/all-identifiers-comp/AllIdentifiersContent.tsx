@@ -111,7 +111,7 @@ const AllIdentifiersContent = ({ onFinish }: AllIdentifiersContentProps) => {
     if (isNaN(positionNumber) || positionNumber < 1 || positionNumber > identifiers.length) {
       setDisplayedIdentifier(null);
       setSearchedNumber(null);
-      setInputErrorMessage('The candidate number must be between 1 and ${identifiers.length}.');
+      setInputErrorMessage(`The candidate number must be between 1 and ${identifiers.length}.`);
       return;
     }
 
