@@ -44,12 +44,14 @@ Linux: `https://docs.docker.com/desktop/setup/install/linux/`
 
 Once Docker is running, the project can be started with the following commands:<br>
 
-1) Start the database and tallying servers: `docker compose -f compose.persis.yaml up -d`
-2) Start the remaining applications, including the verification application and the casting application: `docker compose up`
-3) Stop the verification and casting applications: `docker compose down`
-4) Stop the entire program, including orphan containers: `docker compose down --remove-orphans`
+1) Start by building the tallying servers: `docker compose -f compose.persis.yaml build`
+2) Then build the rest of the containers: `docker compose build`
+3) Start the database and tallying servers: `docker compose -f compose.persis.yaml up -d`
+4) Start the remaining applications, including the verification application and the casting application: `docker compose up`
+5) Stop the verification and casting applications: `docker compose down`
+6) Stop the entire program, including orphan containers: `docker compose down --remove-orphans`
 
-Steps 2 and 3 should be repeated each time a new voter is simulated.
+Steps 4 and 5 should be repeated each time a new voter is simulated.
 ### 4) Verify-App
 1) Open the verification web application in a browser: `http://localhost:5173/`
 2) Register a new voter
