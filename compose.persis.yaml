@@ -29,7 +29,7 @@ services:
       - evoting
 
   tally_app:
-    command: ["python3", "main.py", "100", "5", "3", "7"]
+    command: ["python3", "main.py", "250", "5", "3", "7"]
     build:
       context: ./Tally_app
     environment:
