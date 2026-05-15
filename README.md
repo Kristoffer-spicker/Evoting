@@ -46,6 +46,12 @@ Linux: `https://docs.docker.com/desktop/setup/install/linux/`
 
 Once Docker is running, the project can be started with the following commands:<br>
 
+For Macbook users: <br>
+a) `cd Database` into the Database folder <br>
+b) run `chmod +x zinit.sh`to make the script executable <br>
+c) `cd ..` out of the Database folder
+
+For all:
 1) Start by building the tallying servers: `docker compose -f compose.persis.yaml build`
 2) Then build the rest of the containers: `docker compose build`
 3) Start the database and tallying servers: `docker compose -f compose.persis.yaml up -d`
